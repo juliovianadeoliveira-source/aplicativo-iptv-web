@@ -60,11 +60,11 @@ body.dashboard-page:after{content:"";position:fixed;inset:0;opacity:.23;backgrou
 </section>
 <section id="moviesSection" class="content-section">
   <div class="section-head"><div><span class="eyebrow">VOD</span><h2>Filmes</h2></div><input type="search" id="moviesSearch" class="search-input" placeholder="Pesquisar filme..."></div>
-  <div class="media-layout"><aside id="moviesCategories" class="media-category-panel"><div class="empty-state">Carregando categorias...</div></aside><div class="media-results"><div style="margin-bottom:10px;color:#d9a596;font-size:10px">Resultados: <span id="visibleMovieCount">0</span></div><div id="moviesGrid" class="media-grid"><div class="empty-state">Abra esta seção para carregar.</div></div></div></div>
+  <div class="media-layout"><aside id="moviesCategories" class="media-category-panel"><div class="empty-state">Carregando categorias...</div></aside><div class="media-results"><div id="moviesGrid" class="media-grid"><div class="empty-state">Abra esta seção para carregar.</div></div></div></div>
 </section>
 <section id="seriesSection" class="content-section">
   <div class="section-head"><div><span class="eyebrow">TEMPORADAS</span><h2>Séries</h2></div><input type="search" id="seriesSearch" class="search-input" placeholder="Pesquisar série..."></div>
-  <div class="media-layout"><aside id="seriesCategories" class="media-category-panel"><div class="empty-state">Carregando categorias...</div></aside><div class="media-results"><div style="margin-bottom:10px;color:#d9a596;font-size:10px">Resultados: <span id="visibleSeriesCount">0</span></div><div id="seriesGrid" class="media-grid"><div class="empty-state">Abra esta seção para carregar.</div></div></div></div>
+  <div class="media-layout"><aside id="seriesCategories" class="media-category-panel"><div class="empty-state">Carregando categorias...</div></aside><div class="media-results"><div id="seriesGrid" class="media-grid"><div class="empty-state">Abra esta seção para carregar.</div></div></div></div>
 </section>
 <section id="favoritesSection" class="content-section"><div class="section-head"><div><span class="eyebrow">MINHA LISTA</span><h2>Favoritos</h2></div></div><div class="empty-state"><h3>Nenhum favorito ainda</h3><p>Seus conteúdos favoritos aparecerão aqui.</p></div></section>
 <section id="settingsSection" class="content-section"><div class="section-head"><div><span class="eyebrow">APLICATIVO</span><h2>Configurações</h2></div></div><div class="settings-card"><h3>Dados da conexão</h3><div class="setting-row"><span>Servidor</span><strong id="settingsServer">—</strong></div><div class="setting-row"><span>Usuário</span><strong id="settingsUsername">—</strong></div></div><button id="changeAccount" class="secondary-button">Trocar conta</button></section>
@@ -73,5 +73,6 @@ body.dashboard-page:after{content:"";position:fixed;inset:0;opacity:.23;backgrou
 <script src="app.js?v=20260822-5"></script>
 <script src="player-enhanced.js?v=20260822-4"></script>
 <script src="media-browser.js?v=20260822-1"></script>
+<script src="player-native-first.js?v=20260822-1"></script>
 </body>
 </html>

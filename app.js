@@ -1,6 +1,7 @@
 /* =========================================================
-   IPTV PLAYER - aplicação e reprodução
+   IPTV PLAYER - Web Player Xtream Codes
    ========================================================= */
+
 document.addEventListener("DOMContentLoaded", () => {
     initPasswordToggle();
     initLogin();
@@ -15,23 +16,26 @@ document.addEventListener("DOMContentLoaded", () => {
             window.location.href = "index.html";
             return;
         }
+
         setText("dashboardUsername", session.username);
         setText("serverAddress", session.server);
         setText("settingsServer", session.server);
         setText("settingsUsername", session.username);
+
         logoutButton.addEventListener("click", logout);
+        if (changeAccount) changeAccount.addEventListener("click", logout);
+
         setupPlayer();
         setupChannelSearch();
         loadDashboardContent(session);
     }
-
-    if (changeAccount) changeAccount.addEventListener("click", logout);
 });
 
 function initPasswordToggle() {
     const button = document.getElementById("showPassword");
     const password = document.getElementById("password");
     if (!button || !password) return;
+
     button.addEventListener("click", () => {
         const visible = password.type === "text";
         password.type = visible ? "password" : "text";
@@ -42,37 +46,96 @@ function initPasswordToggle() {
 function initLogin() {
     const form = document.getElementById("loginForm");
     if (!form) return;
+
     if (getSession()) {
         window.location.href = "dashboard.html";
         return;
     }
-    form.addEventListener("submit", event => {
+
+    form.addEventListener("submit", async event => {
         event.preventDefault();
-        const server = document.getElementById("server").value.trim();
-        const username = document.getElementById("username").value.trim();
-        const password = document.getElementById("password").value;
-        const remember = document.getElementById("remember").checked;
+
+        const serverInput = document.getElementById("server");
+        const usernameInput = document.getElementById("username");
+        const passwordInput = document.getElementById("password");
+        const rememberInput = document.getElementById("remember");
         const message = document.getElementById("loginMessage");
+        const button = document.getElementById("loginButton");
+
+        const server = serverInput.value.trim();
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+        const remember = rememberInput.checked;
+
         if (!server || !username || !password) {
             showMessage(message, "Preencha todos os campos.", false);
             return;
         }
+
         let url;
-        try { url = new URL(server); } catch {
-            showMessage(message, "Digite uma URL válida.", false);
+        try {
+            url = new URL(server);
+        } catch {
+            showMessage(message, "Digite uma URL válida. Exemplo: https://servidor.com", false);
             return;
         }
+
         if (!["http:", "https:"].includes(url.protocol)) {
             showMessage(message, "A URL precisa utilizar HTTP ou HTTPS.", false);
             return;
         }
-        const session = { server: url.origin, username, password, loggedAt: new Date().toISOString() };
-        localStorage.removeItem("iptvSession");
-        sessionStorage.removeItem("iptvSession");
-        (remember ? localStorage : sessionStorage).setItem("iptvSession", JSON.stringify(session));
-        showMessage(message, "Conectando...", true);
-        setTimeout(() => { window.location.href = "dashboard.html"; }, 300);
+
+        if (window.location.protocol === "https:" && url.protocol === "http:") {
+            showMessage(message, "Este site está em HTTPS, mas o servidor informado usa HTTP. O navegador pode bloquear a conexão por conteúdo misto.", false);
+            return;
+        }
+
+        const candidate = {
+            server: url.origin,
+            username,
+            password,
+            loggedAt: new Date().toISOString()
+        };
+
+        setLoginBusy(button, true);
+        showMessage(message, "Testando conexão com o servidor...", true);
+
+        try {
+            const auth = await xtreamRequest(candidate, "");
+            validateAuthentication(auth);
+
+            localStorage.removeItem("iptvSession");
+            sessionStorage.removeItem("iptvSession");
+            (remember ? localStorage : sessionStorage).setItem("iptvSession", JSON.stringify(candidate));
+
+            showMessage(message, "Conectado com sucesso. Abrindo player...", true);
+            window.location.href = "dashboard.html";
+        } catch (error) {
+            console.error("Login IPTV:", error);
+            showMessage(message, formatError(error), false);
+            setLoginBusy(button, false);
+        }
     });
+}
+
+function validateAuthentication(data) {
+    if (!data || typeof data !== "object") {
+        throw new Error("O servidor respondeu, mas não retornou dados válidos.");
+    }
+
+    const info = data.user_info;
+    if (!info) {
+        throw new Error("A resposta não contém user_info. Confira URL, usuário e senha.");
+    }
+
+    const auth = String(info.auth ?? "");
+    const status = String(info.status || "").toLowerCase();
+
+    if (auth === "0" || ["disabled", "banned", "expired"].includes(status)) {
+        if (status === "expired") throw new Error("Esta conta está expirada.");
+        if (status === "banned") throw new Error("Esta conta está bloqueada pelo servidor.");
+        throw new Error("Usuário ou senha recusados pelo servidor.");
+    }
 }
 
 async function loadDashboardContent(session) {
@@ -80,22 +143,39 @@ async function loadDashboardContent(session) {
     const moviesGrid = document.getElementById("moviesGrid");
     const seriesGrid = document.getElementById("seriesGrid");
     if (!channelsGrid) return;
+
     setConnectionStatus("Conectando...");
+
     try {
-        const [channels, movies, series] = await Promise.all([
+        const auth = await xtreamRequest(session, "");
+        validateAuthentication(auth);
+
+        const results = await Promise.allSettled([
             xtreamRequest(session, "get_live_streams"),
             xtreamRequest(session, "get_vod_streams"),
             xtreamRequest(session, "get_series")
         ]);
-        const channelList = Array.isArray(channels) ? channels : [];
-        const movieList = Array.isArray(movies) ? movies : [];
-        const seriesList = Array.isArray(series) ? series : [];
-        renderChannels(channelList, session);
-        renderMovies(movieList, session);
-        renderSeries(seriesList, session);
-        setText("channelCount", channelList.length);
-        setText("movieCount", movieList.length);
-        setText("seriesCount", seriesList.length);
+
+        const channels = results[0].status === "fulfilled" && Array.isArray(results[0].value) ? results[0].value : [];
+        const movies = results[1].status === "fulfilled" && Array.isArray(results[1].value) ? results[1].value : [];
+        const series = results[2].status === "fulfilled" && Array.isArray(results[2].value) ? results[2].value : [];
+
+        if (results[0].status === "fulfilled") renderChannels(channels, session);
+        else renderLoadError(channelsGrid, results[0].reason, "canais");
+
+        if (moviesGrid) {
+            if (results[1].status === "fulfilled") renderMovies(movies, session);
+            else renderLoadError(moviesGrid, results[1].reason, "filmes");
+        }
+
+        if (seriesGrid) {
+            if (results[2].status === "fulfilled") renderSeries(series, session);
+            else renderLoadError(seriesGrid, results[2].reason, "séries");
+        }
+
+        setText("channelCount", channels.length);
+        setText("movieCount", movies.length);
+        setText("seriesCount", series.length);
         setConnectionStatus("Conectado");
     } catch (error) {
         console.error("IPTV:", error);
@@ -112,14 +192,33 @@ async function xtreamRequest(session, action) {
     url.searchParams.set("username", session.username);
     url.searchParams.set("password", session.password);
     if (action) url.searchParams.set("action", action);
-    const response = await fetch(url.toString(), { method: "GET", cache: "no-store" });
-    if (!response.ok) throw new Error(`Servidor respondeu HTTP ${response.status}.`);
+
+    let response;
+    try {
+        response = await fetch(url.toString(), {
+            method: "GET",
+            cache: "no-store",
+            mode: "cors",
+            credentials: "omit"
+        });
+    } catch (error) {
+        const wrapped = new Error("Failed to fetch");
+        wrapped.cause = error;
+        throw wrapped;
+    }
+
+    if (!response.ok) {
+        throw new Error(`Servidor respondeu HTTP ${response.status}.`);
+    }
+
     const text = await response.text();
     let data;
-    try { data = JSON.parse(text); } catch {
-        throw new Error("A resposta não é JSON. A URL informada precisa apontar para um servidor Xtream Codes.");
+    try {
+        data = JSON.parse(text);
+    } catch {
+        throw new Error("A resposta não é JSON. Confira se a URL aponta para um servidor Xtream Codes compatível.");
     }
-    if (data && data.user_info && String(data.user_info.status || "").toLowerCase() === "disabled") throw new Error("Usuário ou senha recusados pelo servidor.");
+
     return data;
 }
 
@@ -131,42 +230,64 @@ function liveUrl(session, item) {
 function renderChannels(channels, session) {
     const grid = document.getElementById("channelsGrid");
     if (!grid) return;
+
     if (!channels.length) {
         grid.innerHTML = emptyStateHTML("📺", "Nenhum canal encontrado", "O servidor não retornou canais ao vivo para esta conta.");
         return;
     }
+
     grid.innerHTML = channels.map(item => {
         const name = escapeHTML(item.name || `Canal ${item.stream_id}`);
         const logo = item.stream_icon || "";
-        return `<button class="channel-item" type="button" data-name="${name}" data-stream-url="${escapeAttribute(liveUrl(session,item))}" data-title="${name}"><div class="channel-logo">${logo ? `<img src="${escapeAttribute(logo)}" alt="" loading="lazy">` : "📺"}</div><div class="channel-info"><strong>${name}</strong><span>${escapeHTML(item.category_name || "Canal ao vivo")}</span></div><span class="channel-play">▶</span></button>`;
+        const category = item.category_name || "Canal ao vivo";
+        return `<button class="channel-item" type="button" data-name="${escapeAttribute(name)}" data-stream-url="${escapeAttribute(liveUrl(session, item))}" data-title="${escapeAttribute(name)}"><div class="channel-logo">${logo ? `<img src="${escapeAttribute(logo)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : "📺"}</div><div class="channel-info"><strong>${name}</strong><span>${escapeHTML(category)}</span></div><span class="channel-play">▶</span></button>`;
     }).join("");
-    grid.querySelectorAll(".channel-item").forEach(item => item.addEventListener("click", () => openPlayer(item.dataset.streamUrl, item.dataset.title)));
+
+    grid.querySelectorAll(".channel-item").forEach(item => {
+        item.addEventListener("click", () => openPlayer(item.dataset.streamUrl, item.dataset.title));
+    });
 }
 
 function renderMovies(movies, session) {
     const grid = document.getElementById("moviesGrid");
     if (!grid) return;
-    if (!movies.length) { grid.innerHTML = emptyStateHTML("🎬", "Nenhum filme encontrado", "O servidor não retornou filmes para esta conta."); return; }
+
+    if (!movies.length) {
+        grid.innerHTML = emptyStateHTML("🎬", "Nenhum filme encontrado", "O servidor não retornou filmes para esta conta.");
+        return;
+    }
+
     grid.innerHTML = movies.map(item => {
         const name = escapeHTML(item.name || `Filme ${item.stream_id}`);
         const poster = item.stream_icon || item.cover || "";
         const ext = String(item.container_extension || "mp4").replace(/^\./, "");
         const url = `${String(session.server).replace(/\/+$/, "")}/movie/${encodeURIComponent(session.username)}/${encodeURIComponent(session.password)}/${encodeURIComponent(item.stream_id)}.${ext}`;
-        return `<button class="media-card" type="button" data-stream-url="${escapeAttribute(url)}" data-title="${name}"><div class="media-poster">${poster ? `<img src="${escapeAttribute(poster)}" alt="" loading="lazy">` : "🎬"}</div><strong>${name}</strong></button>`;
+        return `<button class="media-card" type="button" data-stream-url="${escapeAttribute(url)}" data-title="${escapeAttribute(name)}"><div class="media-poster">${poster ? `<img src="${escapeAttribute(poster)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : "🎬"}</div><strong>${name}</strong></button>`;
     }).join("");
-    grid.querySelectorAll(".media-card").forEach(item => item.addEventListener("click", () => openPlayer(item.dataset.streamUrl, item.dataset.title)));
+
+    grid.querySelectorAll(".media-card").forEach(item => {
+        item.addEventListener("click", () => openPlayer(item.dataset.streamUrl, item.dataset.title));
+    });
 }
 
 function renderSeries(series, session) {
     const grid = document.getElementById("seriesGrid");
     if (!grid) return;
-    if (!series.length) { grid.innerHTML = emptyStateHTML("📚", "Nenhuma série encontrada", "O servidor não retornou séries para esta conta."); return; }
+
+    if (!series.length) {
+        grid.innerHTML = emptyStateHTML("📚", "Nenhuma série encontrada", "O servidor não retornou séries para esta conta.");
+        return;
+    }
+
     grid.innerHTML = series.map(item => {
         const name = escapeHTML(item.name || `Série ${item.series_id}`);
         const poster = item.cover || item.cover_big || "";
-        return `<button class="media-card series-card" type="button" data-series-id="${escapeAttribute(item.series_id)}" data-title="${name}"><div class="media-poster">${poster ? `<img src="${escapeAttribute(poster)}" alt="" loading="lazy">` : "📚"}</div><strong>${name}</strong></button>`;
+        return `<button class="media-card series-card" type="button" data-series-id="${escapeAttribute(item.series_id)}" data-title="${escapeAttribute(name)}"><div class="media-poster">${poster ? `<img src="${escapeAttribute(poster)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : "📚"}</div><strong>${name}</strong></button>`;
     }).join("");
-    grid.querySelectorAll(".series-card").forEach(item => item.addEventListener("click", () => loadSeriesEpisodes(session, item.dataset.seriesId, item.dataset.title)));
+
+    grid.querySelectorAll(".series-card").forEach(item => {
+        item.addEventListener("click", () => loadSeriesEpisodes(session, item.dataset.seriesId, item.dataset.title));
+    });
 }
 
 async function loadSeriesEpisodes(session, seriesId, title) {
@@ -177,26 +298,46 @@ async function loadSeriesEpisodes(session, seriesId, title) {
         url.searchParams.set("password", session.password);
         url.searchParams.set("action", "get_series_info");
         url.searchParams.set("series_id", seriesId);
-        const response = await fetch(url.toString(), { cache: "no-store" });
+
+        const response = await fetch(url.toString(), { cache: "no-store", mode: "cors", credentials: "omit" });
         if (!response.ok) throw new Error("Falha ao consultar episódios.");
+
         const data = await response.json();
-        const episodes = Object.values(data.episodes || {}).flatMap(v => Array.isArray(v) ? v : []);
-        if (!episodes.length) { alert("Nenhum episódio disponível para esta série."); return; }
-        const ep = episodes[0];
-        const ext = String(ep.container_extension || "mp4").replace(/^\./, "");
-        const stream = `${String(session.server).replace(/\/+$/, "")}/series/${encodeURIComponent(session.username)}/${encodeURIComponent(session.password)}/${encodeURIComponent(ep.id)}.${ext}`;
-        openPlayer(stream, `${title} - Episódio ${ep.episode_num || 1}`);
-    } catch (error) { console.error(error); alert("Não foi possível carregar os episódios desta série."); }
+        const episodes = Object.values(data.episodes || {}).flatMap(value => Array.isArray(value) ? value : []);
+        if (!episodes.length) {
+            alert("Nenhum episódio disponível para esta série.");
+            return;
+        }
+
+        const episodeNumber = prompt(`A série possui ${episodes.length} episódio(s). Digite o número do episódio que deseja abrir:`, "1");
+        if (episodeNumber === null) return;
+
+        const wanted = Math.max(1, parseInt(episodeNumber, 10) || 1);
+        const episode = episodes.find(ep => Number(ep.episode_num) === wanted) || episodes[wanted - 1] || episodes[0];
+        const ext = String(episode.container_extension || "mp4").replace(/^\./, "");
+        const stream = `${String(session.server).replace(/\/+$/, "")}/series/${encodeURIComponent(session.username)}/${encodeURIComponent(session.password)}/${encodeURIComponent(episode.id)}.${ext}`;
+
+        openPlayer(stream, `${title} - Episódio ${episode.episode_num || wanted}`);
+    } catch (error) {
+        console.error(error);
+        alert(formatError(error));
+    }
 }
 
 let hlsInstance = null;
+
 function setupPlayer() {
     const modal = document.getElementById("playerModal");
     const close = document.getElementById("closePlayer");
     if (!modal || !close) return;
+
     close.addEventListener("click", closePlayer);
-    modal.addEventListener("click", e => { if (e.target === modal) closePlayer(); });
-    document.addEventListener("keydown", e => { if (e.key === "Escape") closePlayer(); });
+    modal.addEventListener("click", event => {
+        if (event.target === modal) closePlayer();
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") closePlayer();
+    });
 }
 
 function openPlayer(url, title) {
@@ -205,47 +346,193 @@ function openPlayer(url, title) {
     const titleElement = document.getElementById("playerTitle");
     const error = document.getElementById("playerError");
     if (!modal || !video) return;
-    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-    video.pause(); video.removeAttribute("src"); video.load();
+
+    if (window.location.protocol === "https:" && /^http:\/\//i.test(url)) {
+        modal.classList.add("open");
+        if (titleElement) titleElement.textContent = title || "Reproduzindo";
+        showPlayerError("O stream usa HTTP enquanto o Web Player está em HTTPS. O navegador bloqueia esse conteúdo misto. O servidor precisa fornecer o stream por HTTPS.");
+        return;
+    }
+
+    if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+    }
+
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+
     if (titleElement) titleElement.textContent = title || "Reproduzindo";
     if (error) error.textContent = "";
     modal.classList.add("open");
+
     const isHls = /\.m3u8(?:$|\?)/i.test(url);
+
     if (isHls && window.Hls && Hls.isSupported()) {
         hlsInstance = new Hls({ enableWorker: true, lowLatencyMode: true });
         hlsInstance.loadSource(url);
         hlsInstance.attachMedia(video);
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
-        hlsInstance.on(Hls.Events.ERROR, (_event, data) => { if (data && data.fatal) showPlayerError("Não foi possível reproduzir esta transmissão. Verifique se o canal está online e se o servidor permite acesso pelo navegador."); });
+        hlsInstance.on(Hls.Events.ERROR, (_event, data) => {
+            if (data && data.fatal) {
+                showPlayerError("Não foi possível reproduzir esta transmissão. O canal pode estar offline, o formato pode não ser aceito ou o servidor pode estar bloqueando o navegador/CORS.");
+            }
+        });
         return;
     }
+
     if (isHls && video.canPlayType("application/vnd.apple.mpegurl")) {
         video.src = url;
         video.addEventListener("loadedmetadata", () => video.play().catch(() => {}), { once: true });
         return;
     }
+
     video.src = url;
-    video.play().catch(() => showPlayerError("O navegador não iniciou o vídeo. Verifique o formato e o acesso do servidor."));
+    video.addEventListener("error", () => {
+        showPlayerError("O vídeo não pôde ser carregado. Verifique o formato do stream e se o servidor permite reprodução pelo navegador.");
+    }, { once: true });
+    video.play().catch(() => {
+        showPlayerError("O navegador não iniciou o vídeo. Clique em reproduzir ou verifique o formato e o acesso do servidor.");
+    });
 }
 
 function closePlayer() {
     const modal = document.getElementById("playerModal");
     const video = document.getElementById("videoPlayer");
-    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-    if (video) { video.pause(); video.removeAttribute("src"); video.load(); }
+
+    if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+    }
+
+    if (video) {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+    }
+
+    const error = document.getElementById("playerError");
+    if (error) error.textContent = "";
     if (modal) modal.classList.remove("open");
 }
-function showPlayerError(message) { const el = document.getElementById("playerError"); if (el) el.textContent = message; }
-function initNavigation() { document.querySelectorAll(".menu-item, .category-card").forEach(item => item.addEventListener("click", () => openSection(item.dataset.section))); }
-function setupChannelSearch() { const input = document.getElementById("channelSearch"); if (!input) return; input.addEventListener("input", e => { const value = e.target.value.toLowerCase().trim(); document.querySelectorAll(".channel-item").forEach(item => item.style.display = String(item.dataset.name || item.textContent).toLowerCase().includes(value) ? "" : "none"); }); }
-function openSection(section) { document.querySelectorAll(".content-section").forEach(item => item.classList.remove("active")); const selected = document.getElementById(`${section}Section`); if (selected) selected.classList.add("active"); document.querySelectorAll(".menu-item").forEach(item => item.classList.toggle("active", item.dataset.section === section)); }
-function getSession() { const data = localStorage.getItem("iptvSession") || sessionStorage.getItem("iptvSession"); if (!data) return null; try { return JSON.parse(data); } catch { localStorage.removeItem("iptvSession"); sessionStorage.removeItem("iptvSession"); return null; } }
-function logout() { localStorage.removeItem("iptvSession"); sessionStorage.removeItem("iptvSession"); closePlayer(); window.location.href = "index.html"; }
-function setText(id,value) { const el=document.getElementById(id); if(el) el.textContent=value; }
-function setConnectionStatus(text) { const el=document.querySelector(".connection-status"); if(el) el.innerHTML=`<span></span>${escapeHTML(text)}`; }
-function showMessage(el,text,success) { if(el){el.textContent=text;el.style.color=success?"#20d68b":"#ff7777";} }
-function renderLoadError(grid,error,type){grid.innerHTML=emptyStateHTML("⚠️",`Não foi possível carregar ${type}`,formatError(error));}
-function formatError(error){const msg=String(error&&error.message?error.message:error);if(msg.includes("Failed to fetch")||msg.includes("NetworkError"))return "O navegador bloqueou a conexão (CORS) ou o servidor está inacessível. O servidor precisa permitir acesso do navegador.";return msg||"Falha ao carregar conteúdo.";}
-function emptyStateHTML(icon,title,text){return `<div class="empty-state"><div>${icon}</div><h3>${escapeHTML(title)}</h3><p>${escapeHTML(text)}</p></div>`;}
-function escapeHTML(value){return String(value??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#039;");}
-function escapeAttribute(value){return escapeHTML(value);}
+
+function showPlayerError(message) {
+    const el = document.getElementById("playerError");
+    if (el) el.textContent = message;
+}
+
+function initNavigation() {
+    document.querySelectorAll(".menu-item, .category-card").forEach(item => {
+        item.addEventListener("click", () => openSection(item.dataset.section));
+    });
+}
+
+function setupChannelSearch() {
+    const input = document.getElementById("channelSearch");
+    if (!input) return;
+
+    input.addEventListener("input", event => {
+        const value = event.target.value.toLowerCase().trim();
+        document.querySelectorAll(".channel-item").forEach(item => {
+            item.style.display = String(item.dataset.name || item.textContent).toLowerCase().includes(value) ? "" : "none";
+        });
+    });
+}
+
+function openSection(section) {
+    if (!section) return;
+    document.querySelectorAll(".content-section").forEach(item => item.classList.remove("active"));
+    const selected = document.getElementById(`${section}Section`);
+    if (selected) selected.classList.add("active");
+    document.querySelectorAll(".menu-item").forEach(item => {
+        item.classList.toggle("active", item.dataset.section === section);
+    });
+}
+
+function getSession() {
+    const data = localStorage.getItem("iptvSession") || sessionStorage.getItem("iptvSession");
+    if (!data) return null;
+    try {
+        return JSON.parse(data);
+    } catch {
+        localStorage.removeItem("iptvSession");
+        sessionStorage.removeItem("iptvSession");
+        return null;
+    }
+}
+
+function logout() {
+    localStorage.removeItem("iptvSession");
+    sessionStorage.removeItem("iptvSession");
+    closePlayer();
+    window.location.href = "index.html";
+}
+
+function setLoginBusy(button, busy) {
+    if (!button) return;
+    button.disabled = busy;
+    button.style.opacity = busy ? ".65" : "";
+    button.style.cursor = busy ? "wait" : "";
+    const span = button.querySelector("span");
+    if (span) span.textContent = busy ? "CONECTANDO..." : "ENTRAR";
+}
+
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+function setConnectionStatus(text) {
+    const el = document.querySelector(".connection-status");
+    if (el) el.innerHTML = `<span></span>${escapeHTML(text)}`;
+}
+
+function showMessage(el, text, success) {
+    if (!el) return;
+    el.textContent = text;
+    el.style.color = success ? "#20d68b" : "#ff7777";
+}
+
+function renderLoadError(grid, error, type) {
+    grid.innerHTML = emptyStateHTML("⚠️", `Não foi possível carregar ${type}`, formatError(error));
+}
+
+function formatError(error) {
+    const msg = String(error && error.message ? error.message : error || "");
+
+    if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("Load failed")) {
+        return "Não foi possível acessar o servidor pelo navegador. Pode ser bloqueio de CORS, servidor fora do ar, DNS/SSL inválido ou bloqueio de rede. Para GitHub Pages, a API precisa aceitar requisições do navegador.";
+    }
+
+    if (/HTTP 401|HTTP 403/.test(msg)) {
+        return "O servidor recusou a requisição. Confira usuário, senha e permissões da conta.";
+    }
+
+    if (/HTTP 404/.test(msg)) {
+        return "player_api.php não foi encontrado nessa URL. Confira o endereço do servidor.";
+    }
+
+    if (/HTTP 5\d\d/.test(msg)) {
+        return "O servidor respondeu com erro interno. Tente novamente ou verifique o servidor.";
+    }
+
+    return msg || "Falha ao carregar conteúdo.";
+}
+
+function emptyStateHTML(icon, title, text) {
+    return `<div class="empty-state"><div>${icon}</div><h3>${escapeHTML(title)}</h3><p>${escapeHTML(text)}</p></div>`;
+}
+
+function escapeHTML(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function escapeAttribute(value) {
+    return escapeHTML(value);
+}

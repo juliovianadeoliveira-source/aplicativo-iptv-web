@@ -1,7 +1,8 @@
-/* PLAYER IPTV - HLS + MPEG-TS + server_info Xtream */
+/* PLAYER IPTV - HLS + MPEG-TS + VLC fallback + server_info Xtream */
 let enhancedMpegtsPlayer = null;
 let cachedServerInfo = null;
 let serverInfoPromise = null;
+let lastExternalPlayback = null;
 
 function destroyEnhancedPlayers() {
     try {
@@ -76,6 +77,31 @@ async function buildStreamHosts(session) {
     return hosts;
 }
 
+async function buildExternalHosts(session) {
+    const info = await getXtreamServerInfo(session);
+    const hosts = [];
+    const sessionBase = String(session.server || "").replace(/\/+$/, "");
+    const hostname = hostOnly(info.url || sessionBase);
+    const httpsPort = String(info.https_port || "").trim();
+    const normalPort = String(info.port || "").trim();
+
+    // VLC não sofre o bloqueio de mixed-content/CORS do navegador,
+    // então aqui mantemos tanto HTTP quanto HTTPS.
+    addHost(hosts, sessionBase);
+
+    if (hostname && normalPort && normalPort !== "0") {
+        addHost(hosts, `http://${hostname}${normalPort === "80" ? "" : `:${normalPort}`}`);
+    }
+    if (hostname) addHost(hosts, `http://${hostname}`);
+
+    if (hostname && httpsPort && httpsPort !== "0") {
+        addHost(hosts, `https://${hostname}${httpsPort === "443" ? "" : `:${httpsPort}`}`);
+    }
+    if (hostname) addHost(hosts, `https://${hostname}`);
+
+    return hosts;
+}
+
 function candidateList(hosts, session, streamId, extension) {
     const user = encodeURIComponent(session.username || "");
     const pass = encodeURIComponent(session.password || "");
@@ -97,6 +123,34 @@ function candidateList(hosts, session, streamId, extension) {
     return list;
 }
 
+async function prepareExternalPlayback(session, streamId, extension, title) {
+    const hosts = await buildExternalHosts(session);
+    const candidates = candidateList(hosts, session, streamId, extension);
+
+    // VLC costuma lidar muito bem com TS. Priorizamos o formato original,
+    // depois TS e por último HLS.
+    const ext = String(extension || "ts").replace(/^\./, "").toLowerCase();
+    const ordered = [
+        ...candidates.filter(c => c.url.toLowerCase().endsWith(`.${ext}`)),
+        ...candidates.filter(c => c.type === "mpegts"),
+        ...candidates.filter(c => c.type === "hls"),
+        ...candidates
+    ];
+
+    const unique = [];
+    ordered.forEach(item => {
+        if (!unique.some(x => x.url === item.url)) unique.push(item);
+    });
+
+    lastExternalPlayback = {
+        title: title || "Canal IPTV",
+        url: unique.length ? unique[0].url : "",
+        candidates: unique
+    };
+
+    return lastExternalPlayback;
+}
+
 async function openLiveChannel(session, streamId, extension, title) {
     const video = document.getElementById("videoPlayer");
     const placeholder = document.getElementById("playerPlaceholder");
@@ -108,9 +162,11 @@ async function openLiveChannel(session, streamId, extension, title) {
     setText("playerTitle", title || "Reproduzindo");
     setPlayerStatus("Localizando a melhor rota do canal...", "");
 
+    await prepareExternalPlayback(session, streamId, extension, title);
+
     const hosts = await buildStreamHosts(session);
     if (!hosts.length) {
-        setPlayerStatus("Este servidor não informou uma rota HTTPS utilizável para os streams. No GitHub Pages o Chrome não permite vídeo HTTP dentro de uma página HTTPS.", "error");
+        showVlcFallback("Este stream não tem rota HTTPS utilizável no navegador.");
         return;
     }
 
@@ -120,7 +176,7 @@ async function openLiveChannel(session, streamId, extension, title) {
 
 function tryEnhancedCandidate(candidates, index, video) {
     if (index >= candidates.length) {
-        setPlayerStatus("O canal não abriu por HTTPS. Isso normalmente significa que o servidor não libera CORS nos streams ou não oferece HLS/MPEG-TS por HTTPS. O catálogo funciona porque a API está acessível, mas o vídeo precisa das mesmas permissões.", "error");
+        showVlcFallback("O navegador bloqueou ou não conseguiu decodificar este stream.");
         return;
     }
 
@@ -233,6 +289,95 @@ function tryEnhancedCandidate(candidates, index, video) {
         video.play().catch(() => {});
     }, { once: true });
     setTimeout(() => { if (!done && video.readyState === 0) fail(); }, 5500);
+}
+
+function showVlcFallback(reason) {
+    const status = document.getElementById("playerStatus");
+    if (!status) return;
+
+    status.className = "player-status error";
+    status.innerHTML = "";
+
+    const message = document.createElement("div");
+    message.textContent = `${reason} Você pode abrir o mesmo canal no VLC, que não depende do CORS do GitHub Pages.`;
+    message.style.marginBottom = "10px";
+    status.appendChild(message);
+
+    const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.flexWrap = "wrap";
+    actions.style.gap = "8px";
+
+    const vlcButton = makePlayerAction("▶ Abrir no VLC", openCurrentInVlc);
+    const m3uButton = makePlayerAction("⬇ VLC (.m3u)", downloadCurrentM3U);
+    const copyButton = makePlayerAction("🔗 Copiar URL", copyCurrentStreamUrl);
+
+    actions.appendChild(vlcButton);
+    actions.appendChild(m3uButton);
+    actions.appendChild(copyButton);
+    status.appendChild(actions);
+}
+
+function makePlayerAction(label, handler) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.style.border = "1px solid rgba(255,255,255,.18)";
+    button.style.background = "rgba(255,255,255,.08)";
+    button.style.color = "#fff";
+    button.style.borderRadius = "8px";
+    button.style.padding = "7px 10px";
+    button.style.cursor = "pointer";
+    button.style.fontSize = "11px";
+    button.addEventListener("click", handler);
+    return button;
+}
+
+function openCurrentInVlc() {
+    if (!lastExternalPlayback || !lastExternalPlayback.url) return;
+    const url = lastExternalPlayback.url;
+    const ua = navigator.userAgent || "";
+
+    // Android: tenta abrir diretamente o VLC instalado.
+    if (/Android/i.test(ua)) {
+        const withoutScheme = url.replace(/^https?:\/\//i, "");
+        const scheme = /^https:\/\//i.test(url) ? "https" : "http";
+        window.location.href = `intent://${withoutScheme}#Intent;scheme=${scheme};package=org.videolan.vlc;end`;
+        return;
+    }
+
+    // Desktop/iOS: tenta o protocolo do VLC. Se o sistema não tiver
+    // associação para vlc://, o botão .m3u continua disponível logo ao lado.
+    window.location.href = `vlc://${url}`;
+}
+
+function downloadCurrentM3U() {
+    if (!lastExternalPlayback || !lastExternalPlayback.url) return;
+
+    const safeTitle = String(lastExternalPlayback.title || "canal")
+        .replace(/[\\/:*?"<>|]+/g, " ")
+        .trim() || "canal";
+
+    const content = `#EXTM3U\n#EXTINF:-1,${lastExternalPlayback.title || "Canal IPTV"}\n${lastExternalPlayback.url}\n`;
+    const blob = new Blob([content], { type: "audio/x-mpegurl;charset=utf-8" });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = `${safeTitle}.m3u`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+}
+
+async function copyCurrentStreamUrl() {
+    if (!lastExternalPlayback || !lastExternalPlayback.url) return;
+    try {
+        await navigator.clipboard.writeText(lastExternalPlayback.url);
+        setPlayerStatus("URL do canal copiada. Cole em Mídia > Abrir fluxo de rede no VLC.", "ok");
+    } catch (_) {
+        window.prompt("Copie a URL e cole no VLC:", lastExternalPlayback.url);
+    }
 }
 
 window.addEventListener("beforeunload", destroyEnhancedPlayers);

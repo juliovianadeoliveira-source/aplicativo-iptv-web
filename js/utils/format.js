@@ -1,0 +1,1 @@
+export function compact(n){return new Intl.NumberFormat('pt-BR',{notation:'compact'}).format(Number(n)||0)}export function dateTime(v){return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(v))}

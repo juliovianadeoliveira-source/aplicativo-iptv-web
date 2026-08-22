@@ -1,0 +1,1 @@
+:root{--bg:#070a11;--surface:#101624;--surface2:#151c2d;--text:#f7f8fc;--muted:#8f98aa;--accent:#7357ff;--line:rgba(255,255,255,.08)}*{box-sizing:border-box}html{color-scheme:dark}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}button,input{font:inherit}

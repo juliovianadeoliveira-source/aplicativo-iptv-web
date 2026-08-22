@@ -1,0 +1,1 @@
+@media(max-width:900px){.split-view{grid-template-columns:1fr}}@media(max-width:600px){.desktop-only{display:none!important}.mobile-full{width:100%!important}}

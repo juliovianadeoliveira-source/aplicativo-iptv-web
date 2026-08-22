@@ -1,0 +1,1 @@
+export function openModal(el){if(typeof el==='string')el=document.querySelector(el);el?.classList.add('open')}export function closeModal(el){if(typeof el==='string')el=document.querySelector(el);el?.classList.remove('open')}

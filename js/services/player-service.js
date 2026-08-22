@@ -1,0 +1,1 @@
+export function streamCandidates(base,user,pass,id,ext='ts'){const root=base.replace(/\/+$/,'');const p=`${encodeURIComponent(user)}/${encodeURIComponent(pass)}/${encodeURIComponent(id)}`;const out=[`${root}/live/${p}.m3u8`,`${root}/live/${p}.${String(ext).replace(/^\./,'')}`];return [...new Set(out)]}

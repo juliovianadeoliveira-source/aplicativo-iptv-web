@@ -1,0 +1,2 @@
+export function movieUrl(session,item){const ext=String(item.container_extension||'mp4').replace(/^\./,'');return `${session.server.replace(/\/+$/,'')}/movie/${encodeURIComponent(session.username)}/${encodeURIComponent(session.password)}/${item.stream_id}.${ext}`}
+export function filterMovies(items,q){q=(q||'').toLowerCase().trim();return !q?items:items.filter(x=>String(x.name||'').toLowerCase().includes(q))}

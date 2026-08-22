@@ -1,0 +1,12 @@
+name: Pages Check
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar arquivos principais
+        run: test -f index.html && test -f dashboard.html && test -f app.js && test -f style.css

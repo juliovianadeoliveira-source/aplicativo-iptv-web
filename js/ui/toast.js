@@ -1,0 +1,1 @@
+export function toast(message,type='info'){let el=document.getElementById('appToast');if(!el){el=document.createElement('div');el.id='appToast';document.body.appendChild(el)}el.className=`app-toast ${type}`;el.textContent=message;el.hidden=false;clearTimeout(el._t);el._t=setTimeout(()=>el.hidden=true,3500)}

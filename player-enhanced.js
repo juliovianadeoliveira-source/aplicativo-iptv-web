@@ -1,8 +1,25 @@
-/* PLAYER IPTV - HLS + MPEG-TS + VLC fallback + server_info Xtream */
+/* PLAYER IPTV - HLS + MPEG-TS + VLC + categorias de midia */
 let enhancedMpegtsPlayer = null;
 let cachedServerInfo = null;
 let serverInfoPromise = null;
-let lastExternalPlayback = null;
+let currentExternalStream = "";
+let currentExternalTitle = "Canal";
+let vodItemsEnhanced = [];
+let vodCategoriesEnhanced = [];
+let seriesItemsEnhanced = [];
+let seriesCategoriesEnhanced = [];
+let activeVodCategory = "all";
+let activeSeriesCategory = "all";
+
+const PLAYER_PREF_KEY = "iptvPreferredPlayer";
+
+function getPreferredPlayer() {
+    return localStorage.getItem(PLAYER_PREF_KEY) || "web";
+}
+
+function setPreferredPlayer(value) {
+    localStorage.setItem(PLAYER_PREF_KEY, value || "web");
+}
 
 function destroyEnhancedPlayers() {
     try {
@@ -53,51 +70,27 @@ function addHost(list, value) {
     if (!list.includes(clean)) list.push(clean);
 }
 
-async function buildStreamHosts(session) {
-    const info = await getXtreamServerInfo(session);
-    const hosts = [];
-    const pageIsHttps = window.location.protocol === "https:";
-    const sessionBase = String(session.server || "").replace(/\/+$/, "");
-    const hostname = hostOnly(info.url || sessionBase);
-    const httpsPort = String(info.https_port || "").trim();
-    const normalPort = String(info.port || "").trim();
-
-    if (pageIsHttps) {
-        if (hostname && httpsPort && httpsPort !== "0") {
-            addHost(hosts, `https://${hostname}${httpsPort === "443" ? "" : `:${httpsPort}`}`);
-        }
-        if (/^https:\/\//i.test(sessionBase)) addHost(hosts, sessionBase);
-        if (hostname) addHost(hosts, `https://${hostname}`);
-    } else {
-        addHost(hosts, sessionBase);
-        if (hostname && normalPort && normalPort !== "0") addHost(hosts, `http://${hostname}${normalPort === "80" ? "" : `:${normalPort}`}`);
-        if (hostname && httpsPort && httpsPort !== "0") addHost(hosts, `https://${hostname}${httpsPort === "443" ? "" : `:${httpsPort}`}`);
-    }
-
-    return hosts;
-}
-
-async function buildExternalHosts(session) {
+async function buildStreamHosts(session, includeHttp = false) {
     const info = await getXtreamServerInfo(session);
     const hosts = [];
     const sessionBase = String(session.server || "").replace(/\/+$/, "");
     const hostname = hostOnly(info.url || sessionBase);
     const httpsPort = String(info.https_port || "").trim();
     const normalPort = String(info.port || "").trim();
-
-    // VLC não sofre o bloqueio de mixed-content/CORS do navegador,
-    // então aqui mantemos tanto HTTP quanto HTTPS.
-    addHost(hosts, sessionBase);
-
-    if (hostname && normalPort && normalPort !== "0") {
-        addHost(hosts, `http://${hostname}${normalPort === "80" ? "" : `:${normalPort}`}`);
-    }
-    if (hostname) addHost(hosts, `http://${hostname}`);
 
     if (hostname && httpsPort && httpsPort !== "0") {
         addHost(hosts, `https://${hostname}${httpsPort === "443" ? "" : `:${httpsPort}`}`);
     }
+    if (/^https:\/\//i.test(sessionBase)) addHost(hosts, sessionBase);
     if (hostname) addHost(hosts, `https://${hostname}`);
+
+    if (includeHttp) {
+        if (/^http:\/\//i.test(sessionBase)) addHost(hosts, sessionBase);
+        if (hostname && normalPort && normalPort !== "0") {
+            addHost(hosts, `http://${hostname}${normalPort === "80" ? "" : `:${normalPort}`}`);
+        }
+        if (hostname) addHost(hosts, `http://${hostname}`);
+    }
 
     return hosts;
 }
@@ -119,39 +112,37 @@ function candidateList(hosts, session, streamId, extension) {
         add(`${host}/live/${path}.ts`, "mpegts");
         if (ext !== "m3u8" && ext !== "ts") add(`${host}/live/${path}.${ext}`, "native");
     });
-
     return list;
 }
 
-async function prepareExternalPlayback(session, streamId, extension, title) {
-    const hosts = await buildExternalHosts(session);
-    const candidates = candidateList(hosts, session, streamId, extension);
-
-    // VLC costuma lidar muito bem com TS. Priorizamos o formato original,
-    // depois TS e por último HLS.
-    const ext = String(extension || "ts").replace(/^\./, "").toLowerCase();
-    const ordered = [
-        ...candidates.filter(c => c.url.toLowerCase().endsWith(`.${ext}`)),
-        ...candidates.filter(c => c.type === "mpegts"),
-        ...candidates.filter(c => c.type === "hls"),
-        ...candidates
-    ];
-
-    const unique = [];
-    ordered.forEach(item => {
-        if (!unique.some(x => x.url === item.url)) unique.push(item);
-    });
-
-    lastExternalPlayback = {
-        title: title || "Canal IPTV",
-        url: unique.length ? unique[0].url : "",
-        candidates: unique
-    };
-
-    return lastExternalPlayback;
+async function getExternalStream(session, streamId, extension) {
+    const hosts = await buildStreamHosts(session, true);
+    const list = candidateList(hosts, session, streamId, extension);
+    const httpTs = list.find(x => /^http:\/\//i.test(x.url) && /\.ts(?:$|\?)/i.test(x.url));
+    const anyHttp = list.find(x => /^http:\/\//i.test(x.url));
+    const anyTs = list.find(x => /\.ts(?:$|\?)/i.test(x.url));
+    return (httpTs || anyHttp || anyTs || list[0] || {}).url || "";
 }
 
 async function openLiveChannel(session, streamId, extension, title) {
+    const pref = getPreferredPlayer();
+    currentExternalTitle = title || "Canal";
+    currentExternalStream = await getExternalStream(session, streamId, extension);
+
+    if (pref === "vlc") {
+        openInVlc(currentExternalStream);
+        return;
+    }
+    if (pref === "m3u") {
+        downloadM3U(currentExternalStream, currentExternalTitle);
+        return;
+    }
+    if (pref === "copy") {
+        await copyStreamUrl(currentExternalStream);
+        setPlayerStatus("URL do canal copiada. Abra no seu player externo.", "ok");
+        return;
+    }
+
     const video = document.getElementById("videoPlayer");
     const placeholder = document.getElementById("playerPlaceholder");
     if (!video || !session) return;
@@ -162,11 +153,9 @@ async function openLiveChannel(session, streamId, extension, title) {
     setText("playerTitle", title || "Reproduzindo");
     setPlayerStatus("Localizando a melhor rota do canal...", "");
 
-    await prepareExternalPlayback(session, streamId, extension, title);
-
-    const hosts = await buildStreamHosts(session);
+    const hosts = await buildStreamHosts(session, false);
     if (!hosts.length) {
-        showVlcFallback("Este stream não tem rota HTTPS utilizável no navegador.");
+        showExternalFallback("O servidor não informou uma rota HTTPS para o navegador.");
         return;
     }
 
@@ -176,7 +165,7 @@ async function openLiveChannel(session, streamId, extension, title) {
 
 function tryEnhancedCandidate(candidates, index, video) {
     if (index >= candidates.length) {
-        showVlcFallback("O navegador bloqueou ou não conseguiu decodificar este stream.");
+        showExternalFallback("O canal não abriu no player web. Você pode abrir no VLC abaixo.");
         return;
     }
 
@@ -201,30 +190,18 @@ function tryEnhancedCandidate(candidates, index, video) {
                     maxBufferLength: 25
                 });
                 let failed = false;
-                const fail = () => {
-                    if (failed) return;
-                    failed = true;
-                    next();
-                };
+                const fail = () => { if (!failed) { failed = true; next(); } };
                 hlsInstance.loadSource(candidate.url);
                 hlsInstance.attachMedia(video);
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
                     setPlayerStatus("Canal carregado.", "ok");
                     video.play().catch(() => setPlayerStatus("Canal carregado. Clique no ▶ do vídeo.", "ok"));
                 });
-                hlsInstance.on(Hls.Events.ERROR, (_event, data) => {
-                    if (data && data.fatal) fail();
-                });
-                setTimeout(() => {
-                    if (video.readyState === 0) fail();
-                }, 6500);
+                hlsInstance.on(Hls.Events.ERROR, (_event, data) => { if (data && data.fatal) fail(); });
+                setTimeout(() => { if (video.readyState === 0) fail(); }, 6500);
                 return;
-            } catch (_) {
-                next();
-                return;
-            }
+            } catch (_) { next(); return; }
         }
-
         if (video.canPlayType("application/vnd.apple.mpegurl")) {
             let done = false;
             const fail = () => { if (!done) { done = true; next(); } };
@@ -238,31 +215,19 @@ function tryEnhancedCandidate(candidates, index, video) {
             setTimeout(() => { if (!done && video.readyState === 0) fail(); }, 6000);
             return;
         }
-
-        next();
-        return;
+        next(); return;
     }
 
     if (candidate.type === "mpegts" && window.mpegts && mpegts.isSupported()) {
         try {
-            enhancedMpegtsPlayer = mpegts.createPlayer({
-                type: "mpegts",
-                isLive: true,
-                url: candidate.url
-            }, {
+            enhancedMpegtsPlayer = mpegts.createPlayer({ type: "mpegts", isLive: true, url: candidate.url }, {
                 enableWorker: true,
                 enableStashBuffer: false,
                 stashInitialSize: 128,
                 liveBufferLatencyChasing: true
             });
-
             let failed = false;
-            const fail = () => {
-                if (failed) return;
-                failed = true;
-                next();
-            };
-
+            const fail = () => { if (!failed) { failed = true; next(); } };
             enhancedMpegtsPlayer.attachMediaElement(video);
             enhancedMpegtsPlayer.load();
             enhancedMpegtsPlayer.on(mpegts.Events.ERROR, fail);
@@ -272,10 +237,7 @@ function tryEnhancedCandidate(candidates, index, video) {
             }, { once: true });
             setTimeout(() => { if (video.readyState === 0) fail(); }, 6500);
             return;
-        } catch (_) {
-            next();
-            return;
-        }
+        } catch (_) { next(); return; }
     }
 
     let done = false;
@@ -291,93 +253,180 @@ function tryEnhancedCandidate(candidates, index, video) {
     setTimeout(() => { if (!done && video.readyState === 0) fail(); }, 5500);
 }
 
-function showVlcFallback(reason) {
+function showExternalFallback(message) {
     const status = document.getElementById("playerStatus");
     if (!status) return;
-
-    status.className = "player-status error";
-    status.innerHTML = "";
-
-    const message = document.createElement("div");
-    message.textContent = `${reason} Você pode abrir o mesmo canal no VLC, que não depende do CORS do GitHub Pages.`;
-    message.style.marginBottom = "10px";
-    status.appendChild(message);
-
-    const actions = document.createElement("div");
-    actions.style.display = "flex";
-    actions.style.flexWrap = "wrap";
-    actions.style.gap = "8px";
-
-    const vlcButton = makePlayerAction("▶ Abrir no VLC", openCurrentInVlc);
-    const m3uButton = makePlayerAction("⬇ VLC (.m3u)", downloadCurrentM3U);
-    const copyButton = makePlayerAction("🔗 Copiar URL", copyCurrentStreamUrl);
-
-    actions.appendChild(vlcButton);
-    actions.appendChild(m3uButton);
-    actions.appendChild(copyButton);
-    status.appendChild(actions);
+    status.classList.add("error");
+    status.innerHTML = `${escapeHTML(message)}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button type="button" id="vlcOpenBtn" style="padding:8px 11px;border:0;border-radius:9px;background:#ff6a00;color:#fff;cursor:pointer">▶ Abrir no VLC</button>
+        <button type="button" id="vlcM3uBtn" style="padding:8px 11px;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:#27100b;color:#fff;cursor:pointer">Baixar .m3u</button>
+        <button type="button" id="copyStreamBtn" style="padding:8px 11px;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:#27100b;color:#fff;cursor:pointer">Copiar URL</button>
+    </div>`;
+    document.getElementById("vlcOpenBtn")?.addEventListener("click", () => openInVlc(currentExternalStream));
+    document.getElementById("vlcM3uBtn")?.addEventListener("click", () => downloadM3U(currentExternalStream, currentExternalTitle));
+    document.getElementById("copyStreamBtn")?.addEventListener("click", () => copyStreamUrl(currentExternalStream));
 }
 
-function makePlayerAction(label, handler) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = label;
-    button.style.border = "1px solid rgba(255,255,255,.18)";
-    button.style.background = "rgba(255,255,255,.08)";
-    button.style.color = "#fff";
-    button.style.borderRadius = "8px";
-    button.style.padding = "7px 10px";
-    button.style.cursor = "pointer";
-    button.style.fontSize = "11px";
-    button.addEventListener("click", handler);
-    return button;
-}
-
-function openCurrentInVlc() {
-    if (!lastExternalPlayback || !lastExternalPlayback.url) return;
-    const url = lastExternalPlayback.url;
-    const ua = navigator.userAgent || "";
-
-    // Android: tenta abrir diretamente o VLC instalado.
-    if (/Android/i.test(ua)) {
-        const withoutScheme = url.replace(/^https?:\/\//i, "");
-        const scheme = /^https:\/\//i.test(url) ? "https" : "http";
-        window.location.href = `intent://${withoutScheme}#Intent;scheme=${scheme};package=org.videolan.vlc;end`;
-        return;
-    }
-
-    // Desktop/iOS: tenta o protocolo do VLC. Se o sistema não tiver
-    // associação para vlc://, o botão .m3u continua disponível logo ao lado.
+function openInVlc(url) {
+    if (!url) return;
     window.location.href = `vlc://${url}`;
 }
 
-function downloadCurrentM3U() {
-    if (!lastExternalPlayback || !lastExternalPlayback.url) return;
-
-    const safeTitle = String(lastExternalPlayback.title || "canal")
-        .replace(/[\\/:*?"<>|]+/g, " ")
-        .trim() || "canal";
-
-    const content = `#EXTM3U\n#EXTINF:-1,${lastExternalPlayback.title || "Canal IPTV"}\n${lastExternalPlayback.url}\n`;
-    const blob = new Blob([content], { type: "audio/x-mpegurl;charset=utf-8" });
-    const objectUrl = URL.createObjectURL(blob);
+function downloadM3U(url, title) {
+    if (!url) return;
+    const text = `#EXTM3U\n#EXTINF:-1,${String(title || "Canal").replace(/[\r\n]/g, " ")}\n${url}\n`;
+    const blob = new Blob([text], { type: "audio/x-mpegurl" });
     const link = document.createElement("a");
-    link.href = objectUrl;
-    link.download = `${safeTitle}.m3u`;
+    link.href = URL.createObjectURL(blob);
+    link.download = `${safeFileName(title || "canal")}.m3u`;
     document.body.appendChild(link);
     link.click();
     link.remove();
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
-async function copyCurrentStreamUrl() {
-    if (!lastExternalPlayback || !lastExternalPlayback.url) return;
-    try {
-        await navigator.clipboard.writeText(lastExternalPlayback.url);
-        setPlayerStatus("URL do canal copiada. Cole em Mídia > Abrir fluxo de rede no VLC.", "ok");
-    } catch (_) {
-        window.prompt("Copie a URL e cole no VLC:", lastExternalPlayback.url);
+async function copyStreamUrl(url) {
+    if (!url) return;
+    try { await navigator.clipboard.writeText(url); }
+    catch (_) {
+        const ta = document.createElement("textarea"); ta.value = url; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove();
     }
 }
+
+function safeFileName(value) {
+    return String(value).replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 80) || "canal";
+}
+
+/* ==================== FILMES / SERIES ==================== */
+async function loadMovies() {
+    moviesLoaded = true;
+    const grid = document.getElementById("moviesGrid");
+    if (!grid || !activeSession) return;
+    ensureMediaTools("movies");
+    grid.innerHTML = `<div class="empty-state"><div>⏳</div><h3>Carregando filmes...</h3></div>`;
+    try {
+        const [items, categories] = await Promise.all([
+            xtreamRequest(activeSession, "get_vod_streams"),
+            xtreamRequest(activeSession, "get_vod_categories").catch(() => [])
+        ]);
+        vodItemsEnhanced = Array.isArray(items) ? items : [];
+        vodCategoriesEnhanced = Array.isArray(categories) ? categories : [];
+        setText("movieCount", vodItemsEnhanced.length);
+        renderMediaCategoryOptions("movies");
+        renderEnhancedMovies();
+    } catch (error) {
+        grid.innerHTML = emptyStateHTML("⚠️", "Não foi possível carregar filmes", formatError(error));
+    }
+}
+
+async function loadSeries() {
+    seriesLoaded = true;
+    const grid = document.getElementById("seriesGrid");
+    if (!grid || !activeSession) return;
+    ensureMediaTools("series");
+    grid.innerHTML = `<div class="empty-state"><div>⏳</div><h3>Carregando séries...</h3></div>`;
+    try {
+        const [items, categories] = await Promise.all([
+            xtreamRequest(activeSession, "get_series"),
+            xtreamRequest(activeSession, "get_series_categories").catch(() => [])
+        ]);
+        seriesItemsEnhanced = Array.isArray(items) ? items : [];
+        seriesCategoriesEnhanced = Array.isArray(categories) ? categories : [];
+        setText("seriesCount", seriesItemsEnhanced.length);
+        renderMediaCategoryOptions("series");
+        renderEnhancedSeries();
+    } catch (error) {
+        grid.innerHTML = emptyStateHTML("⚠️", "Não foi possível carregar séries", formatError(error));
+    }
+}
+
+function ensureMediaTools(type) {
+    const section = document.getElementById(type === "movies" ? "moviesSection" : "seriesSection");
+    if (!section || section.querySelector(`.media-tools[data-type="${type}"]`)) return;
+    const grid = document.getElementById(type === "movies" ? "moviesGrid" : "seriesGrid");
+    const tools = document.createElement("div");
+    tools.className = "media-tools";
+    tools.dataset.type = type;
+    tools.style.cssText = "display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px";
+    tools.innerHTML = `<select id="${type}CategoryFilter" style="min-width:220px;height:43px;border-radius:12px;border:1px solid rgba(255,130,60,.22);background:#260b07;color:#fff;padding:0 12px"><option value="all">Todas as categorias</option></select>
+    <input id="${type}Search" type="search" placeholder="Pesquisar ${type === "movies" ? "filme" : "série"}..." style="flex:1;min-width:220px;height:43px;border-radius:12px;border:1px solid rgba(255,130,60,.22);background:#260b07;color:#fff;padding:0 13px">`;
+    grid.parentNode.insertBefore(tools, grid);
+
+    document.getElementById(`${type}CategoryFilter`).addEventListener("change", e => {
+        if (type === "movies") { activeVodCategory = e.target.value; renderEnhancedMovies(); }
+        else { activeSeriesCategory = e.target.value; renderEnhancedSeries(); }
+    });
+    document.getElementById(`${type}Search`).addEventListener("input", () => {
+        if (type === "movies") renderEnhancedMovies(); else renderEnhancedSeries();
+    });
+}
+
+function renderMediaCategoryOptions(type) {
+    const select = document.getElementById(`${type}CategoryFilter`);
+    if (!select) return;
+    const cats = type === "movies" ? vodCategoriesEnhanced : seriesCategoriesEnhanced;
+    select.innerHTML = `<option value="all">Todas as categorias</option>` + cats.map(cat => `<option value="${escapeAttribute(cat.category_id)}">${escapeHTML(cat.category_name || "Sem categoria")}</option>`).join("");
+}
+
+function enhancedCategoryName(type, id) {
+    const cats = type === "movies" ? vodCategoriesEnhanced : seriesCategoriesEnhanced;
+    const found = cats.find(c => String(c.category_id) === String(id));
+    return found ? (found.category_name || "Sem categoria") : "Sem categoria";
+}
+
+function renderEnhancedMovies() {
+    const grid = document.getElementById("moviesGrid"); if (!grid) return;
+    const q = (document.getElementById("moviesSearch")?.value || "").toLowerCase().trim();
+    let list = vodItemsEnhanced;
+    if (activeVodCategory !== "all") list = list.filter(x => String(x.category_id) === String(activeVodCategory));
+    if (q) list = list.filter(x => String(x.name || "").toLowerCase().includes(q));
+    list = list.slice(0, 500);
+    if (!list.length) { grid.innerHTML = emptyStateHTML("🎬", "Nenhum filme encontrado", ""); return; }
+    grid.innerHTML = list.map(item => {
+        const raw = item.name || `Filme ${item.stream_id}`;
+        const poster = item.stream_icon || item.cover || "";
+        return `<button class="media-card" type="button"><div class="media-poster">${poster ? `<img src="${escapeAttribute(poster)}" alt="" loading="lazy">` : "🎬"}</div><strong>${escapeHTML(raw)}</strong><small style="display:block;padding:0 12px 12px;color:#c89585">${escapeHTML(enhancedCategoryName("movies", item.category_id))}</small></button>`;
+    }).join("");
+}
+
+function renderEnhancedSeries() {
+    const grid = document.getElementById("seriesGrid"); if (!grid) return;
+    const q = (document.getElementById("seriesSearch")?.value || "").toLowerCase().trim();
+    let list = seriesItemsEnhanced;
+    if (activeSeriesCategory !== "all") list = list.filter(x => String(x.category_id) === String(activeSeriesCategory));
+    if (q) list = list.filter(x => String(x.name || "").toLowerCase().includes(q));
+    list = list.slice(0, 500);
+    if (!list.length) { grid.innerHTML = emptyStateHTML("📚", "Nenhuma série encontrada", ""); return; }
+    grid.innerHTML = list.map(item => {
+        const raw = item.name || `Série ${item.series_id}`;
+        const poster = item.cover || item.cover_big || "";
+        return `<button class="media-card" type="button"><div class="media-poster">${poster ? `<img src="${escapeAttribute(poster)}" alt="" loading="lazy">` : "📚"}</div><strong>${escapeHTML(raw)}</strong><small style="display:block;padding:0 12px 12px;color:#c89585">${escapeHTML(enhancedCategoryName("series", item.category_id))}</small></button>`;
+    }).join("");
+}
+
+/* ==================== CONFIGURACOES ==================== */
+function installPlayerSettings() {
+    const settings = document.getElementById("settingsSection");
+    if (!settings || document.getElementById("preferredPlayer")) return;
+    const card = settings.querySelector(".settings-card") || settings;
+    const box = document.createElement("div");
+    box.style.cssText = "margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)";
+    box.innerHTML = `<h3 style="margin:0 0 12px">Player dos canais</h3>
+        <div class="setting-row"><span>Abrir canais com</span><select id="preferredPlayer" style="min-width:220px;height:40px;border-radius:10px;border:1px solid rgba(255,130,60,.22);background:#260b07;color:#fff;padding:0 10px">
+            <option value="web">Player Web (HLS / MPEG-TS)</option>
+            <option value="vlc">VLC direto</option>
+            <option value="m3u">VLC por arquivo .m3u</option>
+            <option value="copy">Copiar URL do canal</option>
+        </select></div>
+        <p style="font-size:10px;color:#c89585;margin:10px 0 0">Se o servidor bloquear o navegador, use VLC direto ou arquivo .m3u.</p>`;
+    card.appendChild(box);
+    const select = document.getElementById("preferredPlayer");
+    select.value = getPreferredPlayer();
+    select.addEventListener("change", e => setPreferredPlayer(e.target.value));
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", installPlayerSettings);
+} else installPlayerSettings();
 
 window.addEventListener("beforeunload", destroyEnhancedPlayers);

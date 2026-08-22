@@ -85,11 +85,6 @@ function initLogin() {
             return;
         }
 
-        if (window.location.protocol === "https:" && url.protocol === "http:") {
-            showMessage(message, "Este site está em HTTPS, mas o servidor informado usa HTTP. O navegador pode bloquear a conexão por conteúdo misto.", false);
-            return;
-        }
-
         const candidate = {
             server: url.origin,
             username,
@@ -98,11 +93,12 @@ function initLogin() {
         };
 
         setLoginBusy(button, true);
-        showMessage(message, "Testando conexão com o servidor...", true);
+        showMessage(message, "Testando HTTP/HTTPS com o servidor...", true);
 
         try {
-            const auth = await xtreamRequest(candidate, "");
-            validateAuthentication(auth);
+            const tested = await testConnectionCandidates(candidate);
+            validateAuthentication(tested.data);
+            candidate.server = tested.server;
 
             localStorage.removeItem("iptvSession");
             sessionStorage.removeItem("iptvSession");
@@ -116,6 +112,37 @@ function initLogin() {
             setLoginBusy(button, false);
         }
     });
+}
+
+async function testConnectionCandidates(session) {
+    const original = String(session.server).replace(/\/+$/, "");
+    const candidates = [];
+
+    const add = value => {
+        if (value && !candidates.includes(value)) candidates.push(value);
+    };
+
+    if (window.location.protocol === "https:" && /^http:\/\//i.test(original)) {
+        add(original.replace(/^http:\/\//i, "https://"));
+        add(original);
+    } else {
+        add(original);
+        if (/^https:\/\//i.test(original)) add(original.replace(/^https:\/\//i, "http://"));
+        if (/^http:\/\//i.test(original)) add(original.replace(/^http:\/\//i, "https://"));
+    }
+
+    let lastError = null;
+    for (const server of candidates) {
+        try {
+            const data = await xtreamRequest({ ...session, server }, "");
+            validateAuthentication(data);
+            return { server, data };
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    throw lastError || new Error("Não foi possível conectar ao servidor por HTTP ou HTTPS.");
 }
 
 function validateAuthentication(data) {
@@ -345,14 +372,7 @@ function openPlayer(url, title) {
     const video = document.getElementById("videoPlayer");
     const titleElement = document.getElementById("playerTitle");
     const error = document.getElementById("playerError");
-    if (!modal || !video) return;
-
-    if (window.location.protocol === "https:" && /^http:\/\//i.test(url)) {
-        modal.classList.add("open");
-        if (titleElement) titleElement.textContent = title || "Reproduzindo";
-        showPlayerError("O stream usa HTTP enquanto o Web Player está em HTTPS. O navegador bloqueia esse conteúdo misto. O servidor precisa fornecer o stream por HTTPS.");
-        return;
-    }
+    if (!modal || !video || !url) return;
 
     if (hlsInstance) {
         hlsInstance.destroy();
@@ -367,33 +387,71 @@ function openPlayer(url, title) {
     if (error) error.textContent = "";
     modal.classList.add("open");
 
+    const candidates = streamCandidates(url);
+    playStreamCandidates(candidates, 0, video);
+}
+
+function streamCandidates(url) {
+    const original = String(url);
+    const list = [];
+    const add = value => { if (value && !list.includes(value)) list.push(value); };
+
+    if (window.location.protocol === "https:" && /^http:\/\//i.test(original)) {
+        add(original.replace(/^http:\/\//i, "https://"));
+        add(original);
+    } else {
+        add(original);
+        if (/^https:\/\//i.test(original)) add(original.replace(/^https:\/\//i, "http://"));
+        if (/^http:\/\//i.test(original)) add(original.replace(/^http:\/\//i, "https://"));
+    }
+    return list;
+}
+
+function playStreamCandidates(candidates, index, video) {
+    if (index >= candidates.length) {
+        showPlayerError("Não foi possível abrir este canal. O servidor pode estar bloqueando CORS/conteúdo misto, o canal pode estar offline ou o formato pode não ser compatível com o navegador.");
+        return;
+    }
+
+    const url = candidates[index];
+    const next = () => {
+        if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+        playStreamCandidates(candidates, index + 1, video);
+    };
+
     const isHls = /\.m3u8(?:$|\?)/i.test(url);
 
     if (isHls && window.Hls && Hls.isSupported()) {
         hlsInstance = new Hls({ enableWorker: true, lowLatencyMode: true });
+        let advanced = false;
+        const fail = () => { if (!advanced) { advanced = true; next(); } };
         hlsInstance.loadSource(url);
         hlsInstance.attachMedia(video);
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.play().catch(() => {
+                showPlayerError("Canal carregado. Clique no botão ▶ do vídeo para iniciar.");
+            });
+        });
         hlsInstance.on(Hls.Events.ERROR, (_event, data) => {
-            if (data && data.fatal) {
-                showPlayerError("Não foi possível reproduzir esta transmissão. O canal pode estar offline, o formato pode não ser aceito ou o servidor pode estar bloqueando o navegador/CORS.");
-            }
+            if (data && data.fatal) fail();
         });
         return;
     }
 
-    if (isHls && video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = url;
-        video.addEventListener("loadedmetadata", () => video.play().catch(() => {}), { once: true });
-        return;
-    }
-
+    const onError = () => {
+        video.removeEventListener("error", onError);
+        next();
+    };
+    video.addEventListener("error", onError, { once: true });
     video.src = url;
-    video.addEventListener("error", () => {
-        showPlayerError("O vídeo não pôde ser carregado. Verifique o formato do stream e se o servidor permite reprodução pelo navegador.");
-    }, { once: true });
+    video.load();
     video.play().catch(() => {
-        showPlayerError("O navegador não iniciou o vídeo. Clique em reproduzir ou verifique o formato e o acesso do servidor.");
+        if (video.readyState > 0) {
+            showPlayerError("Canal carregado. Clique no botão ▶ do vídeo para iniciar.");
+        }
     });
 }
 
@@ -502,7 +560,7 @@ function formatError(error) {
     const msg = String(error && error.message ? error.message : error || "");
 
     if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("Load failed")) {
-        return "Não foi possível acessar o servidor pelo navegador. Pode ser bloqueio de CORS, servidor fora do ar, DNS/SSL inválido ou bloqueio de rede. Para GitHub Pages, a API precisa aceitar requisições do navegador.";
+        return "Não foi possível acessar o servidor. O player tentou HTTP/HTTPS quando possível. Pode ser CORS, conteúdo misto bloqueado pelo navegador, SSL/DNS inválido ou servidor fora do ar.";
     }
 
     if (/HTTP 401|HTTP 403/.test(msg)) {

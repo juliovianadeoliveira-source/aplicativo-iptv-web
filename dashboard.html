@@ -1,119 +1,35 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPTV Player - Dashboard</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- HLS.js permite reproduzir .m3u8 em navegadores que não possuem HLS nativo. -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPTV Player - Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<style>
+.content-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-top:22px}.channel-item,.media-card{position:relative;text-align:left;background:#11151f;border:1px solid rgba(255,255,255,.08);color:#fff;border-radius:14px;padding:14px;cursor:pointer;transition:.2s}.channel-item{display:flex;align-items:center;gap:12px;min-height:76px}.channel-item:hover,.media-card:hover{transform:translateY(-2px);background:#171c28;border-color:rgba(108,92,231,.55)}.channel-logo{width:50px;height:50px;min-width:50px;border-radius:10px;background:#0b0e15;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:22px}.channel-logo img{width:100%;height:100%;object-fit:contain}.channel-info{min-width:0;flex:1}.channel-info strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.channel-info span{display:block;color:#8e96a8;font-size:10px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.channel-play{width:30px;height:30px;border-radius:50%;background:#6c5ce7;display:flex;align-items:center;justify-content:center;font-size:12px}.media-card{padding:0;overflow:hidden}.media-poster{height:220px;background:#0b0e15;display:flex;align-items:center;justify-content:center;font-size:42px;overflow:hidden}.media-poster img{width:100%;height:100%;object-fit:cover}.media-card>strong{display:block;padding:12px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.player-modal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:25px;z-index:1000}.player-modal.open{display:flex}.player-window{width:min(1100px,96vw);background:#0b0e15;border:1px solid rgba(255,255,255,.12);border-radius:16px;overflow:hidden;box-shadow:0 30px 100px rgba(0,0,0,.7)}.player-header{height:54px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08)}.player-close{border:0;background:#171c28;color:#fff;width:34px;height:34px;border-radius:8px;cursor:pointer}.player-video-wrap{position:relative;background:#000;aspect-ratio:16/9}.video-player{width:100%;height:100%;display:block;background:#000}.player-error{position:absolute;left:20px;right:20px;bottom:60px;text-align:center;color:#ff7777;font-size:13px;text-shadow:0 1px 3px #000;pointer-events:none}.empty-state{grid-column:1/-1}.section-header{display:flex;align-items:end;justify-content:space-between;gap:20px}.search-input{min-width:220px}.secondary-button{cursor:pointer}
+@media(max-width:800px){.sidebar{width:72px}.menu-item{justify-content:center;font-size:0}.menu-item span{font-size:16px}.dashboard-content{padding:20px}.cards-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.section-header{align-items:stretch;flex-direction:column}.search-input{width:100%;min-width:0}.content-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.media-poster{height:180px}}
+</style>
 </head>
 <body class="dashboard-page">
-
-<header class="topbar">
-    <div class="brand">
-        <div class="brand-icon">▶</div>
-        <div>
-            <h1>IPTV<span>PLAYER</span></h1>
-            <small>Aplicativo Web</small>
-        </div>
-    </div>
-    <div class="top-actions">
-        <div class="connection-status"><span></span>Conectando...</div>
-        <button id="logoutButton" class="logout-button">Sair</button>
-    </div>
-</header>
-
+<header class="topbar"><div class="brand"><div class="brand-icon">▶</div><div><h1>IPTV<span>PLAYER</span></h1><small>Aplicativo Web</small></div></div><div class="top-actions"><div class="connection-status"><span></span>Conectando...</div><button id="logoutButton" class="logout-button">Sair</button></div></header>
 <div class="dashboard-layout">
-    <aside class="sidebar">
-        <nav>
-            <button class="menu-item active" data-section="home"><span>⌂</span>Início</button>
-            <button class="menu-item" data-section="channels"><span>▣</span>Canais</button>
-            <button class="menu-item" data-section="favorites"><span>★</span>Favoritos</button>
-            <button class="menu-item" data-section="movies"><span>▶</span>Filmes</button>
-            <button class="menu-item" data-section="series"><span>▤</span>Séries</button>
-            <button class="menu-item" data-section="settings"><span>⚙</span>Configurações</button>
-        </nav>
-    </aside>
-
-    <main class="dashboard-content">
-        <section id="homeSection" class="content-section active">
-            <div class="welcome">
-                <div>
-                    <p class="small-title">BEM-VINDO</p>
-                    <h2>Seu conteúdo, <span>do seu jeito.</span></h2>
-                    <p class="welcome-text">Escolha uma categoria para começar a assistir.</p>
-                </div>
-                <div class="user-box">
-                    <div class="user-avatar">👤</div>
-                    <div><small>Usuário</small><strong id="dashboardUsername">Usuário</strong></div>
-                </div>
-            </div>
-
-            <div class="cards-grid">
-                <button class="category-card" data-section="channels"><div class="category-icon">📺</div><h3>Canais</h3><p><span id="channelCount">0</span> canais disponíveis</p></button>
-                <button class="category-card" data-section="favorites"><div class="category-icon">⭐</div><h3>Favoritos</h3><p>Seus conteúdos favoritos</p></button>
-                <button class="category-card" data-section="movies"><div class="category-icon">🎬</div><h3>Filmes</h3><p><span id="movieCount">0</span> filmes disponíveis</p></button>
-                <button class="category-card" data-section="series"><div class="category-icon">📚</div><h3>Séries</h3><p><span id="seriesCount">0</span> séries disponíveis</p></button>
-            </div>
-
-            <section class="info-panel">
-                <div class="info-icon">ℹ</div>
-                <div><h3>Servidor conectado</h3><p id="serverAddress">—</p></div>
-            </section>
-        </section>
-
-        <section id="channelsSection" class="content-section">
-            <div class="section-header">
-                <div><p class="small-title">CONTEÚDO</p><h2>Canais</h2></div>
-                <input type="search" id="channelSearch" class="search-input" placeholder="Pesquisar canal...">
-            </div>
-            <div id="channelsGrid" class="content-grid">
-                <div class="empty-state"><div>⏳</div><h3>Carregando canais...</h3><p>Aguarde enquanto o catálogo é consultado.</p></div>
-            </div>
-        </section>
-
-        <section id="favoritesSection" class="content-section">
-            <div class="section-header"><div><p class="small-title">MINHA LISTA</p><h2>Favoritos</h2></div></div>
-            <div class="empty-state"><div>⭐</div><h3>Nenhum favorito</h3><p>Seus conteúdos favoritos aparecerão aqui.</p></div>
-        </section>
-
-        <section id="moviesSection" class="content-section">
-            <div class="section-header"><div><p class="small-title">CONTEÚDO</p><h2>Filmes</h2></div></div>
-            <div id="moviesGrid" class="content-grid"><div class="empty-state"><div>⏳</div><h3>Carregando filmes...</h3><p>Aguarde enquanto o catálogo é consultado.</p></div></div>
-        </section>
-
-        <section id="seriesSection" class="content-section">
-            <div class="section-header"><div><p class="small-title">CONTEÚDO</p><h2>Séries</h2></div></div>
-            <div id="seriesGrid" class="content-grid"><div class="empty-state"><div>⏳</div><h3>Carregando séries...</h3><p>Aguarde enquanto o catálogo é consultado.</p></div></div>
-        </section>
-
-        <section id="settingsSection" class="content-section">
-            <div class="section-header"><div><p class="small-title">APLICATIVO</p><h2>Configurações</h2></div></div>
-            <div class="settings-card">
-                <h3>Dados da conexão</h3>
-                <div class="setting-row"><span>Servidor</span><strong id="settingsServer">—</strong></div>
-                <div class="setting-row"><span>Usuário</span><strong id="settingsUsername">—</strong></div>
-            </div>
-            <button id="changeAccount" class="secondary-button">Trocar conta</button>
-        </section>
-    </main>
-</div>
-
-<!-- PLAYER -->
-<div id="playerModal" class="player-modal" aria-hidden="true">
-    <div class="player-window">
-        <div class="player-header">
-            <strong id="playerTitle">Reproduzindo</strong>
-            <button id="closePlayer" class="player-close" type="button">✕</button>
-        </div>
-        <div class="player-video-wrap">
-            <video id="videoPlayer" class="video-player" controls playsinline preload="metadata"></video>
-            <div id="playerError" class="player-error"></div>
-        </div>
-    </div>
-</div>
-
+<aside class="sidebar"><nav>
+<button class="menu-item active" data-section="home"><span>⌂</span>Início</button>
+<button class="menu-item" data-section="channels"><span>▣</span>Canais</button>
+<button class="menu-item" data-section="favorites"><span>★</span>Favoritos</button>
+<button class="menu-item" data-section="movies"><span>▶</span>Filmes</button>
+<button class="menu-item" data-section="series"><span>▤</span>Séries</button>
+<button class="menu-item" data-section="settings"><span>⚙</span>Configurações</button>
+</nav></aside>
+<main class="dashboard-content">
+<section id="homeSection" class="content-section active"><div class="welcome"><div><p class="small-title">BEM-VINDO</p><h2>Seu conteúdo, <span>do seu jeito.</span></h2><p class="welcome-text">Escolha uma categoria para começar a assistir.</p></div><div class="user-box"><div class="user-avatar">👤</div><div><small>Usuário</small><strong id="dashboardUsername">Usuário</strong></div></div></div><div class="cards-grid"><button class="category-card" data-section="channels"><div class="category-icon">📺</div><h3>Canais</h3><p><span id="channelCount">0</span> canais disponíveis</p></button><button class="category-card" data-section="favorites"><div class="category-icon">⭐</div><h3>Favoritos</h3><p>Seus conteúdos favoritos</p></button><button class="category-card" data-section="movies"><div class="category-icon">🎬</div><h3>Filmes</h3><p><span id="movieCount">0</span> filmes disponíveis</p></button><button class="category-card" data-section="series"><div class="category-icon">📚</div><h3>Séries</h3><p><span id="seriesCount">0</span> séries disponíveis</p></button></div><section class="info-panel"><div class="info-icon">ℹ</div><div><h3>Servidor conectado</h3><p id="serverAddress">—</p></div></section></section>
+<section id="channelsSection" class="content-section"><div class="section-header"><div><p class="small-title">CONTEÚDO</p><h2>Canais</h2></div><input type="search" id="channelSearch" class="search-input" placeholder="Pesquisar canal..."></div><div id="channelsGrid" class="content-grid"><div class="empty-state"><div>⏳</div><h3>Carregando canais...</h3><p>Aguarde enquanto o catálogo é consultado.</p></div></div></section>
+<section id="favoritesSection" class="content-section"><div class="section-header"><div><p class="small-title">MINHA LISTA</p><h2>Favoritos</h2></div></div><div class="empty-state"><div>⭐</div><h3>Nenhum favorito</h3><p>Seus conteúdos favoritos aparecerão aqui.</p></div></section>
+<section id="moviesSection" class="content-section"><div class="section-header"><div><p class="small-title">CONTEÚDO</p><h2>Filmes</h2></div></div><div id="moviesGrid" class="content-grid"><div class="empty-state"><div>⏳</div><h3>Carregando filmes...</h3><p>Aguarde enquanto o catálogo é consultado.</p></div></div></section>
+<section id="seriesSection" class="content-section"><div class="section-header"><div><p class="small-title">CONTEÚDO</p><h2>Séries</h2></div></div><div id="seriesGrid" class="content-grid"><div class="empty-state"><div>⏳</div><h3>Carregando séries...</h3><p>Aguarde enquanto o catálogo é consultado.</p></div></div></section>
+<section id="settingsSection" class="content-section"><div class="section-header"><div><p class="small-title">APLICATIVO</p><h2>Configurações</h2></div></div><div class="settings-card"><h3>Dados da conexão</h3><div class="setting-row"><span>Servidor</span><strong id="settingsServer">—</strong></div><div class="setting-row"><span>Usuário</span><strong id="settingsUsername">—</strong></div></div><button id="changeAccount" class="secondary-button">Trocar conta</button></section>
+</main></div>
+<div id="playerModal" class="player-modal" aria-hidden="true"><div class="player-window"><div class="player-header"><strong id="playerTitle">Reproduzindo</strong><button id="closePlayer" class="player-close" type="button">✕</button></div><div class="player-video-wrap"><video id="videoPlayer" class="video-player" controls playsinline preload="metadata"></video><div id="playerError" class="player-error"></div></div></div></div>
 <script src="app.js"></script>
-</body>
-</html>
+</body></html>

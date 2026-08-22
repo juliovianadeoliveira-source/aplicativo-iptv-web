@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>IPTV Player - Login</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="login-page">
+
+    <div class="background-glow"></div>
+
+    <main class="login-container">
+
+        <section class="login-card">
+
+            <div class="logo">
+                <div class="logo-icon">▶</div>
+                <div>
+                    <h1>IPTV<span>PLAYER</span></h1>
+                    <p>Seu entretenimento em um só lugar</p>
+                </div>
+            </div>
+
+            <div class="login-title">
+                <h2>Entrar</h2>
+                <p>Conecte sua lista para continuar</p>
+            </div>
+
+            <form id="loginForm">
+
+                <div class="input-group">
+                    <label for="server">URL do servidor</label>
+
+                    <div class="input-box">
+                        <span>🌐</span>
+
+                        <input
+                            type="url"
+                            id="server"
+                            placeholder="https://seu-servidor.com"
+                            autocomplete="url"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="username">Usuário</label>
+
+                    <div class="input-box">
+                        <span>👤</span>
+
+                        <input
+                            type="text"
+                            id="username"
+                            placeholder="Digite seu usuário"
+                            autocomplete="username"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="password">Senha</label>
+
+                    <div class="input-box">
+                        <span>🔒</span>
+
+                        <input
+                            type="password"
+                            id="password"
+                            placeholder="Digite sua senha"
+                            autocomplete="current-password"
+                            required
+                        >
+
+                        <button
+                            type="button"
+                            class="show-password"
+                            id="showPassword"
+                        >
+                            👁
+                        </button>
+                    </div>
+                </div>
+
+                <div class="login-options">
+
+                    <label class="remember">
+                        <input type="checkbox" id="remember">
+                        <span>Manter conectado</span>
+                    </label>
+
+                </div>
+
+                <button type="submit" class="login-button">
+                    <span>ENTRAR</span>
+                    <strong>→</strong>
+                </button>
+
+                <div id="loginMessage" class="login-message"></div>
+
+            </form>
+
+            <div class="login-footer">
+                <span>IPTV PLAYER</span>
+                <small>Aplicativo Web</small>
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+
+</body>
+</html>

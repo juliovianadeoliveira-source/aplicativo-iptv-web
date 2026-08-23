@@ -1,5 +1,6 @@
 /* IPTV PLAYER WEB 2026 - player final único
-   Ordem: URL original -> HLS.js -> MPEG-TS -> nativo
+   HTTPS: URL original -> HLS.js -> MPEG-TS -> nativo
+   HTTP dentro do GitHub Pages HTTPS: abre o stream direto no navegador.
    Sem VLC, sem M3U, sem copiar URL.
 */
 (function () {
@@ -25,13 +26,7 @@
   }
 
   function destroyPlayers() {
-    try {
-      if (hls) {
-        hls.destroy();
-        hls = null;
-      }
-    } catch (_) {}
-
+    try { if (hls) { hls.destroy(); hls = null; } } catch (_) {}
     try {
       if (mpegtsPlayer) {
         mpegtsPlayer.pause();
@@ -53,30 +48,51 @@
     } catch (_) {}
   }
 
+  function streamRoot(session, streamId) {
+    const server = String(session.server || '').replace(/\/+$/, '');
+    const user = encodeURIComponent(session.username || '');
+    const pass = encodeURIComponent(session.password || '');
+    const id = encodeURIComponent(streamId || '');
+    return `${server}/live/${user}/${pass}/${id}`;
+  }
+
+  function originalStreamUrl(session, streamId, extension) {
+    const ext = String(extension || 'ts').replace(/^\./, '').toLowerCase();
+    return `${streamRoot(session, streamId)}.${ext}`;
+  }
+
   function addUnique(list, url, type) {
     if (!url || list.some(item => item.url === url)) return;
     list.push({ url, type });
   }
 
   function buildCandidates(session, streamId, extension) {
-    const server = String(session.server || '').replace(/\/+$/, '');
-    const user = encodeURIComponent(session.username || '');
-    const pass = encodeURIComponent(session.password || '');
-    const id = encodeURIComponent(streamId || '');
     const ext = String(extension || 'ts').replace(/^\./, '').toLowerCase();
-    const root = `${server}/live/${user}/${pass}/${id}`;
+    const root = streamRoot(session, streamId);
     const list = [];
 
-    // 1) Exatamente o formato informado pelo servidor.
     addUnique(list, `${root}.${ext}`, ext === 'm3u8' ? 'hls' : ext === 'ts' ? 'mpegts' : 'native');
-
-    // 2) HLS é o formato mais indicado para navegador.
     if (ext !== 'm3u8') addUnique(list, `${root}.m3u8`, 'hls');
-
-    // 3) MPEG-TS para servidores Xtream que entregam .ts.
     if (ext !== 'ts') addUnique(list, `${root}.ts`, 'mpegts');
-
     return list;
+  }
+
+  function directOpenNeeded(session) {
+    const server = String(session && session.server || '');
+    return window.location.protocol === 'https:' && /^http:\/\//i.test(server);
+  }
+
+  function openDirectStream(session, streamId, extension, title) {
+    const url = originalStreamUrl(session, streamId, extension);
+    setTitle(title);
+    setStatus('Abrindo canal diretamente no navegador...', 'ok');
+
+    // Abertura ocorre no mesmo clique do usuário, evitando bloqueio de popup.
+    const opened = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!opened) {
+      // Se popup estiver bloqueado, usa a própria aba.
+      window.location.href = url;
+    }
   }
 
   function waitForVideo(video, token, timeout, onReady, onFail) {
@@ -93,8 +109,7 @@
     };
 
     const ready = () => {
-      if (finished || token !== playToken) return;
-      if (video.readyState < 1) return;
+      if (finished || token !== playToken || video.readyState < 1) return;
       finished = true;
       cleanup();
       onReady();
@@ -112,11 +127,7 @@
     video.addEventListener('playing', ready);
     video.addEventListener('error', fail);
     video.addEventListener('abort', fail);
-    timer = setTimeout(() => {
-      if (video.readyState >= 1) ready();
-      else fail();
-    }, timeout);
-
+    timer = setTimeout(() => video.readyState >= 1 ? ready() : fail(), timeout);
     return cleanup;
   }
 
@@ -142,13 +153,8 @@
 
   function playHls(video, candidate, token, next) {
     if (!(window.Hls && Hls.isSupported())) {
-      // Safari e alguns navegadores conseguem HLS nativamente.
-      if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        playNative(video, candidate, token, next);
-        return;
-      }
-      next();
-      return;
+      if (video.canPlayType('application/vnd.apple.mpegurl')) return playNative(video, candidate, token, next);
+      return next();
     }
 
     setStatus('Abrindo HLS...', '');
@@ -182,37 +188,21 @@
         setStatus('Canal carregado em HLS.', 'ok');
         video.play().catch(() => setStatus('Canal carregado. Clique no ▶ para iniciar.', 'ok'));
       });
-
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data && data.fatal) fail();
-      });
-
+      hls.on(Hls.Events.ERROR, (_event, data) => { if (data && data.fatal) fail(); });
       hls.loadSource(candidate.url);
       hls.attachMedia(video);
-      setTimeout(() => {
-        if (!done && video.readyState === 0) fail();
-      }, 8500);
-    } catch (_) {
-      next();
-    }
+      setTimeout(() => { if (!done && video.readyState === 0) fail(); }, 8500);
+    } catch (_) { next(); }
   }
 
   function playMpegTs(video, candidate, token, next) {
-    if (!(window.mpegts && mpegts.isSupported())) {
-      next();
-      return;
-    }
+    if (!(window.mpegts && mpegts.isSupported())) return next();
 
     setStatus('Abrindo MPEG-TS...', '');
     resetVideo(video);
 
     try {
-      mpegtsPlayer = mpegts.createPlayer({
-        type: 'mpegts',
-        isLive: true,
-        url: candidate.url,
-        cors: true
-      }, {
+      mpegtsPlayer = mpegts.createPlayer({ type: 'mpegts', isLive: true, url: candidate.url }, {
         enableWorker: true,
         enableStashBuffer: false,
         stashInitialSize: 128,
@@ -241,43 +231,27 @@
       mpegtsPlayer.attachMediaElement(video);
       mpegtsPlayer.load();
       mpegtsPlayer.play().catch(() => {});
-
-      setTimeout(() => {
-        if (!done && video.readyState === 0) fail();
-      }, 8500);
-    } catch (_) {
-      next();
-    }
+      setTimeout(() => { if (!done && video.readyState === 0) fail(); }, 8500);
+    } catch (_) { next(); }
   }
 
   function tryCandidate(video, candidates, index, token) {
     if (token !== playToken) return;
-
     if (index >= candidates.length) {
       resetVideo(video);
-      setStatus('Este canal não pôde ser reproduzido pelo navegador. O servidor precisa entregar o stream por HTTPS e permitir acesso ao vídeo.', 'error');
+      setStatus('O stream HTTPS não foi aceito pelo navegador.', 'error');
       return;
     }
 
     const candidate = candidates[index];
-    const next = () => {
-      if (token !== playToken) return;
-      tryCandidate(video, candidates, index + 1, token);
-    };
+    const next = () => { if (token === playToken) tryCandidate(video, candidates, index + 1, token); };
 
-    if (candidate.type === 'hls') {
-      playHls(video, candidate, token, next);
-    } else if (candidate.type === 'mpegts') {
-      playMpegTs(video, candidate, token, next);
-    } else {
-      playNative(video, candidate, token, next);
-    }
+    if (candidate.type === 'hls') playHls(video, candidate, token, next);
+    else if (candidate.type === 'mpegts') playMpegTs(video, candidate, token, next);
+    else playNative(video, candidate, token, next);
   }
 
-  // Neutraliza qualquer fallback antigo definido antes deste arquivo.
-  window.showExternalFallback = function () {
-    setStatus('Este canal não pôde ser reproduzido pelo navegador.', 'error');
-  };
+  window.showExternalFallback = function () {};
   window.getPreferredPlayer = function () { return 'web'; };
   window.setPreferredPlayer = function () {};
   window.openInVlc = function () {};
@@ -285,11 +259,18 @@
   window.copyStreamUrl = function () {};
 
   window.openLiveChannel = function (session, streamId, extension, title) {
-    const video = el('videoPlayer');
-    if (!video || !session) return;
+    if (!session) return;
 
     playToken += 1;
-    const token = playToken;
+    destroyPlayers();
+
+    if (directOpenNeeded(session)) {
+      openDirectStream(session, streamId, extension, title);
+      return;
+    }
+
+    const video = el('videoPlayer');
+    if (!video) return;
 
     const placeholder = el('playerPlaceholder');
     if (placeholder) placeholder.style.display = 'none';
@@ -297,9 +278,7 @@
     setTitle(title);
     setStatus('Preparando canal...', '');
     resetVideo(video);
-
-    const candidates = buildCandidates(session, streamId, extension);
-    tryCandidate(video, candidates, 0, token);
+    tryCandidate(video, buildCandidates(session, streamId, extension), 0, playToken);
   };
 
   window.addEventListener('beforeunload', () => {

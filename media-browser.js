@@ -42,8 +42,13 @@
     if(!activeSession||!item)return;
     const panel=ensureMediaPlayer('movies');if(!panel)return;panel.style.display='block';panel.scrollIntoView({behavior:'smooth',block:'start'});
     const ext=String(item.container_extension||'mp4').replace(/^\./,'');
+    const opts={videoId:'movieVideoPlayer',statusId:'moviePlayerStatus',titleId:'moviePlayerTitle'};
+    if(item.direct_source&&typeof window.playMediaUrl==='function'){
+      const ok=await window.playMediaUrl(item.direct_source,item.name||'Filme','Filme',opts);
+      if(ok)return;
+    }
     if(typeof window.playXtreamMedia==='function'){
-      await window.playXtreamMedia('movie',activeSession,item.stream_id,ext,item.name||'Filme',{videoId:'movieVideoPlayer',statusId:'moviePlayerStatus',titleId:'moviePlayerTitle'});
+      await window.playXtreamMedia('movie',activeSession,item.stream_id,ext,item.name||'Filme',opts);
     }
   }
 
@@ -81,7 +86,11 @@
         list.querySelectorAll('.episode-btn').forEach(btn=>btn.addEventListener('click',async()=>{
           const ep=g.episodes[Number(btn.dataset.episodeIndex)],ext=String(ep.container_extension||'mp4').replace(/^\./,'');
           const title=`${item.name||'Série'} - T${g.season} E${ep.episode_num||Number(btn.dataset.episodeIndex)+1}`;
-          if(typeof window.playXtreamMedia==='function')await window.playXtreamMedia('series',activeSession,ep.id,ext,title,{videoId:'seriesVideoPlayer',statusId:'seriesPlayerStatus',titleId:'seriesPlayerTitle'});
+          const opts={videoId:'seriesVideoPlayer',statusId:'seriesPlayerStatus',titleId:'seriesPlayerTitle'};
+          if(ep.direct_source&&typeof window.playMediaUrl==='function'){
+            const ok=await window.playMediaUrl(ep.direct_source,title,'Episódio',opts);if(ok)return;
+          }
+          if(typeof window.playXtreamMedia==='function')await window.playXtreamMedia('series',activeSession,ep.id,ext,title,opts);
         }));
       };
       box.querySelectorAll('.season-tab').forEach(btn=>btn.addEventListener('click',()=>renderEpisodes(Number(btn.dataset.seasonIndex))));renderEpisodes(0);

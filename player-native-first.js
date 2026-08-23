@@ -1,17 +1,10 @@
 /* PLAYER DIRETO PRIMEIRO
-   1) tenta <video> nativo quando a URL puder ser embutida
-   2) tenta HLS.js / MPEG-TS pelo player-enhanced existente
-   3) se o GitHub Pages bloquear HTTP/CORS, oferece abertura DIRETA no navegador
+   - Se GitHub Pages (HTTPS) + stream HTTP: abre DIRETO em nova aba no mesmo clique.
+   - Se stream HTTPS: tenta <video> nativo, depois HLS/MPEG-TS.
+   - Mantem opcoes externas escolhidas nas configuracoes.
 */
 (function(){
   const enhancedOpen = window.openLiveChannel;
-  let lastDirectUrls = [];
-  let lastDirectTitle = "Canal";
-
-  function esc(value){
-    if (typeof escapeHTML === "function") return escapeHTML(value);
-    return String(value ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#039;");
-  }
 
   function directCandidates(session, streamId, extension){
     const base = String(session.server || "").replace(/\/+$/, "");
@@ -23,33 +16,25 @@
     const list = [];
     const add = u => { if (u && !list.includes(u)) list.push(u); };
 
-    /* URL EXATA retornada pela API */
+    /* Primeiro sempre a URL exata que corresponde ao servidor salvo + extensao da API. */
     add(`${base}/live/${path}.${ext}`);
-
-    /* formatos mais comuns */
     if (ext !== "m3u8") add(`${base}/live/${path}.m3u8`);
     if (ext !== "ts") add(`${base}/live/${path}.ts`);
 
-    /* tenta o outro protocolo somente como alternativa */
+    /* Alternativa de protocolo, sem substituir a URL original. */
     if (/^https:\/\//i.test(base)) {
-      const httpBase = base.replace(/^https:\/\//i, "http://");
-      add(`${httpBase}/live/${path}.${ext}`);
-      if (ext !== "m3u8") add(`${httpBase}/live/${path}.m3u8`);
-      if (ext !== "ts") add(`${httpBase}/live/${path}.ts`);
+      const b = base.replace(/^https:\/\//i, "http://");
+      add(`${b}/live/${path}.${ext}`);
+      if (ext !== "m3u8") add(`${b}/live/${path}.m3u8`);
+      if (ext !== "ts") add(`${b}/live/${path}.ts`);
     } else if (/^http:\/\//i.test(base)) {
-      const httpsBase = base.replace(/^http:\/\//i, "https://");
-      add(`${httpsBase}/live/${path}.${ext}`);
-      if (ext !== "m3u8") add(`${httpsBase}/live/${path}.m3u8`);
-      if (ext !== "ts") add(`${httpsBase}/live/${path}.ts`);
+      const b = base.replace(/^http:\/\//i, "https://");
+      add(`${b}/live/${path}.${ext}`);
+      if (ext !== "m3u8") add(`${b}/live/${path}.m3u8`);
+      if (ext !== "ts") add(`${b}/live/${path}.ts`);
     }
 
     return list;
-  }
-
-  function canEmbed(url){
-    /* HTTPS page cannot embed HTTP media. Top-level navigation can still open it. */
-    if (window.location.protocol === "https:" && /^http:\/\//i.test(url)) return false;
-    return true;
   }
 
   function cleanupVideo(video){
@@ -61,117 +46,127 @@
     } catch (_) {}
   }
 
+  function setDirectStatus(text, type){
+    if (typeof setPlayerStatus === "function") setPlayerStatus(text, type || "");
+  }
+
+  function openTopLevel(url){
+    if (!url) return false;
+    try {
+      const win = window.open(url, "_blank");
+      if (win) return true;
+    } catch (_) {}
+    try {
+      window.location.href = url;
+      return true;
+    } catch (_) {}
+    return false;
+  }
+
   function tryNative(video, urls, index, title, done){
-    while (index < urls.length && !canEmbed(urls[index])) index++;
+    /* Nunca tenta embutir HTTP dentro da pagina HTTPS. */
+    while (index < urls.length && window.location.protocol === "https:" && /^http:\/\//i.test(urls[index])) index++;
     if (index >= urls.length) return done(false);
 
     const url = urls[index];
     let finished = false;
-    let timer = null;
+    let timer;
 
-    const cleanupListeners = () => {
+    const cleanup = () => {
       clearTimeout(timer);
-      video.removeEventListener("loadedmetadata", onReady);
-      video.removeEventListener("canplay", onReady);
-      video.removeEventListener("playing", onReady);
-      video.removeEventListener("error", onError);
-      video.removeEventListener("abort", onError);
+      video.removeEventListener("loadedmetadata", ready);
+      video.removeEventListener("canplay", ready);
+      video.removeEventListener("playing", ready);
+      video.removeEventListener("error", fail);
+      video.removeEventListener("abort", fail);
     };
 
-    const succeed = () => {
+    const success = () => {
       if (finished) return;
       finished = true;
-      cleanupListeners();
-      if (typeof setPlayerStatus === "function") setPlayerStatus("Canal aberto diretamente pelo navegador.", "ok");
-      video.play().catch(() => {
-        if (typeof setPlayerStatus === "function") setPlayerStatus("Canal carregado. Clique no ▶ do vídeo para iniciar.", "ok");
-      });
+      cleanup();
+      setDirectStatus("Canal aberto diretamente no player do navegador.", "ok");
+      video.play().catch(() => setDirectStatus("Canal carregado. Clique no ▶ do video.", "ok"));
       done(true);
     };
 
     const fail = () => {
       if (finished) return;
       finished = true;
-      cleanupListeners();
+      cleanup();
       cleanupVideo(video);
       tryNative(video, urls, index + 1, title, done);
     };
 
-    const onReady = () => {
-      if (video.readyState >= 1) succeed();
-    };
-    const onError = () => fail();
+    const ready = () => { if (video.readyState >= 1) success(); };
 
     if (typeof setText === "function") setText("playerTitle", title || "Reproduzindo");
-    if (typeof setPlayerStatus === "function") setPlayerStatus("Tentando abrir o canal diretamente...", "");
+    setDirectStatus("Tentando reproduzir diretamente...", "");
 
     try {
       video.removeAttribute("crossorigin");
       video.src = url;
       video.load();
-    } catch (_) {
-      fail();
-      return;
-    }
+      video.play().catch(() => {});
+    } catch (_) { fail(); return; }
 
-    video.addEventListener("loadedmetadata", onReady);
-    video.addEventListener("canplay", onReady);
-    video.addEventListener("playing", onReady);
-    video.addEventListener("error", onError);
-    video.addEventListener("abort", onError);
+    video.addEventListener("loadedmetadata", ready);
+    video.addEventListener("canplay", ready);
+    video.addEventListener("playing", ready);
+    video.addEventListener("error", fail);
+    video.addEventListener("abort", fail);
 
-    /* Não considerar stalled como falha imediata: IPTV ao vivo pode demorar */
     timer = setTimeout(() => {
-      if (video.readyState >= 1) succeed();
-      else fail();
+      if (video.readyState >= 1) success(); else fail();
     }, 7000);
   }
 
-  function showDirectOpen(title, urls){
+  function showDirectButton(title, urls){
     const status = document.getElementById("playerStatus");
     if (!status) return;
-
     const original = urls[0] || "";
     const hls = urls.find(u => /\.m3u8(?:$|\?)/i.test(u)) || "";
     const ts = urls.find(u => /\.ts(?:$|\?)/i.test(u)) || "";
 
     status.classList.remove("ok");
     status.classList.add("error");
-    status.innerHTML = `<div style="margin-bottom:9px">O navegador não conseguiu embutir este canal. Abra a transmissão diretamente, igual a colar o link na barra do Chrome.</div>
+    status.innerHTML = `<div style="margin-bottom:9px">Este canal nao pode ser embutido no GitHub Pages. Use a abertura direta abaixo, que equivale a colar o link no navegador.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button id="openDirectChannel" type="button" style="padding:9px 14px;border:0;border-radius:9px;background:#ff6a00;color:#fff;font-weight:700;cursor:pointer">▶ Abrir canal direto</button>
-        ${hls ? '<button id="openDirectHls" type="button" style="padding:9px 12px;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:#27100b;color:#fff;cursor:pointer">Abrir HLS</button>' : ''}
-        ${ts ? '<button id="openDirectTs" type="button" style="padding:9px 12px;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:#27100b;color:#fff;cursor:pointer">Abrir TS</button>' : ''}
+        <button id="directMain" type="button" style="padding:10px 15px;border:0;border-radius:9px;background:#ff6a00;color:#fff;font-weight:800;cursor:pointer">▶ ABRIR CANAL DIRETO</button>
+        ${hls ? '<button id="directHls" type="button" style="padding:9px 12px;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:#27100b;color:#fff;cursor:pointer">Abrir HLS</button>' : ''}
+        ${ts ? '<button id="directTs" type="button" style="padding:9px 12px;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:#27100b;color:#fff;cursor:pointer">Abrir TS</button>' : ''}
       </div>`;
 
-    const open = url => {
-      if (!url) return;
-      /* Navegação de topo: não é Mixed Content embutido */
-      const win = window.open(url, "_blank", "noopener,noreferrer");
-      if (!win) window.location.href = url;
-    };
-
-    document.getElementById("openDirectChannel")?.addEventListener("click", () => open(original));
-    document.getElementById("openDirectHls")?.addEventListener("click", () => open(hls));
-    document.getElementById("openDirectTs")?.addEventListener("click", () => open(ts));
+    document.getElementById("directMain")?.addEventListener("click", () => openTopLevel(original));
+    document.getElementById("directHls")?.addEventListener("click", () => openTopLevel(hls));
+    document.getElementById("directTs")?.addEventListener("click", () => openTopLevel(ts));
   }
 
   window.openLiveChannel = function(session, streamId, extension, title){
     const pref = (typeof getPreferredPlayer === "function") ? getPreferredPlayer() : "web";
+    if (pref && pref !== "web") return enhancedOpen(session, streamId, extension, title);
 
-    /* Respeita as opções externas escolhidas nas configurações */
-    if (pref && pref !== "web") {
-      return enhancedOpen(session, streamId, extension, title);
-    }
-
+    const urls = directCandidates(session, streamId, extension);
+    const original = urls[0] || "";
     const video = document.getElementById("videoPlayer");
     const placeholder = document.getElementById("playerPlaceholder");
-    const urls = directCandidates(session, streamId, extension);
-    lastDirectUrls = urls;
-    lastDirectTitle = title || "Canal";
+
+    if (typeof setText === "function") setText("playerTitle", title || "Reproduzindo");
+    if (placeholder) placeholder.style.display = "none";
+
+    /* PONTO PRINCIPAL:
+       GitHub Pages HTTPS + canal HTTP = nao tenta embed.
+       Abre a URL diretamente no mesmo clique do usuario, evitando Mixed Content embutido.
+    */
+    if (window.location.protocol === "https:" && /^http:\/\//i.test(original)) {
+      setDirectStatus("Abrindo canal diretamente no navegador...", "ok");
+      const opened = openTopLevel(original);
+      if (!opened) showDirectButton(title, urls);
+      return;
+    }
 
     if (!video || !session) {
-      showDirectOpen(lastDirectTitle, lastDirectUrls);
+      showDirectButton(title, urls);
       return;
     }
 
@@ -180,45 +175,39 @@
       cleanupVideo(video);
     } catch (_) {}
 
-    if (placeholder) placeholder.style.display = "none";
-
-    /* Primeiro tenta a URL direta sem fetch/CORS JS. */
     tryNative(video, urls, 0, title, ok => {
       if (ok) return;
 
-      /* Depois usa o player aprimorado (HLS.js / MPEG-TS). */
-      let fallbackFinished = false;
+      /* Para HTTPS, ainda tenta HLS.js/MPEG-TS do player aprimorado. */
+      let resolved = false;
       const status = document.getElementById("playerStatus");
-
-      /* Observa se o enhanced termina em erro. */
       const observer = status ? new MutationObserver(() => {
         const text = status.textContent || "";
-        if (/não abriu|VLC|rota HTTPS|bloque/i.test(text)) {
+        if (/nao abriu|não abriu|VLC|rota HTTPS|bloque/i.test(text)) {
           observer.disconnect();
-          if (!fallbackFinished) {
-            fallbackFinished = true;
-            showDirectOpen(title, urls);
+          if (!resolved) {
+            resolved = true;
+            showDirectButton(title, urls);
           }
         }
       }) : null;
+
       if (observer && status) observer.observe(status, { childList:true, subtree:true, characterData:true });
 
-      try {
-        enhancedOpen(session, streamId, extension, title);
-      } catch (_) {
+      try { enhancedOpen(session, streamId, extension, title); }
+      catch (_) {
         if (observer) observer.disconnect();
-        showDirectOpen(title, urls);
+        showDirectButton(title, urls);
         return;
       }
 
-      /* Segurança: se o enhanced não resolver, mostra abertura direta. */
       setTimeout(() => {
-        if (fallbackFinished) return;
+        if (resolved) return;
         const v = document.getElementById("videoPlayer");
         if (v && v.readyState >= 2 && !v.error) return;
         if (observer) observer.disconnect();
-        fallbackFinished = true;
-        showDirectOpen(title, urls);
+        resolved = true;
+        showDirectButton(title, urls);
       }, 15000);
     });
   };

@@ -1,7 +1,8 @@
-/* IPTV PLAYER WEB 2026 - player único com destinos separados */
+/* IPTV PLAYER WEB 2026 - player único com destinos separados + server_info Xtream */
 (function(){
 'use strict';
 let shakaPlayer=null,hlsPlayer=null,tsPlayer=null,token=0,currentVideo=null;
+let serverInfoCache=new Map();
 const $=id=>document.getElementById(id);
 
 function ui(opts={}){
@@ -75,21 +76,76 @@ async function playUrl(url,name,label='Conteúdo',opts={}){
  if(type==='hls')ok=await tryShaka(video,url,myToken,label,target.status)||await tryHls(video,url,myToken,label,target.status)||await tryNative(video,url,myToken,label,target.status);
  else if(type==='ts')ok=await tryShaka(video,url,myToken,label,target.status)||await tryTs(video,url,myToken,label,target.status)||await tryNative(video,url,myToken,label,target.status);
  else ok=await tryNative(video,url,myToken,label,target.status)||await tryShaka(video,url,myToken,label,target.status);
- if(!ok)setStatus(target.status,label+' não pôde ser reproduzido neste navegador.','error');return ok;
+ return ok;
 }
-function xtreamUrl(kind,session,id,ext){
- const base=String(session.server||'').replace(/\/+$/,'');const u=encodeURIComponent(session.username||''),p=encodeURIComponent(session.password||''),sid=encodeURIComponent(id||'');
- return `${base}/${kind}/${u}/${p}/${sid}.${String(ext||'mp4').replace(/^\./,'')}`;
+
+function hostFrom(value){
+ if(!value)return'';
+ try{return new URL(/^https?:\/\//i.test(value)?value:'https://'+value).hostname;}catch(_){return String(value).replace(/^https?:\/\//i,'').split('/')[0].split(':')[0];}
 }
+function addBase(list,value){if(!value)return;value=String(value).replace(/\/+$/,'');if(value&&!list.includes(value))list.push(value);}
+async function getServerInfo(session){
+ const key=[session.server,session.username].join('|');
+ if(serverInfoCache.has(key))return serverInfoCache.get(key);
+ let info={};
+ try{
+  if(typeof window.xtreamRequest==='function'){
+   const data=await window.xtreamRequest(session,'');info=(data&&data.server_info)||{};
+  }else if(typeof xtreamRequest==='function'){
+   const data=await xtreamRequest(session,'');info=(data&&data.server_info)||{};
+  }
+ }catch(e){console.warn('server_info indisponível',e);}
+ serverInfoCache.set(key,info);return info;
+}
+async function streamBases(session){
+ const info=await getServerInfo(session),out=[];
+ const sessionBase=String(session.server||'').replace(/\/+$/,'');
+ const host=hostFrom(info.url||sessionBase);
+ const httpsPort=String(info.https_port||'').trim();
+ const port=String(info.port||'').trim();
+ const proto=String(info.server_protocol||'').replace(':','').toLowerCase();
+
+ // Em GitHub Pages, HTTPS é prioridade absoluta.
+ if(host&&httpsPort&&httpsPort!=='0')addBase(out,`https://${host}${httpsPort==='443'?'':':'+httpsPort}`);
+ if(/^https:\/\//i.test(sessionBase))addBase(out,sessionBase);
+ if(host)addBase(out,`https://${host}`);
+
+ // Mantém HTTP no fim para ambientes que não estejam sob HTTPS.
+ if(location.protocol!=='https:'){
+  if(host&&port&&port!=='0')addBase(out,`http://${host}${port==='80'?'':':'+port}`);
+  if(/^http:\/\//i.test(sessionBase))addBase(out,sessionBase);
+  if(host&&proto==='http')addBase(out,`http://${host}`);
+ }
+ return out;
+}
+function xtreamUrl(base,kind,session,id,ext){
+ const u=encodeURIComponent(session.username||''),p=encodeURIComponent(session.password||''),sid=encodeURIComponent(id||'');
+ return `${String(base).replace(/\/+$/,'')}/${kind}/${u}/${p}/${sid}.${String(ext||'mp4').replace(/^\./,'')}`;
+}
+
 window.playMediaUrl=playUrl;
 window.playXtreamMedia=async function(kind,session,id,extension,name,opts={}){
  if(!session)return false;
+ const target=ui(opts);
  const route=kind==='movie'?'movie':kind==='series'?'series':'live';
  const ext=String(extension||(route==='live'?'ts':'mp4')).replace(/^\./,'').toLowerCase();
+ const bases=await streamBases(session);
  const urls=[];const add=x=>{if(x&&!urls.includes(x))urls.push(x);};
- add(xtreamUrl(route,session,id,ext));
- if(route==='live'){if(ext!=='m3u8')add(xtreamUrl(route,session,id,'m3u8'));if(ext!=='ts')add(xtreamUrl(route,session,id,'ts'));}
- for(const url of urls){if(await playUrl(url,name,route==='live'?'Canal':route==='movie'?'Filme':'Episódio',opts))return true;}
+
+ for(const base of bases){
+  add(xtreamUrl(base,route,session,id,ext));
+  if(route==='live'){
+   if(ext!=='m3u8')add(xtreamUrl(base,route,session,id,'m3u8'));
+   if(ext!=='ts')add(xtreamUrl(base,route,session,id,'ts'));
+  }
+ }
+
+ if(!urls.length){setStatus(target.status,'O servidor não informou uma rota HTTPS para reprodução.','error');return false;}
+ for(const url of urls){
+  console.log('[IPTV PLAY]',route,url);
+  if(await playUrl(url,name,route==='live'?'Canal':route==='movie'?'Filme':'Episódio',opts))return true;
+ }
+ setStatus(target.status,(route==='live'?'Canal':route==='movie'?'Filme':'Episódio')+' não pôde ser reproduzido. O servidor recusou as rotas HTTPS disponíveis.','error');
  return false;
 };
 window.openLiveChannel=(session,id,ext,name)=>window.playXtreamMedia('live',session,id,ext,name,{videoId:'videoPlayer',statusId:'playerStatus',titleId:'playerTitle',placeholderId:'playerPlaceholder'});

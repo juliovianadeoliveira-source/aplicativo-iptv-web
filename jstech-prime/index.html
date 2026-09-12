@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>JSTech Prime | Tecnologia, planos e suporte</title>
+  <meta name="description" content="JSTech Prime: planos, compatibilidade, qualidade e suporte em um só lugar.">
+  <meta name="theme-color" content="#05070b">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="topbar">JSTech Prime • atendimento rápido pelo WhatsApp</div>
+  <header class="nav">
+    <div class="wrap navin">
+      <a class="brand" href="#inicio"><span class="bolt">⚡</span>JS<span>Tech Prime</span></a>
+      <nav class="links"><a href="#planos">Planos</a><a href="#vantagens">Vantagens</a><a href="#compatibilidade">Compatibilidade</a><a href="#faq">FAQ</a></nav>
+      <a class="btn primary" data-wa="general">Quero contratar →</a>
+    </div>
+  </header>
+
+  <main id="inicio">
+    <section class="hero">
+      <div class="hero-bg bg1 active"></div>
+      <div class="hero-bg bg2"></div>
+      <div class="hero-bg bg3"></div>
+      <div class="hero-overlay"></div>
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <div class="tag">● teste, qualidade e suporte</div>
+          <h1>Uma experiência <span>completa</span> para sua TV e seus dispositivos.</h1>
+          <p>Planos organizados, teste quando disponível, qualidade HD/Full HD/4K, compatibilidade com diversos aparelhos e atendimento direto em um único lugar.</p>
+          <div class="hero-actions"><a class="btn primary" href="#planos">Ver planos →</a><a class="btn ghost" data-wa="support">Falar no WhatsApp</a></div>
+          <div class="hero-checks"><span>✓ Suporte humano</span><span>✓ Vários dispositivos</span><span>✓ Dados sincronizados</span></div>
+        </div>
+        <div class="tv-shell">
+          <div class="tv-screen">
+            <div class="tv-title">JSTECH PRIME</div>
+            <div class="tv-sub">Entretenimento, tecnologia e suporte em uma só experiência.</div>
+            <div class="tv-grid"><div>AO VIVO</div><div>FILMES</div><div>ESPORTES</div><div>SÉRIES</div></div>
+          </div>
+          <div class="tv-foot"></div>
+        </div>
+      </div>
+      <div class="dots"><button class="active"></button><button></button><button></button></div>
+    </section>
+
+    <section class="metrics">
+      <div class="wrap metrics-grid">
+        <div><strong>Atendimento humano</strong><small>Contato direto</small></div>
+        <div><strong>HD • FHD • 4K</strong><small>Qualidade conforme disponibilidade</small></div>
+        <div><strong>Múltiplos dispositivos</strong><small>TV, celular, PC e mais</small></div>
+        <div><strong>Atualização automática</strong><small id="syncStatus">Carregando dados atuais…</small></div>
+      </div>
+    </section>
+
+    <section class="section" id="vantagens">
+      <div class="wrap">
+        <div class="section-head"><span>EXPERIÊNCIA COMPLETA</span><h2>Um site forte, cheio de informação e sem espaço vazio.</h2><p>Juntamos planos, compatibilidade, qualidade, teste, velocidade recomendada, suporte e contato em uma jornada comercial única.</p></div>
+        <div class="bento">
+          <article class="feature-card big"><div class="icon">◎</div><h3>Qualidade para cada conexão</h3><p>O cliente entende de forma clara quais qualidades estão disponíveis e qual velocidade de internet é indicada para cada uma.</p><div class="chips" id="qualityChips"><span>HD</span><span>Full HD</span><span>4K</span></div></article>
+          <article class="feature-card"><div class="icon">⚡</div><h3>Ativação rápida</h3><p>Escolha o plano, chame no WhatsApp e receba a orientação necessária.</p></article>
+          <article class="feature-card"><div class="icon">◈</div><h3>Teste quando disponível</h3><p id="trialText">Verificando disponibilidade atual.</p><a class="text-link" data-wa="trial">Solicitar teste →</a></article>
+          <article class="feature-card"><div class="icon">⌁</div><h3>Compatibilidade ampla</h3><p>Smart TV, TV Box, Android TV, Fire TV, celular, tablet, notebook, PC e outros dispositivos.</p></article>
+          <article class="feature-card"><div class="icon">☏</div><h3>Suporte direto</h3><p>Atendimento simples e objetivo pelo WhatsApp, sem complicação.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section plans-sec" id="planos">
+      <div class="wrap">
+        <div class="section-head center"><span>PLANOS ATUAIS</span><h2>Escolha o período ideal</h2><p>Os valores abaixo são carregados automaticamente do Supabase quando há atualização válida.</p></div>
+        <div class="plans" id="plansGrid"></div>
+      </div>
+    </section>
+
+    <section class="section dark-panel">
+      <div class="wrap split">
+        <div><span class="eyebrow">VELOCIDADE RECOMENDADA</span><h2>Internet certa para a qualidade que você quer.</h2><p>Quanto maior a qualidade de imagem, maior a velocidade recomendada para uma experiência mais estável.</p></div>
+        <div class="speed-grid" id="speedGrid"></div>
+      </div>
+    </section>
+
+    <section class="section" id="compatibilidade">
+      <div class="wrap">
+        <div class="section-head"><span>COMPATIBILIDADE</span><h2>Funciona nos aparelhos que você já usa</h2><p>Os dispositivos abaixo são unidos a partir das informações sincronizadas das fontes permitidas.</p></div>
+        <div class="devices" id="deviceGrid"></div>
+      </div>
+    </section>
+
+    <section class="section journey">
+      <div class="wrap">
+        <div class="section-head center"><span>COMO FUNCIONA</span><h2>Do interesse à configuração em 4 passos</h2></div>
+        <div class="steps"><article><b>01</b><h3>Escolha</h3><p>Veja os planos e selecione o período.</p></article><article><b>02</b><h3>Contato</h3><p>Fale direto pelo WhatsApp ou formulário.</p></article><article><b>03</b><h3>Orientação</h3><p>Confirmamos compatibilidade e melhor configuração.</p></article><article><b>04</b><h3>Ativação</h3><p>Você recebe instruções e suporte.</p></article></div>
+      </div>
+    </section>
+
+    <section class="section" id="faq">
+      <div class="wrap faq-layout">
+        <div class="section-head"><span>PERGUNTAS FREQUENTES</span><h2>Informação clara antes de contratar.</h2><p>Veja as dúvidas mais comuns sobre planos, aparelhos, qualidade e atendimento.</p><a class="btn ghost" data-wa="support">Falar com a equipe</a></div>
+        <div class="faq-list">
+          <article class="faq open"><button>Quais dispositivos são compatíveis?<span>+</span></button><p>Smart TVs, TV Box, Android TV, Fire TV, celulares, tablets, computadores e outros dispositivos compatíveis podem ser exibidos conforme os dados sincronizados.</p></article>
+          <article class="faq"><button>Qual velocidade de internet é indicada?<span>+</span></button><p>A recomendação muda conforme a qualidade. O site usa os valores sincronizados quando disponíveis.</p></article>
+          <article class="faq"><button>Existe teste?<span>+</span></button><p>Quando a fonte sincronizada indicar teste disponível, essa informação aparece automaticamente no site.</p></article>
+          <article class="faq"><button>Como falar com o atendimento?<span>+</span></button><p>Use qualquer botão de WhatsApp da página ou envie o formulário abaixo.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section contact-sec">
+      <div class="wrap contact-box">
+        <div class="contact-copy"><span class="eyebrow">CONTATO</span><h2>Pronto para falar com a JSTech Prime?</h2><p>Envie seus dados ou chame direto no WhatsApp.</p><a class="btn ghost" data-wa="general">Abrir WhatsApp</a></div>
+        <form id="leadForm" class="lead-form"><div class="row"><input name="nome" placeholder="Seu nome" required><input name="whatsapp" placeholder="WhatsApp" required></div><select name="servico" required><option value="">Serviço de interesse</option><option>Plano</option><option>Teste</option><option>Suporte técnico</option><option>Outro</option></select><textarea name="mensagem" placeholder="Como podemos ajudar?" required></textarea><button class="btn primary" type="submit">Enviar solicitação →</button><div id="formStatus" class="form-status"></div></form>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="wrap footer-grid"><div><div class="brand foot-brand">JS<span>Tech Prime</span></div><p>Tecnologia, planos e atendimento organizados em um só lugar.</p></div><div><strong>Sincronização</strong><p id="lastSync">Dados comerciais com atualização automática.</p></div></div></footer>
+  <a class="float-wa" data-wa="general">WhatsApp</a>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -3,88 +3,173 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>JSTech Prime | Tecnologia, planos e suporte</title>
-  <meta name="description" content="JSTech Prime: planos, compatibilidade, qualidade e suporte em um só lugar.">
+  <title>JSTech Prime | Teste, planos e suporte</title>
+  <meta name="description" content="JSTech Prime: teste quando disponível, planos, qualidade, compatibilidade e suporte em um só lugar.">
   <meta name="theme-color" content="#05070b">
-  <link rel="stylesheet" href="styles.css?v=4">
-  <link rel="stylesheet" href="extra.css?v=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="extra.css?v=2">
 </head>
 <body>
-  <div class="topbar">JSTech Prime • atendimento rápido • teste quando disponível</div>
+  <div class="topbar">Atendimento humano todos os dias • teste antes de contratar quando disponível <a data-wa="trial">Solicitar teste →</a></div>
+
   <header class="nav">
     <div class="wrap navin">
       <a class="brand" href="#inicio"><span class="bolt">⚡</span>JS<span>Tech Prime</span></a>
-      <nav class="links"><a href="#planos">Planos</a><a href="#vantagens">Benefícios</a><a href="#compatibilidade">Compatibilidade</a><a href="#como">Como funciona</a><a href="#faq">FAQ</a></nav>
-      <a class="btn primary" data-wa="general">Quero contratar →</a>
+      <nav class="links">
+        <a href="#inicio">Início</a><a href="#planos">Planos</a><a href="#teste">Teste</a><a href="#beneficios">Benefícios</a><a href="#compatibilidade">Compatibilidade</a><a href="#faq">FAQ</a>
+      </nav>
+      <a class="btn primary" data-wa="trial">Quero testar →</a>
     </div>
   </header>
 
   <main id="inicio">
-    <section class="hero">
+    <section class="hero ref-hero">
       <div class="hero-bg bg1 active"></div><div class="hero-bg bg2"></div><div class="hero-bg bg3"></div><div class="hero-overlay"></div>
       <div class="wrap hero-grid">
         <div class="hero-copy">
-          <div class="tag">● experiência completa</div>
-          <h1>Tecnologia e suporte em uma experiência <span>mais completa.</span></h1>
-          <p>Planos organizados, teste quando disponível, qualidade HD, Full HD e 4K, ampla compatibilidade e atendimento direto.</p>
-          <div class="hero-actions"><a class="btn primary" data-wa="trial">Quero testar →</a><a class="btn ghost" href="#planos">Ver planos</a></div>
-          <div class="hero-checks"><span>Suporte humano</span><span>Vários dispositivos</span><span>Configuração orientada</span></div>
+          <div class="tag">● teste antes de contratar</div>
+          <h1>Streaming organizado em <span>HD, Full HD e 4K</span> com suporte de verdade.</h1>
+          <p>Teste quando disponível, escolha o plano, configure no aparelho que você já usa e conte com orientação pelo WhatsApp do começo ao fim.</p>
+          <div class="hero-actions"><a class="btn primary" data-wa="trial">Solicitar teste →</a><a class="btn ghost" href="#planos">Ver planos e preços</a></div>
+          <div class="hero-checks"><span>Sem cartão no teste</span><span>Ativação rápida</span><span>Suporte 7 dias</span></div>
         </div>
-        <div class="tv-shell">
-          <div class="tv-screen">
-            <div class="tv-title">JSTECH PRIME</div>
-            <div class="tv-sub">Tudo organizado para você usar sem complicação.</div>
-            <div class="tv-grid"><div>SMART TV</div><div>APLICATIVOS</div><div>SUPORTE</div><div>QUALIDADE 4K</div></div>
-          </div><div class="tv-foot"></div>
-        </div>
+
+        <aside class="status-card">
+          <div class="status-top"><span>JSTECH PRIME</span><b>STATUS</b></div>
+          <h3>Experiência pronta para testar.</h3>
+          <div class="status-screen">
+            <div><small>Qualidade</small><strong>HD • FHD • 4K</strong></div>
+            <div><small>Teste</small><strong id="heroTrial">até 24h</strong></div>
+            <div><small>Suporte</small><strong>7 dias</strong></div>
+            <div><small>Ativação</small><strong>rápida</strong></div>
+          </div>
+          <div class="status-line"><i></i><span>Atendimento disponível pelo WhatsApp</span></div>
+        </aside>
       </div>
       <div class="dots"><button class="active"></button><button></button><button></button></div>
     </section>
 
-    <section class="metrics">
+    <section class="metrics ref-metrics">
       <div class="wrap metrics-grid">
         <div><strong>Teste de até 24h</strong><small>quando disponível</small></div>
-        <div><strong>Ativação rápida</strong><small>orientação em poucos minutos</small></div>
-        <div><strong>7 dias por semana</strong><small>atendimento pelo WhatsApp</small></div>
-        <div><strong>13+ dispositivos</strong><small id="syncStatus">Carregando dados atuais…</small></div>
+        <div><strong>Ativação em minutos</strong><small>com orientação</small></div>
+        <div><strong>7 dias por semana</strong><small>suporte no WhatsApp</small></div>
+        <div><strong>Vários dispositivos</strong><small id="syncStatus">dados atualizados</small></div>
       </div>
     </section>
 
-    <section class="section" id="vantagens">
+    <section class="section test-hub" id="teste">
       <div class="wrap">
-        <div class="section-head"><span>UM COMPLETA O OUTRO</span><h2>Mais informação, menos dúvida na hora de escolher.</h2><p>Reunimos os pontos comerciais mais úteis das duas referências: planos, teste, qualidade, compatibilidade, velocidade recomendada, pagamentos e suporte, sem repetir o que é igual.</p></div>
-        <div class="bento">
-          <article class="feature-card big"><div class="icon">◎</div><h3>Qualidade para cada conexão</h3><p>Veja de forma clara quais qualidades estão disponíveis e qual velocidade de internet é indicada para cada uma.</p><div class="chips" id="qualityChips"><span>SD</span><span>HD</span><span>Full HD</span><span>4K</span></div></article>
-          <article class="feature-card"><div class="icon">⚡</div><h3>Ativação rápida</h3><p>Escolha o plano e receba orientação para configurar seu dispositivo.</p></article>
-          <article class="feature-card"><div class="icon">◈</div><h3>Teste disponível</h3><p id="trialText">Verificando disponibilidade atual.</p><a class="text-link" data-wa="trial">Solicitar teste →</a></article>
-          <article class="feature-card"><div class="icon">⌁</div><h3>Compatibilidade ampla</h3><p>Smart TV, TV Box, Android TV, Fire TV, celular, tablet, notebook, PC e outros dispositivos.</p></article>
-          <article class="feature-card"><div class="icon">☏</div><h3>Suporte direto</h3><p>Atendimento simples e objetivo pelo WhatsApp, antes e depois da contratação.</p></article>
+        <div class="section-head center"><span>TESTE GRÁTIS</span><h2>Escolha como você quer testar</h2><p>Uma área direta para o teste, inspirada no fluxo simples de escolha da segunda referência, mas focada apenas em serviços de streaming autorizados.</p></div>
+        <div class="test-options">
+          <article class="test-option featured-test"><span class="option-kicker">MAIS RÁPIDO</span><div class="option-icon">▣</div><h3>Smart TV</h3><p>Confira compatibilidade, qualidade e estabilidade na sua própria TV antes de escolher um plano.</p><a class="btn primary" data-wa="trial">Solicitar teste na TV →</a></article>
+          <article class="test-option"><span class="option-kicker">FLEXÍVEL</span><div class="option-icon">◫</div><h3>TV Box / Android TV</h3><p>Receba orientação sobre o aplicativo adequado e faça o teste no aparelho que já está instalado.</p><a class="btn ghost" data-wa="trial">Testar no aparelho →</a></article>
+          <article class="test-option"><span class="option-kicker">MÓVEL</span><div class="option-icon">▯</div><h3>Celular / Computador</h3><p>Teste pelo celular, tablet, notebook ou PC e confirme a experiência antes da contratação.</p><a class="btn ghost" data-wa="trial">Solicitar teste →</a></article>
         </div>
-        <div class="test-band"><div><span class="eyebrow">TESTE + ATIVAÇÃO</span><h3>Primeiro confira. Depois escolha seu plano.</h3><p>Quando o teste estiver disponível, confira compatibilidade e funcionamento no seu aparelho antes de contratar.</p></div><a class="btn primary" data-wa="trial">Solicitar teste →</a></div>
+        <div class="test-facts"><div><b>01</b><strong>Escolha o aparelho</strong><small>TV, TV Box, celular ou computador.</small></div><div><b>02</b><strong>Peça o teste</strong><small>Fale direto com o atendimento.</small></div><div><b>03</b><strong>Configure</strong><small>Receba orientação para começar.</small></div><div><b>04</b><strong>Decida depois</strong><small>Gostou? Escolha o plano ideal.</small></div></div>
       </div>
     </section>
 
     <section class="section plans-sec" id="planos">
-      <div class="wrap"><div class="section-head center"><span>PLANOS ATUAIS</span><h2>Escolha o período ideal</h2><p>Mensal, trimestral, semestral e anual, carregados automaticamente do Supabase quando há atualização válida.</p></div><div class="plans" id="plansGrid"></div></div>
+      <div class="wrap">
+        <div class="section-head center"><span>PLANOS</span><h2>Quatro opções para escolher sem complicação</h2><p>Mensal, trimestral, semestral e anual. Os valores são carregados do catálogo comercial sincronizado.</p></div>
+        <div class="plans" id="plansGrid"></div>
+        <div class="plan-trust"><span>Pix</span><span>Cartão quando disponível</span><span>Boleto quando disponível</span><span>Sem fidelidade obrigatória</span></div>
+      </div>
     </section>
 
-    <section class="section dark-panel"><div class="wrap split"><div><span class="eyebrow">VELOCIDADE RECOMENDADA</span><h2>Internet certa para a qualidade que você quer.</h2><p>Quanto maior a qualidade de imagem, maior a velocidade recomendada para uma experiência mais estável.</p></div><div class="speed-grid" id="speedGrid"></div></div></section>
+    <section class="section benefits-ref" id="beneficios">
+      <div class="wrap">
+        <div class="section-head"><span>BENEFÍCIOS</span><h2>O que realmente importa no uso do dia a dia</h2><p>Essa parte segue a estrutura informativa da primeira referência: qualidade, configuração, suporte, compatibilidade, conexão e transparência em blocos claros.</p></div>
+        <div class="benefit-grid">
+          <article><i>01</i><h3>Estabilidade primeiro</h3><p>Orientação para usar a configuração adequada ao seu aparelho e à sua conexão.</p></article>
+          <article><i>02</i><h3>HD, Full HD e 4K</h3><p>Qualidades exibidas conforme disponibilidade, aparelho e velocidade de internet.</p></article>
+          <article><i>03</i><h3>Configuração simples</h3><p>Passo a passo direto para começar sem precisar entender de tecnologia.</p></article>
+          <article><i>04</i><h3>Suporte humano</h3><p>Atendimento pelo WhatsApp para teste, configuração, compatibilidade e dúvidas.</p></article>
+          <article><i>05</i><h3>Compatibilidade ampla</h3><p>Smart TVs, TV Box, Android TV, Fire TV, celulares, computadores e outros aparelhos.</p></article>
+          <article><i>06</i><h3>Preço claro</h3><p>Planos organizados por período para você comparar antes de contratar.</p></article>
+        </div>
+      </div>
+    </section>
 
-    <section class="section" id="compatibilidade"><div class="wrap"><div class="section-head"><span>COMPATIBILIDADE</span><h2>Funciona nos aparelhos que você já usa</h2><p>A lista une as informações das duas referências e remove repetições.</p></div><div class="devices" id="deviceGrid"></div></div></section>
+    <section class="section content-sec">
+      <div class="wrap">
+        <div class="section-head"><span>CONTEÚDO E EXPERIÊNCIA</span><h2>Tudo separado por categoria para encontrar mais rápido</h2><p>Organização visual inspirada na seção de categorias da primeira referência, usando somente catálogo e conteúdo devidamente autorizados.</p></div>
+        <div class="content-grid">
+          <article class="content-card live"><small>AO VIVO</small><h3>Programação ao vivo</h3><p>Organizada por categorias para navegação rápida.</p></article>
+          <article class="content-card movies"><small>FILMES</small><h3>Filmes sob demanda</h3><p>Acervo organizado por gênero, coleção e disponibilidade.</p></article>
+          <article class="content-card series"><small>SÉRIES</small><h3>Séries e temporadas</h3><p>Conteúdo separado para facilitar a busca e continuar assistindo.</p></article>
+          <article class="content-card sports"><small>ESPORTES</small><h3>Conteúdo esportivo</h3><p>Quando incluído no serviço autorizado contratado.</p></article>
+          <article class="content-card kids"><small>INFANTIL</small><h3>Área infantil</h3><p>Conteúdo organizado para encontrar opções com mais facilidade.</p></article>
+          <article class="content-card variety"><small>VARIEDADES</small><h3>Documentários e variedades</h3><p>Categorias complementares reunidas em um só lugar.</p></article>
+        </div>
+      </div>
+    </section>
 
-    <section class="section journey" id="como"><div class="wrap"><div class="section-head center"><span>COMO FUNCIONA</span><h2>Da escolha à configuração em 4 passos</h2></div><div class="steps"><article><b>01</b><h3>Escolha</h3><p>Compare os quatro períodos e selecione o plano.</p></article><article><b>02</b><h3>Teste</h3><p>Quando disponível, confira a compatibilidade no seu aparelho.</p></article><article><b>03</b><h3>Configuração</h3><p>Receba orientação para instalação e configuração.</p></article><article><b>04</b><h3>Suporte</h3><p>Continue com atendimento direto sempre que precisar.</p></article></div></div></section>
+    <section class="section dark-panel quality-sec">
+      <div class="wrap split">
+        <div><span class="eyebrow">QUALIDADE + INTERNET</span><h2>Internet certa para a qualidade que você quer.</h2><p>Use a referência de velocidade real para escolher a melhor qualidade sem exagerar na configuração.</p><div class="chips" id="qualityChips"><span>SD</span><span>HD</span><span>Full HD</span><span>4K</span></div></div>
+        <div class="speed-grid" id="speedGrid"></div>
+      </div>
+    </section>
 
-    <section class="section payment-sec"><div class="wrap"><div class="section-head center"><span>FORMAS DE PAGAMENTO</span><h2>Pagamento simples e organizado</h2><p>Pix, cartão de crédito e boleto bancário aparecem conforme disponibilidade comercial.</p></div><div class="payment-grid"><article><b>◇</b><strong>Pix</strong><small>rápido e simples</small></article><article><b>▣</b><strong>Cartão de crédito</strong><small>quando disponível</small></article><article><b>◈</b><strong>Boleto bancário</strong><small>quando disponível</small></article></div></div></section>
+    <section class="section" id="como">
+      <div class="wrap">
+        <div class="section-head center"><span>COMO FUNCIONA</span><h2>Do primeiro contato ao uso em 4 passos</h2><p>Um fluxo direto: testar, receber orientação, configurar e só então escolher o plano.</p></div>
+        <div class="steps"><article><b>01</b><h3>Solicite o teste</h3><p>Informe qual aparelho você pretende usar.</p></article><article><b>02</b><h3>Receba a orientação</h3><p>A equipe indica a melhor forma de configurar seu dispositivo.</p></article><article><b>03</b><h3>Configure em minutos</h3><p>Siga o passo a passo e valide a qualidade da conexão.</p></article><article><b>04</b><h3>Escolha o plano</h3><p>Depois do teste, contrate apenas se a experiência fizer sentido para você.</p></article></div>
+      </div>
+    </section>
 
-    <section class="section" id="faq"><div class="wrap faq-layout"><div class="section-head"><span>PERGUNTAS FREQUENTES</span><h2>Informação clara antes de contratar.</h2><p>Veja as dúvidas mais importantes sobre planos, aparelhos, teste, qualidade e atendimento.</p><a class="btn ghost" data-wa="support">Falar com a equipe</a></div><div class="faq-list"><article class="faq open"><button>Quais dispositivos são compatíveis?<span>+</span></button><p>Smart TVs, TV Box, Android TV, Fire TV, celulares, tablets, computadores e outros dispositivos compatíveis aparecem conforme os dados sincronizados.</p></article><article class="faq"><button>Existe teste antes da contratação?<span>+</span></button><p>Quando os dados atuais indicarem teste disponível, essa informação aparece automaticamente no site.</p></article><article class="faq"><button>Qual velocidade de internet é indicada?<span>+</span></button><p>A recomendação muda conforme a qualidade. O site usa os valores sincronizados para HD, Full HD e 4K.</p></article><article class="faq"><button>Quanto tempo leva para ativar?<span>+</span></button><p>A ativação costuma ser rápida após a confirmação e a verificação de compatibilidade.</p></article><article class="faq"><button>Como falar com o atendimento?<span>+</span></button><p>Use qualquer botão de WhatsApp da página ou envie o formulário abaixo.</p></article></div></div></section>
+    <section class="section device-sec" id="compatibilidade">
+      <div class="wrap"><div class="section-head"><span>COMPATIBILIDADE</span><h2>Funciona nos aparelhos que você já usa</h2><p>Compatibilidade consolidada do catálogo sincronizado, sem repetir dispositivos equivalentes.</p></div><div class="devices" id="deviceGrid"></div><div class="compat-help"><div><b>Ficou em dúvida sobre o modelo?</b><span>Mande o nome do aparelho antes de contratar.</span></div><a class="btn ghost" data-wa="support">Confirmar compatibilidade →</a></div></div>
+    </section>
 
-    <section class="section contact-sec"><div class="wrap contact-box"><div class="contact-copy"><span class="eyebrow">CONTATO</span><h2>Pronto para falar com a JSTech Prime?</h2><p>Envie seus dados ou chame direto no WhatsApp.</p><a class="btn ghost" data-wa="general">Abrir WhatsApp</a></div><form id="leadForm" class="lead-form"><div class="row"><input name="nome" placeholder="Seu nome" required><input name="whatsapp" placeholder="WhatsApp" required></div><select name="servico" required><option value="">Serviço de interesse</option><option>Plano</option><option>Teste</option><option>Suporte técnico</option><option>Configuração</option><option>Outro</option></select><textarea name="mensagem" placeholder="Como podemos ajudar?" required></textarea><button class="btn primary" type="submit">Enviar solicitação →</button><div id="formStatus" class="form-status"></div></form></div></section>
+    <section class="section proof-sec">
+      <div class="wrap">
+        <div class="section-head center"><span>DIFERENCIAIS</span><h2>Mais clareza antes, durante e depois da contratação</h2></div>
+        <div class="proof-grid"><article><span>◎</span><h3>Teste primeiro</h3><p>Quando disponível, você confere o funcionamento antes de escolher.</p></article><article><span>◉</span><h3>Atendimento real</h3><p>Orientação humana pelo WhatsApp para reduzir dúvidas na configuração.</p></article><article><span>◇</span><h3>Sem surpresa</h3><p>Planos e condições apresentados de forma direta, sem esconder etapas.</p></article><article><span>⌁</span><h3>Vários aparelhos</h3><p>Uma experiência pensada para TV, TV Box, celular, tablet e computador.</p></article></div>
+      </div>
+    </section>
 
-    <section class="section final-sec"><div class="wrap final-cta"><span class="eyebrow">JSTECH PRIME</span><h2>Uma experiência mais completa começa com a escolha certa.</h2><p>Veja os planos, confira a compatibilidade e fale com a equipe para receber orientação.</p><div><a class="btn primary" data-wa="trial">Quero testar →</a><a class="btn ghost" data-wa="general">Quero contratar</a></div></div></section>
+    <section class="section payment-sec">
+      <div class="wrap"><div class="section-head center"><span>PAGAMENTO</span><h2>Formas de pagamento disponíveis</h2><p>As opções aparecem de acordo com os dados comerciais sincronizados.</p></div><div class="payment-grid" id="paymentGrid"><article><b>◇</b><strong>Pix</strong><small>rápido e simples</small></article></div></div>
+    </section>
+
+    <section class="section guide-sec">
+      <div class="wrap"><div class="section-head"><span>GUIAS RÁPIDOS</span><h2>Informação útil antes de começar</h2><p>Uma área de orientação no estilo da primeira referência, sem depender de páginas externas.</p></div><div class="guide-grid"><article><small>CONFIGURAÇÃO</small><h3>Como preparar sua Smart TV</h3><p>Confira internet, sistema da TV e aplicativo compatível antes do teste.</p></article><article><small>INTERNET</small><h3>Quanto de internet você precisa?</h3><p>HD, Full HD e 4K exigem velocidades diferentes para uma experiência estável.</p></article><article><small>COMPATIBILIDADE</small><h3>Qual aparelho usar?</h3><p>TV Box, Smart TV, Fire TV, celular e PC podem exigir aplicativos diferentes.</p></article></div></div>
+    </section>
+
+    <section class="section" id="faq">
+      <div class="wrap faq-layout">
+        <div class="section-head"><span>FAQ</span><h2>Dúvidas antes de testar ou contratar</h2><p>Respostas diretas para as perguntas que normalmente aparecem antes da escolha.</p><a class="btn ghost" data-wa="support">Perguntar no WhatsApp</a></div>
+        <div class="faq-list">
+          <article class="faq open"><button>Como funciona o teste?<span>+</span></button><p>Você informa o aparelho, recebe orientação e, quando o teste estiver disponível, pode avaliar antes de escolher um plano.</p></article>
+          <article class="faq"><button>Quanto tempo dura o teste?<span>+</span></button><p id="trialFaq">O período atual aparece conforme os dados sincronizados.</p></article>
+          <article class="faq"><button>Quais aparelhos são compatíveis?<span>+</span></button><p>Smart TV, TV Box, Android TV, Fire TV, celulares, tablets, notebooks, PCs e outros aparelhos compatíveis.</p></article>
+          <article class="faq"><button>Qual velocidade de internet é indicada?<span>+</span></button><p>Como referência: cerca de 15 Mbps para HD, 25 Mbps para Full HD e 45 Mbps para 4K, conforme a qualidade da conexão real.</p></article>
+          <article class="faq"><button>Como é feito o pagamento?<span>+</span></button><p id="paymentsFaq">As formas de pagamento são carregadas do catálogo comercial atualizado.</p></article>
+          <article class="faq"><button>Como recebo suporte?<span>+</span></button><p>Use qualquer botão de WhatsApp do site para falar diretamente com o atendimento.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section contact-sec">
+      <div class="wrap contact-box">
+        <div class="contact-copy"><span class="eyebrow">CONTATO</span><h2>Pronto para testar ou escolher um plano?</h2><p>Fale direto pelo WhatsApp ou envie seus dados pelo formulário.</p><a class="btn ghost" data-wa="trial">Abrir WhatsApp</a></div>
+        <form id="leadForm" class="lead-form"><div class="row"><input name="nome" placeholder="Seu nome" required><input name="whatsapp" placeholder="WhatsApp" required></div><select name="servico" required><option value="">Serviço de interesse</option><option>Teste</option><option>Plano</option><option>Suporte técnico</option><option>Compatibilidade</option><option>Outro</option></select><textarea name="mensagem" placeholder="Como podemos ajudar?" required></textarea><button class="btn primary" type="submit">Enviar solicitação →</button><div id="formStatus" class="form-status"></div></form>
+      </div>
+    </section>
+
+    <section class="section final-sec"><div class="wrap final-cta"><span class="eyebrow">TESTE ANTES DE DECIDIR</span><h2>Confira no seu aparelho. Depois escolha o plano.</h2><p>Sem complicação: compatibilidade, orientação e suporte reunidos em um único atendimento.</p><div><a class="btn primary" data-wa="trial">Solicitar teste →</a><a class="btn ghost" href="#planos">Ver planos</a></div></div></section>
   </main>
 
-  <footer><div class="wrap footer-grid"><div><div class="brand foot-brand">JS<span>Tech Prime</span></div><p>Tecnologia, planos, compatibilidade e suporte organizados em um só lugar. Trabalhe somente com serviços e conteúdos devidamente autorizados.</p></div><div><strong>Sincronização</strong><p id="lastSync">Dados comerciais com atualização automática.</p></div></div></footer>
+  <footer>
+    <div class="wrap footer-big"><div><div class="brand foot-brand"><span class="bolt">⚡</span>JS<span>Tech Prime</span></div><p>Tecnologia, teste, planos, compatibilidade e suporte organizados em um só lugar para serviços e conteúdos devidamente autorizados.</p></div><div><strong>Navegação</strong><a href="#inicio">Início</a><a href="#planos">Planos</a><a href="#teste">Teste</a><a href="#compatibilidade">Compatibilidade</a></div><div><strong>Ajuda</strong><a href="#faq">Perguntas frequentes</a><a data-wa="support">Suporte no WhatsApp</a><a data-wa="trial">Solicitar teste</a></div><div><strong>Atualização</strong><p id="lastSync">Dados comerciais com atualização automática.</p></div></div>
+  </footer>
   <a class="float-wa" data-wa="general">WhatsApp</a>
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

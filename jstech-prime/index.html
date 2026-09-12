@@ -1,86 +1,11 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>JSTech Prime | IPTV, teste grátis e suporte</title>
-  <meta name="description" content="JSTech Prime: planos de IPTV atualizados, teste grátis, qualidade 4K, compatibilidade e suporte pelo WhatsApp.">
-  <meta name="theme-color" content="#050913">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=7">
-</head>
-<body>
-  <div class="aurora aurora-a"></div><div class="aurora aurora-b"></div>
-  <div class="topline"><div class="wrap"><span><i></i> Atendimento todos os dias</span><a data-wa="trial">Pedir teste grátis</a></div></div>
-  <header><div class="wrap navbar">
-    <a href="#inicio" class="brand"><span class="brand-icon">J</span><span>JS<strong>Tech</strong><small>PRIME</small></span></a>
-    <nav><a href="#planos">Planos</a><a href="#vantagens">Vantagens</a><a href="#compatibilidade">Aparelhos</a><a href="#como">Como funciona</a><a href="#faq">Dúvidas</a></nav>
-    <a class="btn btn-primary nav-btn" data-wa="general">Falar no WhatsApp</a>
-  </div></header>
-
-  <main id="inicio">
-    <section class="hero"><div class="wrap hero-grid">
-      <div class="hero-copy">
-        <div class="kicker"><span></span> ENTRETENIMENTO DO SEU JEITO</div>
-        <h1>Sua TV completa.<br><em>Sem complicação.</em></h1>
-        <p>Programação ao vivo, filmes, séries e esportes em uma experiência organizada, com teste antes de contratar e suporte humano quando precisar.</p>
-        <div class="hero-actions"><a class="btn btn-primary btn-lg" data-wa="trial">Quero testar grátis <b>→</b></a><a class="btn btn-ghost btn-lg" href="#planos">Ver planos</a></div>
-        <div class="microproof"><span>✓ Sem fidelidade</span><span>✓ Ativação rápida</span><span>✓ Suporte via WhatsApp</span></div>
-      </div>
-      <div class="showcase" aria-label="Painel de conteúdo JSTech Prime">
-        <div class="showcase-head"><span><i></i> SISTEMA ONLINE</span><b>JSTECH PRIME</b></div>
-        <div class="showcase-main"><small>DESTAQUE DA SEMANA</small><h2>Qualidade que você percebe desde o primeiro play.</h2><div class="play">▶</div></div>
-        <div class="showcase-cards"><article class="sc1"><b>AO VIVO</b><span>Programação completa</span></article><article class="sc2"><b>FILMES</b><span>Catálogo organizado</span></article><article class="sc3"><b>ESPORTES</b><span>Grandes eventos</span></article></div>
-      </div>
-    </div></section>
-
-    <section class="proofbar"><div class="wrap proof-grid"><article><strong>4K</strong><span>Qualidade máxima*</span></article><article><strong id="trialHours">24h</strong><span>Teste grátis*</span></article><article><strong id="deviceCount">13+</strong><span>Aparelhos compatíveis</span></article><article><strong>7 dias</strong><span>Suporte humano</span></article></div></section>
-
-    <section class="section plans" id="planos"><div class="wrap">
-      <div class="section-head center"><div class="kicker">PLANOS ATUALIZADOS</div><h2>Escolha o catálogo e o período ideal</h2><p>Os valores abaixo são conferidos automaticamente nas três fontes. Você vê cada catálogo separado, sem misturar preços diferentes.</p></div>
-      <div id="sourceTabs" class="source-tabs" role="tablist"><button class="skeleton-tab">Carregando planos…</button></div>
-      <div id="plansGrid" class="plans-grid" aria-live="polite"><div class="loading-card"></div><div class="loading-card"></div><div class="loading-card"></div><div class="loading-card"></div></div>
-      <div class="sync-note"><span id="syncDot"></span><div><strong id="syncTitle">Conferindo informações atuais…</strong><small id="syncText">O último catálogo válido permanece disponível mesmo se uma fonte estiver temporariamente fora do ar.</small></div></div>
-    </div></section>
-
-    <section class="section bento-section" id="vantagens"><div class="wrap">
-      <div class="section-head"><div class="kicker">UMA EXPERIÊNCIA COMPLETA</div><h2>Tudo o que importa,<br>em um único lugar.</h2></div>
-      <div class="bento">
-        <article class="bento-wide visual-card"><span>QUALIDADE DE IMAGEM</span><h3>Do HD ao 4K,<br>pronto para sua tela.</h3><div class="quality-row" id="qualityRow"><b>HD</b><b>FULL HD</b><b>4K</b></div></article>
-        <article><div class="icon-badge">⚡</div><h3>Ativação rápida</h3><p>Escolha o plano, confirme e receba a orientação para começar.</p></article>
-        <article><div class="icon-badge">◉</div><h3>Suporte humano</h3><p>Atendimento direto pelo WhatsApp para instalar, configurar e renovar.</p></article>
-        <article><div class="icon-badge">◇</div><h3>Sem fidelidade</h3><p>Períodos claros para você escolher com liberdade.</p></article>
-        <article class="bento-wide content-card"><span>CATÁLOGO ORGANIZADO</span><h3>Ao vivo, filmes, séries, esportes, infantil e muito mais.</h3><div class="category-pills"><i>AO VIVO</i><i>FILMES</i><i>SÉRIES</i><i>ESPORTES</i><i>INFANTIL</i></div></article>
-      </div>
-    </div></section>
-
-    <section class="section devices-section" id="compatibilidade"><div class="wrap">
-      <div class="section-head center"><div class="kicker">COMPATIBILIDADE</div><h2>Assista no aparelho que você já tem</h2><p>A lista se completa automaticamente com os dispositivos encontrados nas três fontes.</p></div>
-      <div id="deviceGrid" class="device-grid"></div>
-      <div class="device-help"><div><strong>Não encontrou seu modelo?</strong><span>Chame no WhatsApp e confirme antes de contratar.</span></div><a class="btn btn-ghost" data-wa="support">Confirmar aparelho →</a></div>
-    </div></section>
-
-    <section class="section steps-section" id="como"><div class="wrap"><div class="section-head center"><div class="kicker">COMECE AGORA</div><h2>Da escolha ao primeiro play</h2></div><div class="steps">
-      <article><b>01</b><div class="step-icon">▣</div><h3>Escolha o aparelho</h3><p>Informe se vai usar Smart TV, TV Box, celular ou computador.</p></article>
-      <article><b>02</b><div class="step-icon">◎</div><h3>Peça o teste</h3><p>Confira qualidade, estabilidade e compatibilidade antes de pagar.</p></article>
-      <article><b>03</b><div class="step-icon">⚙</div><h3>Receba a orientação</h3><p>Ajudamos com o aplicativo e a configuração correta.</p></article>
-      <article><b>04</b><div class="step-icon">▶</div><h3>Escolha seu plano</h3><p>Gostou? Selecione o catálogo e o período que preferir.</p></article>
-    </div></div></section>
-
-    <section class="section faq-section" id="faq"><div class="wrap faq-layout"><div class="section-head"><div class="kicker">PERGUNTAS FREQUENTES</div><h2>Tire suas dúvidas antes de contratar</h2><p>Resposta direta, sem letras pequenas.</p><a class="btn btn-ghost" data-wa="support">Ainda tenho uma dúvida</a></div><div class="faq-list">
-      <article class="faq open"><button>Como funciona o teste grátis?<span>+</span></button><p>Você informa o aparelho pelo WhatsApp, recebe a orientação e avalia o funcionamento antes de escolher um plano. O tempo disponível aparece conforme o catálogo selecionado.</p></article>
-      <article class="faq"><button>Em quais aparelhos funciona?<span>+</span></button><p>Smart TVs, TV Box, Android TV, Fire TV, celulares, tablets, computadores e outros modelos exibidos nesta página.</p></article>
-      <article class="faq"><button>Os preços estão atualizados?<span>+</span></button><p>Sim. O Supabase consulta as três fontes periodicamente. Se uma delas falhar, o último preço válido permanece no ar.</p></article>
-      <article class="faq"><button>Como recebo o acesso?<span>+</span></button><p>Após a confirmação, o atendimento envia os dados e ajuda na configuração pelo WhatsApp.</p></article>
-    </div></div></section>
-
-    <section class="section contact-section"><div class="wrap contact-panel"><div><div class="kicker">FALE COM A GENTE</div><h2>Pronto para testar?</h2><p>Envie seus dados ou fale direto pelo WhatsApp. Sua solicitação fica registrada com segurança.</p><a class="btn btn-primary" data-wa="trial">Abrir WhatsApp →</a></div><form id="leadForm"><div class="form-row"><input name="nome" placeholder="Seu nome" required><input name="whatsapp" inputmode="tel" placeholder="Seu WhatsApp" required></div><select name="servico" required><option value="">O que você procura?</option><option>Teste grátis</option><option>Plano mensal</option><option>Plano trimestral</option><option>Plano semestral</option><option>Plano anual</option><option>Suporte</option></select><textarea name="mensagem" placeholder="Conte em qual aparelho pretende usar."></textarea><button class="btn btn-primary" type="submit">Enviar solicitação →</button><div id="formStatus" class="form-status"></div></form></div></section>
-  </main>
-
-  <footer><div class="wrap footer-grid"><div><a href="#inicio" class="brand"><span class="brand-icon">J</span><span>JS<strong>Tech</strong><small>PRIME</small></span></a><p>Entretenimento, tecnologia e suporte em uma experiência simples.</p></div><div><strong>Navegação</strong><a href="#planos">Planos</a><a href="#vantagens">Vantagens</a><a href="#compatibilidade">Aparelhos</a></div><div><strong>Atendimento</strong><a data-wa="trial">Teste grátis</a><a data-wa="support">Suporte</a><small id="lastUpdate">Dados sincronizados automaticamente.</small></div></div><div class="wrap copyright">© 2026 JSTech Prime. Todos os direitos reservados. <span>*Disponibilidade varia conforme catálogo, conexão e aparelho.</span></div></footer>
-  <a class="float-wa" data-wa="general" aria-label="Abrir WhatsApp"><span>☏</span><b>WhatsApp</b></a>
-  <script src="app.js?v=7"></script>
-</body>
-</html>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>JSTech Prime | CS e IPTV</title><meta name="description" content="CS Satélite, CS NET e IPTV com teste grátis, planos atualizados e suporte."><meta name="theme-color" content="#07090f"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css?v=8"></head><body>
+<div class="announcement"><div class="container"><span><i></i> Servidores online • Suporte todos os dias</span><a data-wa="general">Falar com atendimento →</a></div></div><header><div class="container nav"><a class="logo" href="#inicio"><span>JS</span><div>TECH<small>PRIME</small></div></a><nav><a href="#cs">CS</a><a href="#iptv">IPTV</a><a href="#como">Como funciona</a><a href="#aparelhos">Aparelhos</a><a href="#faq">Dúvidas</a></nav><a class="button primary" data-wa="trial">PEDIR TESTE</a></div></header>
+<main id="inicio"><section class="hero"><div class="hero-light one"></div><div class="hero-light two"></div><div class="container hero-content"><div class="hero-copy"><div class="eyebrow">CS + IPTV EM UM SÓ LUGAR</div><h1>Escolha como<br>você quer <em>assistir.</em></h1><p>CS para seu receptor ou IPTV para Smart TV, TV Box, celular e computador. Teste antes, escolha seu plano e conte com suporte de verdade.</p><div class="hero-buttons"><a class="button cs-button" href="#cs">QUERO CS →</a><a class="button iptv-button" href="#iptv">QUERO IPTV →</a></div><div class="trust"><span>✓ Teste grátis</span><span>✓ Ativação rápida</span><span>✓ Pagamento via Pix</span></div></div><div class="hero-visual"><div class="orbit o1"></div><div class="orbit o2"></div><div class="tv"><div class="tv-screen"><span>JSTECH PRIME</span><strong>CS</strong><i>+</i><strong>IPTV</strong><small>Qualidade para sua tela</small></div><div class="tv-base"></div></div><div class="floating f1"><b>4K</b><small>Alta qualidade</small></div><div class="floating f2"><b>24h</b><small>Teste IPTV*</small></div></div></div></section>
+<section class="choice"><div class="container choice-grid"><a class="choice-card choice-cs" href="#cs"><div class="choice-icon satellite"></div><div><small>PARA RECEPTORES</small><h2>CS Satélite<br>e CS NET</h2><p>Estabilidade para receptores via satélite ou cabo.</p><b>Ver planos de CS →</b></div></a><a class="choice-card choice-iptv" href="#iptv"><div class="choice-icon screens"></div><div><small>PARA INTERNET</small><h2>IPTV completo</h2><p>Smart TV, TV Box, celular, tablet e computador.</p><b>Ver planos de IPTV →</b></div></a></div></section>
+<section class="service-section cs-section" id="cs"><div class="container"><div class="service-head"><div><div class="eyebrow orange">SERVIÇO CS</div><h2>Seu receptor com<br><em>sinal estável.</em></h2><p>Escolha CS Satélite ou CS NET. Os preços são sincronizados automaticamente.</p></div><a class="button cs-button" data-wa="cs-trial">TESTAR CS GRÁTIS</a></div><div class="service-selector" id="csTabs"></div><div class="plan-grid" id="csPlans"><div class="loader"></div><div class="loader"></div><div class="loader"></div><div class="loader"></div></div><div class="service-features"><span>📡 Receptores via satélite</span><span>📺 Receptores via cabo</span><span>⚡ Liberação rápida</span><span>💬 Suporte todos os dias</span></div></div></section>
+<section class="service-section iptv-section" id="iptv"><div class="container"><div class="service-head"><div><div class="eyebrow cyan">SERVIÇO IPTV</div><h2>Conteúdo completo<br><em>em qualquer tela.</em></h2><p>Selecione uma opção sincronizada e compare todos os períodos.</p></div><a class="button iptv-button" data-wa="iptv-trial">TESTAR IPTV GRÁTIS</a></div><div class="service-selector iptv-tabs" id="iptvTabs"></div><div class="plan-grid" id="iptvPlans"><div class="loader"></div><div class="loader"></div><div class="loader"></div><div class="loader"></div></div><div class="catalog-strip"><div><b>AO VIVO</b><span>Canais organizados</span></div><div><b>FILMES</b><span>Catálogo completo</span></div><div><b>SÉRIES</b><span>Temporadas</span></div><div><b>ESPORTES</b><span>Grandes eventos</span></div><div><b>INFANTIL</b><span>Para toda família</span></div></div></div></section>
+<section class="how" id="como"><div class="container"><div class="title center"><div class="eyebrow">FÁCIL E RÁPIDO</div><h2>Comece em quatro passos</h2></div><div class="steps"><article><b>01</b><span>Escolha</span><p>Decida entre CS e IPTV.</p></article><article><b>02</b><span>Teste</span><p>Confira antes de contratar.</p></article><article><b>03</b><span>Configure</span><p>Receba nossa orientação.</p></article><article><b>04</b><span>Assista</span><p>Ative o plano escolhido.</p></article></div></div></section>
+<section class="devices" id="aparelhos"><div class="container"><div class="title center"><div class="eyebrow">COMPATIBILIDADE</div><h2>Onde você pode usar</h2><p>CS nos receptores compatíveis. IPTV nos aparelhos conectados à internet.</p></div><div class="device-columns"><div><h3><i class="dot orange-dot"></i> Aparelhos para CS</h3><div class="device-list"><article>📡<b>Receptor Satélite</b></article><article>📺<b>Receptor Cabo</b></article></div></div><div><h3><i class="dot cyan-dot"></i> Aparelhos para IPTV</h3><div class="device-list" id="deviceList"></div></div></div></div></section>
+<section class="faq-section" id="faq"><div class="container faq-layout"><div class="title"><div class="eyebrow">TIRE SUAS DÚVIDAS</div><h2>CS ou IPTV:<br>qual escolher?</h2><p>Se ficar em dúvida, diga qual aparelho você tem e a gente orienta.</p><a class="button primary" data-wa="support">PEDIR AJUDA</a></div><div class="faq-list"><article class="faq open"><button>Qual é a diferença entre CS e IPTV?<span>+</span></button><p>O CS é usado em receptores compatíveis ligados à antena ou cabo. O IPTV funciona pela internet em Smart TV, TV Box, celular, tablet ou computador.</p></article><article class="faq"><button>Tem teste grátis nos dois?<span>+</span></button><p>Sim, quando disponível. Peça pelo WhatsApp informando se deseja CS ou IPTV.</p></article><article class="faq"><button>Os preços atualizam sozinhos?<span>+</span></button><p>Sim. O Supabase verifica as fontes automaticamente e mantém o último valor válido se alguma página sair do ar.</p></article><article class="faq"><button>Como faço a instalação?<span>+</span></button><p>Você informa o aparelho e recebe a orientação correta para configurar.</p></article></div></div></section>
+<section class="contact"><div class="container contact-box"><div><div class="eyebrow">ATENDIMENTO DIRETO</div><h2>Vamos colocar para funcionar?</h2><p>Escolha o serviço e envie seus dados. Você também pode chamar direto pelo WhatsApp.</p><div class="contact-buttons"><a class="button cs-button" data-wa="cs-trial">QUERO CS</a><a class="button iptv-button" data-wa="iptv-trial">QUERO IPTV</a></div></div><form id="leadForm"><input name="nome" placeholder="Seu nome" required><input name="whatsapp" inputmode="tel" placeholder="Seu WhatsApp" required><select name="servico" required><option value="">Escolha o serviço</option><option>CS Satélite</option><option>CS NET</option><option>IPTV</option><option>Suporte</option></select><textarea name="mensagem" placeholder="Qual aparelho você usa?"></textarea><button class="button primary" type="submit">ENVIAR SOLICITAÇÃO →</button><div id="formStatus"></div></form></div></section></main>
+<footer><div class="container footer"><a class="logo" href="#inicio"><span>JS</span><div>TECH<small>PRIME</small></div></a><p>CS e IPTV com teste, ativação e suporte.</p><div><a href="#cs">CS</a><a href="#iptv">IPTV</a><a data-wa="support">Suporte</a></div><small id="lastUpdate">Sincronização automática ativa.</small></div></footer><a class="whatsapp" data-wa="general">☏ <b>WhatsApp</b></a><script src="app.js?v=8"></script></body></html>

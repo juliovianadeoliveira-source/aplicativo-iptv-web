@@ -265,15 +265,32 @@ async function fetchJson(url){
   return data;
 }
 
+async function updateFromServer(refresh){
+  var data = await fetchJson(API + "?api=catalog&limit=900" + (refresh ? "&refresh=1" : "") + "&_=" + Date.now());
+  if(data && data.channels && data.channels.length){
+    state.data = data;
+    el("main").classList.remove("hidden");
+    render();
+  }
+}
+
 async function load(refresh){
   clearError();
   el("loading").classList.remove("hidden");
   try{
-    state.data = await fetchJson(API + "?api=catalog" + (refresh ? "&refresh=1" : "") + "&_=" + Date.now());
-    el("main").classList.remove("hidden");
-    render();
+    if(!refresh){
+      try{
+        state.data = await fetchJson("catalog.json?v=7736c9d");
+        el("main").classList.remove("hidden");
+        render();
+        el("loading").classList.add("hidden");
+        updateFromServer(false).catch(function(){});
+        return;
+      }catch(localErr){}
+    }
+    await updateFromServer(refresh);
   }catch(e){
-    showError(e.message || "Nao carregou os canais.");
+    showError((e && e.message) ? e.message : "Nao carregou os canais.");
   }finally{
     el("loading").classList.add("hidden");
   }

@@ -3,6 +3,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const SUPABASE_URL = "https://fvttsguxeocisqvcrbqh.supabase.co";
 const SUPABASE_KEY = "sb_publishable_0EBQukCnPwUwAFo5gzfl5g_Ycbw3dqN";
 const WEBHOOK_URL = SUPABASE_URL + "/functions/v1/jstech-wa-webhook";
+const USERNAME_LOGIN_URL = SUPABASE_URL + "/functions/v1/jstech-username-login";
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const $ = (s, root=document) => root.querySelector(s);
@@ -26,7 +27,7 @@ function pageMeta(page){
   return ({
     dashboard:["Visão geral","Dashboard"],conversations:["Atendimento","Conversas"],
     contacts:["CRM","Clientes"],automation:["Fluxos e regras","Automação"],
-    knowledge:["Inteligência","IA / Conhecimento"],settings:["Integrações","Configurações"]
+    knowledge:["Inteligência","IA / Conhecimento"],resellers:["Revenda","Revendedores"],settings:["Integrações","Configurações"]
   })[page];
 }
 function goPage(page){
@@ -36,23 +37,20 @@ function goPage(page){
   const [e,t]=pageMeta(page); $("#pageEyebrow").textContent=e; $("#pageTitle").textContent=t;
 }
 
-async function login(email,password){
-  if(password){
-    const {error}=await sb.auth.signInWithPassword({email,password});
-    if(error) throw error;
-  }else{
-    const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href}});
-    if(error) throw error;
-    $("#loginMsg").textContent="Link enviado. Abra seu e-mail para entrar.";
-  }
+async function login(username,password){
+  const res=await fetch(USERNAME_LOGIN_URL,{
+    method:"POST",
+    headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
+    body:JSON.stringify({username,password})
+  });
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error||"Usuário ou senha inválidos.");
+  const {error}=await sb.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token});
+  if(error) throw error;
 }
 $("#loginForm").addEventListener("submit",async e=>{
   e.preventDefault(); $("#loginMsg").textContent="Entrando...";
-  try{await login($("#loginEmail").value.trim(),$("#loginPassword").value)}catch(err){$("#loginMsg").textContent=err.message||"Não foi possível entrar."}
-});
-$("#magicLinkBtn").addEventListener("click",async()=>{
-  const email=$("#loginEmail").value.trim(); if(!email){$("#loginMsg").textContent="Digite seu e-mail primeiro.";return}
-  try{await login(email,"")}catch(err){$("#loginMsg").textContent=err.message||"Erro ao enviar link."}
+  try{await login($("#loginUsername").value.trim(),$("#loginPassword").value)}catch(err){$("#loginMsg").textContent=err.message||"Não foi possível entrar."}
 });
 $("#logoutBtn").addEventListener("click",()=>sb.auth.signOut());
 $("#mainNav").addEventListener("click",e=>{const b=e.target.closest("[data-page]");if(b)goPage(b.dataset.page)});
@@ -63,7 +61,7 @@ async function boot(){
   const {data:{session}}=await sb.auth.getSession();
   if(!session){showLogin();return}
   state.session=session; showApp();
-  const email=session.user.email||"J"; $("#userAvatar").textContent=email[0].toUpperCase();
+  const label=session.user.user_metadata?.username||session.user.user_metadata?.display_name||"J"; $("#userAvatar").textContent=String(label)[0].toUpperCase();
   await loadAll();
   subscribeRealtime();
 }

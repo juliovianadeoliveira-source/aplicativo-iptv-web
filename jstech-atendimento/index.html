@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <title>JSTech Atendimento</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="loginView" class="login-shell">
+    <div class="login-card">
+      <div class="brand-mark">JS</div>
+      <div>
+        <p class="eyebrow">JSTech</p>
+        <h1>Central de Atendimento</h1>
+        <p class="muted">WhatsApp, automação e IA em um só painel.</p>
+      </div>
+      <form id="loginForm" class="stack">
+        <label>E-mail<input id="loginEmail" type="email" autocomplete="email" required placeholder="seu@email.com"></label>
+        <label>Senha<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha"></label>
+        <button class="btn primary" type="submit">Entrar</button>
+        <button class="btn ghost" type="button" id="magicLinkBtn">Receber link de acesso por e-mail</button>
+      </form>
+      <p id="loginMsg" class="form-msg"></p>
+    </div>
+  </div>
+
+  <div id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark small">JS</div>
+        <div><strong>JSTech</strong><span>Atendimento</span></div>
+      </div>
+      <nav id="mainNav">
+        <button class="nav-item active" data-page="dashboard">▦ <span>Dashboard</span></button>
+        <button class="nav-item" data-page="conversations">◉ <span>Conversas</span><b id="navUnread" class="badge hidden">0</b></button>
+        <button class="nav-item" data-page="contacts">♙ <span>Clientes</span></button>
+        <button class="nav-item" data-page="automation">⌘ <span>Automação</span></button>
+        <button class="nav-item" data-page="knowledge">✦ <span>IA / Conhecimento</span></button>
+        <button class="nav-item" data-page="settings">⚙ <span>Configurações</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="mini-status"><i id="connectionDot"></i><span id="connectionText">WhatsApp não conectado</span></div>
+        <button id="logoutBtn" class="nav-item danger">↪ <span>Sair</span></button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="pageEyebrow">Visão geral</p>
+          <h2 id="pageTitle">Dashboard</h2>
+        </div>
+        <div class="top-actions">
+          <button class="btn ghost compact" id="refreshBtn">↻ Atualizar</button>
+          <div class="avatar" id="userAvatar">J</div>
+        </div>
+      </header>
+
+      <section id="page-dashboard" class="page active">
+        <div class="stats-grid">
+          <article class="stat"><span>Conversas</span><strong id="statConversations">0</strong><small>Total registrado</small></article>
+          <article class="stat"><span>Não lidas</span><strong id="statUnread">0</strong><small>Precisam de atenção</small></article>
+          <article class="stat"><span>Clientes</span><strong id="statContacts">0</strong><small>Base do atendimento</small></article>
+          <article class="stat"><span>Bot ativo</span><strong id="statBot">0</strong><small>Automação ligada</small></article>
+        </div>
+        <div class="dashboard-grid">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Fluxo principal</p><h3>Atendimento inicial</h3></div><span class="pill success">Ativo</span></div>
+            <div class="flow-preview">
+              <div class="flow-node hero-node"><b>Cliente envia “Oi”</b><span>Dispara o menu principal</span></div>
+              <div class="flow-line"></div>
+              <div class="flow-options">
+                <span>1 Planos</span><span>2 Teste</span><span>3 Renovar</span><span>4 Suporte</span><span>5 Atendente</span>
+              </div>
+            </div>
+            <button class="btn primary" data-go="automation">Editar automação</button>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Integração</p><h3>Status do WhatsApp</h3></div><span id="dashMetaPill" class="pill warning">Aguardando</span></div>
+            <div class="check-list">
+              <div><b>✓</b><span>Banco e painel Supabase</span></div>
+              <div><b>✓</b><span>Webhook publicado</span></div>
+              <div><b>✓</b><span>Envio manual publicado</span></div>
+              <div id="dashMetaLine"><b>○</b><span>Conectar número da Meta</span></div>
+              <div id="dashAiLine"><b>○</b><span>Adicionar chave da IA</span></div>
+            </div>
+            <button class="btn ghost" data-go="settings">Abrir configurações</button>
+          </article>
+        </div>
+      </section>
+
+      <section id="page-conversations" class="page">
+        <div class="chat-layout">
+          <aside class="conversation-list-panel">
+            <div class="search-row"><input id="conversationSearch" placeholder="Buscar cliente ou telefone"></div>
+            <div id="conversationList" class="conversation-list empty-box">Nenhuma conversa ainda.</div>
+          </aside>
+          <article class="chat-panel">
+            <div id="chatEmpty" class="chat-empty">
+              <div class="empty-icon">◉</div><h3>Escolha uma conversa</h3><p>As mensagens recebidas do WhatsApp vão aparecer aqui.</p>
+            </div>
+            <div id="chatActive" class="chat-active hidden">
+              <header class="chat-head">
+                <div><strong id="chatName">Cliente</strong><span id="chatPhone"></span></div>
+                <button id="toggleBotBtn" class="btn ghost compact">Bot ativo</button>
+              </header>
+              <div id="messageList" class="messages"></div>
+              <form id="composerForm" class="composer">
+                <textarea id="composerText" rows="1" placeholder="Digite uma mensagem..."></textarea>
+                <button class="btn primary" type="submit">Enviar</button>
+              </form>
+            </div>
+          </article>
+          <aside id="contactSidebar" class="contact-sidebar">
+            <h3>Dados do cliente</h3>
+            <div id="contactDetails" class="muted">Selecione uma conversa.</div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="page-contacts" class="page">
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">CRM</p><h3>Clientes</h3></div><input id="contactSearch" class="inline-search" placeholder="Buscar cliente"></div>
+          <div class="table-wrap">
+            <table><thead><tr><th>Cliente</th><th>Telefone</th><th>Status</th><th>Bot</th><th>Atualizado</th></tr></thead><tbody id="contactsTable"></tbody></table>
+          </div>
+        </article>
+      </section>
+
+      <section id="page-automation" class="page">
+        <div class="automation-grid">
+          <article class="panel automations-panel">
+            <div class="panel-head"><div><p class="eyebrow">Fluxos</p><h3>Automações</h3></div><button id="newAutomationBtn" class="btn ghost compact">+ Novo</button></div>
+            <div id="automationList" class="automation-list"></div>
+          </article>
+          <article class="panel builder-panel">
+            <div class="panel-head"><div><p class="eyebrow">Construtor</p><h3 id="automationTitle">Atendimento inicial</h3></div><button id="saveAutomationBtn" class="btn primary compact">Salvar fluxo</button></div>
+            <label>Palavras que iniciam o fluxo<input id="triggerTexts" placeholder="oi, olá, bom dia"></label>
+            <div class="builder-body">
+              <div class="node-list-wrap">
+                <div class="subhead"><b>Etapas</b><button id="addNodeBtn" class="icon-btn">+</button></div>
+                <div id="nodeList" class="node-list"></div>
+              </div>
+              <div id="nodeEditor" class="node-editor"></div>
+            </div>
+          </article>
+          <article class="panel simulator-panel">
+            <div class="panel-head"><div><p class="eyebrow">Teste antes do WhatsApp</p><h3>Simulador</h3></div><button id="resetSimulatorBtn" class="btn ghost compact">Reiniciar</button></div>
+            <div id="simulatorMessages" class="simulator-messages"></div>
+            <form id="simulatorForm" class="simulator-composer"><input id="simulatorInput" placeholder="Digite oi, 1, 2..."><button class="btn primary" type="submit">Enviar</button></form>
+          </article>
+        </div>
+      </section>
+
+      <section id="page-knowledge" class="page">
+        <div class="knowledge-grid">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Fonte da IA</p><h3>Base de conhecimento</h3></div><button id="newKnowledgeBtn" class="btn ghost compact">+ Adicionar</button></div>
+            <div id="knowledgeList" class="knowledge-list"></div>
+          </article>
+          <article class="panel">
+            <p class="eyebrow">Editar informação</p>
+            <h3 id="knowledgeFormTitle">Nova informação</h3>
+            <form id="knowledgeForm" class="stack">
+              <label>Título<input id="knowledgeTitle" required placeholder="Ex.: Planos IPTV"></label>
+              <label>Palavras-chave<input id="knowledgeKeywords" placeholder="plano, iptv, preço"></label>
+              <label>Conteúdo<textarea id="knowledgeContent" rows="10" required placeholder="Escreva aqui a informação que a IA pode usar."></textarea></label>
+              <div class="row-actions"><button class="btn primary" type="submit">Salvar</button><button id="cancelKnowledgeBtn" class="btn ghost" type="button">Limpar</button></div>
+            </form>
+          </article>
+        </div>
+      </section>
+
+      <section id="page-settings" class="page">
+        <div class="settings-grid">
+          <article class="panel">
+            <p class="eyebrow">Empresa e IA</p><h3>Comportamento do atendimento</h3>
+            <form id="settingsForm" class="stack">
+              <label>Nome da empresa<input id="companyName"></label>
+              <label>Mensagem de boas-vindas<textarea id="welcomeMessage" rows="3"></textarea></label>
+              <label class="toggle-line"><span><b>Usar IA quando o fluxo não souber responder</b><small>A automação normal continua tendo prioridade.</small></span><input id="aiEnabled" type="checkbox"></label>
+              <label>Modelo de IA<select id="aiModel"><option value="gpt-5.6-luna">GPT-5.6 Luna — econômico</option><option value="gpt-5.6-terra">GPT-5.6 Terra — equilibrado</option><option value="gpt-5.6-sol">GPT-5.6 Sol — mais forte</option></select></label>
+              <label>Instruções da IA<textarea id="aiInstructions" rows="5"></textarea></label>
+              <label>Resposta quando não houver IA ou informação<textarea id="fallbackMessage" rows="3"></textarea></label>
+              <button class="btn primary" type="submit">Salvar configurações</button>
+            </form>
+          </article>
+          <article class="panel">
+            <p class="eyebrow">Meta Cloud API</p><h3>Conectar seu WhatsApp</h3>
+            <div class="integration-box">
+              <span>Webhook publicado</span>
+              <code id="webhookUrl">carregando...</code>
+              <button id="copyWebhookBtn" class="btn ghost compact">Copiar webhook</button>
+            </div>
+            <div class="stack">
+              <label>Phone Number ID<input id="metaPhoneId" placeholder="ID fornecido pela Meta"></label>
+              <label>WhatsApp Business Account ID<input id="metaWabaId" placeholder="WABA ID"></label>
+              <label class="toggle-line"><span><b>Marcar número como conectado</b><small>Ative só depois de cadastrar os segredos abaixo.</small></span><input id="metaConnected" type="checkbox"></label>
+              <button id="saveMetaBtn" class="btn primary">Salvar dados da Meta</button>
+            </div>
+            <div class="secret-note">
+              <b>Segredos que ficam somente no Supabase</b>
+              <code>META_VERIFY_TOKEN</code>
+              <code>META_APP_SECRET</code>
+              <code>META_WHATSAPP_TOKEN</code>
+              <code>META_GRAPH_VERSION</code>
+              <code>OPENAI_API_KEY</code>
+              <p>Essas chaves não entram no GitHub. O painel já está preparado para usá-las quando forem cadastradas.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

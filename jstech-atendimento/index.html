@@ -20,10 +20,9 @@
         <p class="muted">WhatsApp, automação e IA em um só painel.</p>
       </div>
       <form id="loginForm" class="stack">
-        <label>E-mail<input id="loginEmail" type="email" autocomplete="email" required placeholder="seu@email.com"></label>
+        <label>Usuário<input id="loginUsername" autocomplete="username" required placeholder="Seu usuário"></label>
         <label>Senha<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha"></label>
         <button class="btn primary" type="submit">Entrar</button>
-        <button class="btn ghost" type="button" id="magicLinkBtn">Receber link de acesso por e-mail</button>
       </form>
       <p id="loginMsg" class="form-msg"></p>
     </div>
@@ -39,6 +38,7 @@
         <button class="nav-item active" data-page="dashboard">▦ <span>Dashboard</span></button>
         <button class="nav-item" data-page="conversations">◉ <span>Conversas</span><b id="navUnread" class="badge hidden">0</b></button>
         <button class="nav-item" data-page="contacts">♙ <span>Clientes</span></button>
+        <button class="nav-item" id="resellerNav" data-page="resellers">◆ <span>Revendas</span></button>
         <button class="nav-item" data-page="automation">⌘ <span>Automação</span></button>
         <button class="nav-item" data-page="knowledge">✦ <span>IA / Conhecimento</span></button>
         <button class="nav-item" data-page="settings">⚙ <span>Configurações</span></button>
@@ -132,6 +132,25 @@
         </article>
       </section>
 
+      <section id="page-resellers" class="page">
+        <div class="settings-grid">
+          <article class="panel">
+            <p class="eyebrow">Venda do sistema</p><h3>Criar revendedor</h3>
+            <form id="resellerForm" class="stack">
+              <label>Nome da revenda<input id="resellerName" required placeholder="Ex.: João IPTV"></label>
+              <label>Usuário<input id="resellerUsername" required minlength="3" placeholder="joaoiptv"></label>
+              <label>Senha<input id="resellerPassword" type="password" required minlength="8" placeholder="Mínimo 8 caracteres"></label>
+              <label>Plano<input id="resellerPlan" value="revenda" placeholder="Revenda"></label>
+              <button class="btn primary" type="submit">Criar acesso</button>
+            </form>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Contas</p><h3>Meus revendedores</h3></div><button id="reloadResellers" class="btn ghost compact">↻ Atualizar</button></div>
+            <div id="resellerList" class="knowledge-list"><p class="muted">Carregando...</p></div>
+          </article>
+        </div>
+      </section>
+
       <section id="page-automation" class="page">
         <div class="automation-grid">
           <article class="panel automations-panel">
@@ -222,5 +241,6 @@
   <script type="module" src="./app.js"></script>
   <script type="module" src="./crm.js"></script>
   <script type="module" src="./sync-sources.js"></script>
+  <script type="module" src="./resellers.js"></script>
 </body>
 </html>

@@ -27,7 +27,7 @@ function pageMeta(page){
   return ({
     dashboard:["Visão geral","Dashboard"],conversations:["Atendimento","Conversas"],
     contacts:["CRM","Clientes"],automation:["Fluxos e regras","Automação"],
-    knowledge:["Inteligência","IA / Conhecimento"],resellers:["Revenda","Revendedores"],settings:["Integrações","Configurações"]
+    knowledge:["Conteúdo","Respostas prontas"],resellers:["Revenda","Revendedores"],settings:["Integrações","Configurações"]
   })[page];
 }
 function goPage(page){
@@ -108,7 +108,7 @@ function renderDashboard(){
   $("#connectionDot").classList.toggle("on",connected);$("#connectionText").textContent=connected?"WhatsApp conectado":"WhatsApp não conectado";
   $("#dashMetaPill").className="pill "+(connected?"success":"warning");$("#dashMetaPill").textContent=connected?"Conectado":"Aguardando";
   $("#dashMetaLine").innerHTML=connected?"<b>✓</b><span>WhatsApp conectado por QR Code</span>":"<b>○</b><span>Conectar WhatsApp por QR Code</span>";
-  $("#dashAiLine").innerHTML=state.settings?.ai_enabled?"<b>✓</b><span>Fallback de IA habilitado</span>":"<b>○</b><span>Fallback de IA desabilitado</span>";
+  $("#dashAiLine").innerHTML="<b>✓</b><span>Atendimento automático por regras, sem IA</span>";
 }
 function convFilter(c,q){const ct=c.wa_contacts||{};return !q||(ct.name||"").toLowerCase().includes(q)||(ct.phone||"").includes(q);}
 function renderConversations(){
@@ -133,7 +133,7 @@ async function loadMessages(conversationId){
   if(error){toast(error.message,"error");return}state.messages=data||[];renderMessages();
 }
 function renderMessages(){
-  const box=$("#messageList");box.innerHTML=state.messages.map(m=>'<div class="message '+(m.direction==="in"?"in":"out "+(m.sender_type==="ai"?"ai":""))+'">'+escapeHtml(m.content)+'<small>'+escapeHtml(m.sender_type==="human"?"Atendente":m.sender_type==="ai"?"IA":m.direction==="in"?"Cliente":"Bot")+' • '+fmtDate(m.created_at)+'</small></div>').join("");box.scrollTop=box.scrollHeight;
+  const box=$("#messageList");box.innerHTML=state.messages.map(m=>'<div class="message '+(m.direction==="in"?"in":"out "+(m.sender_type==="ai"?"ai":""))+'">'+escapeHtml(m.content)+'<small>'+escapeHtml(m.sender_type==="human"?"Atendente":m.direction==="in"?"Cliente":"Automático")+' • '+fmtDate(m.created_at)+'</small></div>').join("");box.scrollTop=box.scrollHeight;
 }
 function renderContactDetails(ct,c){$("#contactDetails").innerHTML='<div class="contact-card"><div class="contact-row"><span>Nome</span><b>'+escapeHtml(ct.name||"Não informado")+'</b></div><div class="contact-row"><span>Telefone</span><b>'+escapeHtml(ct.phone||"-")+'</b></div><div class="contact-row"><span>Status</span><b>'+escapeHtml(c.status||ct.status||"aberta")+'</b></div><div class="contact-row"><span>Automação</span><b>'+(ct.bot_enabled?"Ativa":"Pausada")+'</b></div></div>'}
 $("#composerForm").addEventListener("submit",async e=>{
@@ -187,7 +187,7 @@ function simAppend(kind,text,options=[]){const box=$("#simulatorMessages"),b=doc
 function simGo(key,userLabel=null){const nodes=state.activeAutomation?.flow?.nodes||{},n=nodes[key];if(userLabel)simAppend("user",userLabel);if(!n)return;if(n.type==="handoff"){simAppend("bot",n.text||"Vou chamar um atendente.");state.simNode=null;return}state.simNode=key;simAppend("bot",n.text||"",n.options||[])}
 function resetSimulator(){const box=$("#simulatorMessages");box.innerHTML="";state.simNode=null;simAppend("bot","Simulador pronto. Digite “oi” para iniciar o fluxo.")}
 $("#resetSimulatorBtn").addEventListener("click",resetSimulator);
-$("#simulatorForm").addEventListener("submit",e=>{e.preventDefault();const input=$("#simulatorInput"),v=input.value.trim();if(!v)return;simAppend("user",v);input.value="";const a=state.activeAutomation;if(!a)return;const norm=x=>x.normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();if(!state.simNode&&(a.trigger_texts||[]).some(t=>norm(t)===norm(v))){simGo(a.flow.start);return}const node=a.flow.nodes?.[state.simNode];const opt=(node?.options||[]).find(o=>norm(o.key)===norm(v)||norm(o.label)===norm(v));if(opt){simGo(opt.next);return}simAppend("bot","Aqui entra a IA usando sua Base de Conhecimento quando nenhuma regra do fluxo corresponder.")});
+$("#simulatorForm").addEventListener("submit",e=>{e.preventDefault();const input=$("#simulatorInput"),v=input.value.trim();if(!v)return;simAppend("user",v);input.value="";const a=state.activeAutomation;if(!a)return;const norm=x=>x.normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();if(!state.simNode&&(a.trigger_texts||[]).some(t=>norm(t)===norm(v))){simGo(a.flow.start);return}const node=a.flow.nodes?.[state.simNode];const opt=(node?.options||[]).find(o=>norm(o.key)===norm(v)||norm(o.label)===norm(v));if(opt){simGo(opt.next);return}simAppend("bot","Não encontrei uma regra para essa resposta. No WhatsApp, vou pedir mais contexto ou deixar a conversa pronta para atendimento humano.")});
 resetSimulator();
 
 function renderKnowledge(){
@@ -207,15 +207,12 @@ function renderSettings(){
   const s=state.settings||{};
   $("#companyName").value=s.company_name||"JSTech";
   $("#welcomeMessage").value=s.welcome_message||"";
-  $("#aiEnabled").checked=!!s.ai_enabled;
-  $("#aiModel").value=s.ai_model||"gpt-5.6-luna";
-  $("#aiInstructions").value=s.ai_instructions||"";
   $("#fallbackMessage").value=s.fallback_message||"";
   renderBridgeUi(!!s.bridge_connected);
   refreshBridgeStatus().catch(()=>{});
 }
 
-$("#settingsForm").addEventListener("submit",async e=>{e.preventDefault();const patch={company_name:$("#companyName").value.trim()||"JSTech",welcome_message:$("#welcomeMessage").value.trim(),ai_enabled:$("#aiEnabled").checked,ai_model:$("#aiModel").value,ai_instructions:$("#aiInstructions").value.trim(),fallback_message:$("#fallbackMessage").value.trim(),updated_at:new Date().toISOString()};const {data,error}=await sb.from("wa_settings").update(patch).eq("workspace_id",state.workspace.id).select().single();if(error)return toast(error.message,"error");state.settings=data;renderDashboard();toast("Configurações salvas.")});
+$("#settingsForm").addEventListener("submit",async e=>{e.preventDefault();const patch={company_name:$("#companyName").value.trim()||"JSTech",welcome_message:$("#welcomeMessage").value.trim(),ai_enabled:false,fallback_message:$("#fallbackMessage").value.trim(),updated_at:new Date().toISOString()};const {data,error}=await sb.from("wa_settings").update(patch).eq("workspace_id",state.workspace.id).select().single();if(error)return toast(error.message,"error");state.settings=data;renderDashboard();toast("Configurações salvas.")});
 
 async function bridgeInvoke(action,extra={}){
   const {data,error}=await sb.functions.invoke(BRIDGE_FUNCTION,{body:{workspace_id:state.workspace.id,action,...extra}});

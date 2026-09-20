@@ -131,11 +131,14 @@ if (!phones_match($requesterPhone, $registeredPhone)) {
 try {
     // O W3BR original cria a solicitação como ativo=N e, após a confirmação,
     // muda apenas esse registro para ativo=S. Não apagamos registros.
-    $pending = $trustDb->prepare("SELECT id FROM liberarcomputador WHERE CadUser = :usuario AND ativo = 'N'");
+    // Libera somente a solicitação pendente mais recente desse usuário.
+    // O fluxo original do W3BR confirma uma solicitação específica pelo código SMS;
+    // ativar todos os registros pendentes de uma vez seria permissivo demais.
+    $pending = $trustDb->prepare("SELECT id FROM liberarcomputador WHERE CadUser = :usuario AND ativo = 'N' ORDER BY data DESC, id DESC LIMIT 1");
     $pending->execute(array(':usuario' => $username));
-    $pendingRows = $pending->fetchAll(PDO::FETCH_COLUMN);
+    $pendingId = $pending->fetchColumn();
 
-    if (!$pendingRows) {
+    if (!$pendingId) {
         $active = $trustDb->prepare("SELECT id FROM liberarcomputador WHERE CadUser = :usuario AND ativo = 'S' LIMIT 1");
         $active->execute(array(':usuario' => $username));
         $already = (bool)$active->fetchColumn();
@@ -150,8 +153,8 @@ try {
     }
 
     $trustDb->beginTransaction();
-    $upd = $trustDb->prepare("UPDATE liberarcomputador SET ativo = 'S' WHERE CadUser = :usuario AND ativo = 'N'");
-    $upd->execute(array(':usuario' => $username));
+    $upd = $trustDb->prepare("UPDATE liberarcomputador SET ativo = 'S' WHERE id = :id AND CadUser = :usuario AND ativo = 'N'");
+    $upd->execute(array(':id' => $pendingId, ':usuario' => $username));
     $count = $upd->rowCount();
     $trustDb->commit();
 

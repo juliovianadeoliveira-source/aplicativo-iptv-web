@@ -11,7 +11,7 @@ const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const state = {
   session:null, workspace:null, settings:null, contacts:[], conversations:[], messages:[],
   automations:[], knowledge:[], activeConversation:null, activeAutomation:null,
-  activeNode:null, editingKnowledge:null, channel:null, simNode:null
+  activeNode:null, editingKnowledge:null, channel:null, simNode:null, bridgeManagedLocally:false
 };
 
 function toast(msg, type="success"){
@@ -233,7 +233,14 @@ function renderBridgeUi(connected,configured=true){
   title.textContent=connected?"WhatsApp conectado":"WhatsApp ainda não conectado";
   hint.textContent=connected?"Mensagens entrando e saindo pelo painel.":configured?"Clique abaixo para gerar o QR Code.":"Configure o servidor uma única vez para liberar o QR Code.";
   connect.textContent=connected?"Verificar conexão":"Conectar WhatsApp";
-  disconnect.classList.toggle("hidden",!connected);
+  disconnect.classList.toggle("hidden",!connected||state.bridgeManagedLocally);
+  if(state.bridgeManagedLocally){
+    hint.textContent=connected?"Servidor JSTech conectado e mantendo a sessão automaticamente.":"Aguardando o agente do servidor JSTech.";
+    connect.textContent="Verificar conexão";
+    $("#bridgeAdvanced")?.classList.add("hidden");
+  }else{
+    $("#bridgeAdvanced")?.classList.remove("hidden");
+  }
   if(connected)$("#qrPanel").classList.add("hidden");
 }
 
@@ -242,6 +249,7 @@ async function refreshBridgeStatus(){
   try{
     const data=await bridgeInvoke("status");
     const connected=!!data.connected;
+    state.bridgeManagedLocally=!!data.managed_locally;
     state.settings.bridge_connected=connected;
     renderBridgeUi(connected,data.configured!==false);
     renderDashboard();

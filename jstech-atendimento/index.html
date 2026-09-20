@@ -17,7 +17,7 @@
       <div>
         <p class="eyebrow">JSTech</p>
         <h1>Central de Atendimento</h1>
-        <p class="muted">WhatsApp, automação e IA em um só painel.</p>
+        <p class="muted">WhatsApp, vendas, automação e atendimento humanizado em um só painel.</p>
       </div>
       <form id="loginForm" class="stack">
         <label>Usuário<input id="loginUsername" autocomplete="username" required placeholder="Seu usuário"></label>
@@ -40,7 +40,7 @@
         <button class="nav-item" data-page="contacts">♙ <span>Clientes</span></button>
         <button class="nav-item" id="resellerNav" data-page="resellers">◆ <span>Revendas</span></button>
         <button class="nav-item" data-page="automation">⌘ <span>Automação</span></button>
-        <button class="nav-item" data-page="knowledge">✦ <span>IA / Conhecimento</span></button>
+        <button class="nav-item" data-page="knowledge">✦ <span>Respostas / Conteúdo</span></button>
         <button class="nav-item" data-page="settings">⚙ <span>Configurações</span></button>
       </nav>
       <div class="sidebar-bottom">
@@ -75,7 +75,7 @@
               <div class="flow-node hero-node"><b>Cliente envia “Oi”</b><span>Dispara o menu principal</span></div>
               <div class="flow-line"></div>
               <div class="flow-options">
-                <span>1 Planos</span><span>2 Teste</span><span>3 Renovar</span><span>4 Suporte</span><span>5 Atendente</span>
+                <span>1 Planos e preços</span><span>2 Teste</span><span>3 Renovar</span><span>4 Suporte</span><span>5 Pessoa</span>
               </div>
             </div>
             <button class="btn primary" data-go="automation">Editar automação</button>
@@ -87,7 +87,7 @@
               <div><b>✓</b><span>Webhook publicado</span></div>
               <div><b>✓</b><span>Envio manual publicado</span></div>
               <div id="dashMetaLine"><b>○</b><span>Conectar WhatsApp por QR Code</span></div>
-              <div id="dashAiLine"><b>○</b><span>Adicionar chave da IA</span></div>
+              <div id="dashAiLine"><b>✓</b><span>Atendimento automático por regras, sem IA</span></div>
             </div>
             <button class="btn ghost" data-go="settings">Abrir configurações</button>
           </article>
@@ -179,7 +179,7 @@
       <section id="page-knowledge" class="page">
         <div class="knowledge-grid">
           <article class="panel">
-            <div class="panel-head"><div><p class="eyebrow">Fonte da IA</p><h3>Base de conhecimento</h3></div><button id="newKnowledgeBtn" class="btn ghost compact">+ Adicionar</button></div>
+            <div class="panel-head"><div><p class="eyebrow">Conteúdo do atendimento</p><h3>Respostas e informações</h3></div><button id="newKnowledgeBtn" class="btn ghost compact">+ Adicionar</button></div>
             <div id="knowledgeList" class="knowledge-list"></div>
           </article>
           <article class="panel">
@@ -188,7 +188,7 @@
             <form id="knowledgeForm" class="stack">
               <label>Título<input id="knowledgeTitle" required placeholder="Ex.: Planos IPTV"></label>
               <label>Palavras-chave<input id="knowledgeKeywords" placeholder="plano, iptv, preço"></label>
-              <label>Conteúdo<textarea id="knowledgeContent" rows="10" required placeholder="Escreva aqui a informação que a IA pode usar."></textarea></label>
+              <label>Conteúdo<textarea id="knowledgeContent" rows="10" required placeholder="Escreva aqui a informação que o atendimento automático pode usar."></textarea></label>
               <div class="row-actions"><button class="btn primary" type="submit">Salvar</button><button id="cancelKnowledgeBtn" class="btn ghost" type="button">Limpar</button></div>
             </form>
           </article>
@@ -198,14 +198,11 @@
       <section id="page-settings" class="page">
         <div class="settings-grid">
           <article class="panel">
-            <p class="eyebrow">Empresa e IA</p><h3>Comportamento do atendimento</h3>
+            <p class="eyebrow">Empresa e atendimento</p><h3>Comportamento do atendimento</h3>
             <form id="settingsForm" class="stack">
               <label>Nome da empresa<input id="companyName"></label>
               <label>Mensagem de boas-vindas<textarea id="welcomeMessage" rows="3"></textarea></label>
-              <label class="toggle-line"><span><b>Usar IA quando o fluxo não souber responder</b><small>A automação normal continua tendo prioridade.</small></span><input id="aiEnabled" type="checkbox"></label>
-              <label>Modelo de IA<select id="aiModel"><option value="gpt-5.6-luna">GPT-5.6 Luna — econômico</option><option value="gpt-5.6-terra">GPT-5.6 Terra — equilibrado</option><option value="gpt-5.6-sol">GPT-5.6 Sol — mais forte</option></select></label>
-              <label>Instruções da IA<textarea id="aiInstructions" rows="5"></textarea></label>
-              <label>Resposta quando não houver IA ou informação<textarea id="fallbackMessage" rows="3"></textarea></label>
+              <label>Resposta quando o cliente sair do fluxo<textarea id="fallbackMessage" rows="3"></textarea></label>
               <button class="btn primary" type="submit">Salvar configurações</button>
             </form>
           </article>
@@ -214,7 +211,7 @@
               <div><p class="eyebrow">WhatsApp</p><h3>Conectar por QR Code</h3></div>
               <span id="qrStatusPill" class="pill warning">Não conectado</span>
             </div>
-            <p class="muted">Sem Meta Developers, token ou configuração técnica para o usuário. Clique, escaneie e pronto.</p>
+            <p class="muted">Conecte o WhatsApp uma vez. Depois o atendimento, as vendas e o suporte ficam centralizados aqui.</p>
 
             <div class="qr-connect-box">
               <div id="qrIdle">

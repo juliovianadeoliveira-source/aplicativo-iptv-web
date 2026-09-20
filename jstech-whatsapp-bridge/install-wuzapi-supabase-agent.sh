@@ -43,9 +43,14 @@ User=root
 WantedBy=multi-user.target
 EOF
 
-WEBHOOK="https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-wa-wuzapi-webhook"
+SIG="$(printf '%s' "$TOKEN" | sha256sum | awk '{print $1}')"
+WEBHOOK="https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-wa-wuzapi-webhook?token=$SIG"
 
-curl -fsS -X POST   -H "token: $TOKEN"   -H "Content-Type: application/json"   --data "{\"webhookurl\":\"$WEBHOOK\",\"events\":[\"Message\",\"Connected\",\"Disconnected\",\"KeepAliveRestored\",\"KeepAliveTimeout\",\"LoggedOut\"]}"   http://127.0.0.1:8080/webhook >/tmp/jstech-webhook-result.json
+curl -fsS -X POST \
+  -H "token: $TOKEN" \
+  -H "Content-Type: application/json" \
+  --data "{\"webhookurl\":\"$WEBHOOK\",\"events\":[\"Message\",\"Connected\",\"Disconnected\",\"KeepAliveRestored\",\"KeepAliveTimeout\",\"LoggedOut\"]}" \
+  http://127.0.0.1:8080/webhook >/tmp/jstech-webhook-result.json
 
 mkdir -p /etc/systemd/system/wuzapi.service.d
 cat >/etc/systemd/system/wuzapi.service.d/restart.conf <<'EOF'

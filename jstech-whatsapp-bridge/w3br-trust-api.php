@@ -33,8 +33,12 @@ if (!is_array($body)) {
     respond_json(400, array('ok' => false, 'error' => 'invalid_json'));
 }
 $identifier = isset($body['identifier']) ? trim((string)$body['identifier']) : '';
+$requesterPhone = isset($body['requester_phone']) ? trim((string)$body['requester_phone']) : '';
 if ($identifier === '' || strlen($identifier) > 120) {
     respond_json(400, array('ok' => false, 'error' => 'identifier_required'));
+}
+if ($requesterPhone === '' || strlen($requesterPhone) > 40) {
+    respond_json(400, array('ok' => false, 'error' => 'requester_phone_required'));
 }
 
 require __DIR__ . '/conexao.php';
@@ -111,33 +115,53 @@ if (!$trustDb) {
 }
 
 $username = $account['username'];
+$registeredPhone = isset($account['phone']) ? (string)$account['phone'] : '';
+
+// A liberação automática só acontece quando o WhatsApp que pediu a ação
+// corresponde ao celular cadastrado no painel. Caso contrário, vai para humano.
+if (!phones_match($requesterPhone, $registeredPhone)) {
+    error_log('[JSTech Trust] phone mismatch user=' . $username);
+    respond_json(403, array(
+        'ok' => false,
+        'error' => 'phone_mismatch',
+        'username' => $username
+    ));
+}
 
 try {
-    $q = $trustDb->prepare("SELECT id FROM liberarcomputador WHERE CadUser = :usuario");
-    $q->execute(array(':usuario' => $username));
-    $rows = $q->fetchAll(PDO::FETCH_COLUMN);
+    // O W3BR original cria a solicitação como ativo=N e, após a confirmação,
+    // muda apenas esse registro para ativo=S. Não apagamos registros.
+    $pending = $trustDb->prepare("SELECT id FROM liberarcomputador WHERE CadUser = :usuario AND ativo = 'N'");
+    $pending->execute(array(':usuario' => $username));
+    $pendingRows = $pending->fetchAll(PDO::FETCH_COLUMN);
 
-    if (!$rows) {
+    if (!$pendingRows) {
+        $active = $trustDb->prepare("SELECT id FROM liberarcomputador WHERE CadUser = :usuario AND ativo = 'S' LIMIT 1");
+        $active->execute(array(':usuario' => $username));
+        $already = (bool)$active->fetchColumn();
+
         respond_json(200, array(
             'ok' => true,
             'released' => 0,
-            'already_released' => true,
+            'already_released' => $already,
+            'no_pending_request' => !$already,
             'username' => $username
         ));
     }
 
     $trustDb->beginTransaction();
-    $del = $trustDb->prepare("DELETE FROM liberarcomputador WHERE CadUser = :usuario");
-    $del->execute(array(':usuario' => $username));
-    $count = $del->rowCount();
+    $upd = $trustDb->prepare("UPDATE liberarcomputador SET ativo = 'S' WHERE CadUser = :usuario AND ativo = 'N'");
+    $upd->execute(array(':usuario' => $username));
+    $count = $upd->rowCount();
     $trustDb->commit();
 
-    error_log('[JSTech Trust] released user=' . $username . ' rows=' . $count . ' db=' . $trustDbName);
+    error_log('[JSTech Trust] activated user=' . $username . ' rows=' . $count . ' db=' . $trustDbName);
 
     respond_json(200, array(
         'ok' => true,
         'released' => (int)$count,
         'already_released' => false,
+        'no_pending_request' => false,
         'username' => $username
     ));
 } catch (Exception $e) {

@@ -28,7 +28,7 @@ const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const state = {
   session:null, workspace:null, settings:null, contacts:[], conversations:[], messages:[],
   automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], activePanel:null, activeConversation:null, activeAutomation:null,
-  activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false
+  activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false, userRole:null
 };
 
 function toast(msg, type="success"){
@@ -114,6 +114,9 @@ async function loadAll(showToast=false){
     ]);
     if(settings.error)throw settings.error;if(contacts.error)throw contacts.error;if(convs.error)throw convs.error;if(autos.error)throw autos.error;if(knowledge.error)throw knowledge.error;if(campaigns.error)throw campaigns.error;
     state.settings=settings.data;state.contacts=contacts.data||[];state.conversations=convs.data||[];state.automations=autos.data||[];state.knowledge=knowledge.data||[];state.campaigns=campaigns.data||[];
+    const {data:alias}=await sb.from("wa_login_aliases").select("role").eq("auth_user_id",state.session.user.id).eq("workspace_id",id).maybeSingle();
+    state.userRole=alias?.role||"owner";
+    if(state.userRole==="reseller")state.bridgeHosted=true;
     if(!state.activeAutomation&&state.automations.length){state.activeAutomation=structuredClone(state.automations[0]);state.activeNode=state.activeAutomation.flow?.start||Object.keys(state.activeAutomation.flow?.nodes||{})[0]}
     await loadPanelConnectors(false);
     renderAll(); if(showToast)toast("Painel atualizado.");

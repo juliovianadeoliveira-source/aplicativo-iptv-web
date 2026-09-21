@@ -597,7 +597,7 @@ def run_panel_job(job):
     action=str(job.get("action_type") or "")
     state_path=panel_session_path(panel.get("id"))
     with sync_playwright() as p:
-        args=["--no-sandbox","--disable-dev-shm-usage","--disable-blink-features=AutomationControlled"]
+        args=["--no-sandbox","--disable-dev-shm-usage","--disable-gpu","--no-first-run","--disable-background-networking","--disable-blink-features=AutomationControlled"]
         browser=p.chromium.launch(headless=True,args=args)
         try:
             context_args={"viewport":{"width":1365,"height":900},"locale":"pt-BR"}
@@ -679,8 +679,10 @@ def main():
             for cmd in local_commands:
                 process_local_command(cmd)
             if panel_jobs:
-                with ThreadPoolExecutor(max_workers=min(3,len(panel_jobs))) as pool:
-                    list(pool.map(process_panel_job,panel_jobs))
+                # Modo leve para a maquina de 2 GB: executa um painel por vez
+                # para evitar varios navegadores Chromium consumindo RAM ao mesmo tempo.
+                for job in panel_jobs:
+                    process_panel_job(job)
             if not rows and not local_commands and not panel_jobs and not host.get("messages") and not host.get("commands"):
                 time.sleep(1.0)
                 continue

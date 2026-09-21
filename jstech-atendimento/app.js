@@ -10,7 +10,7 @@ const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const state = {
   session:null, workspace:null, settings:null, contacts:[], conversations:[], messages:[],
-  automations:[], knowledge:[], activeConversation:null, activeAutomation:null,
+  automations:[], knowledge:[], campaigns:[], activeConversation:null, activeAutomation:null,
   activeNode:null, editingKnowledge:null, channel:null, simNode:null, bridgeManagedLocally:false, bridgeHosted:false
 };
 
@@ -26,7 +26,8 @@ function showApp(){ $("#loginView").classList.add("hidden"); $("#appView").class
 function pageMeta(page){
   return ({
     dashboard:["Visão geral","Dashboard"],conversations:["Atendimento","Conversas"],
-    contacts:["CRM","Clientes"],automation:["Fluxos e regras","Automação"],
+    contacts:["CRM","Clientes"],campaigns:["Marketing","Campanhas"],
+    automation:["Fluxos e regras","Automação"],
     knowledge:["Conteúdo","Respostas prontas"],resellers:["Revenda","Revendedores"],settings:["Integrações","Configurações"]
   })[page];
 }
@@ -85,20 +86,21 @@ async function loadAll(showToast=false){
   try{
     await ensureWorkspace();
     const id=state.workspace.id;
-    const [settings,contacts,convs,autos,knowledge]=await Promise.all([
+    const [settings,contacts,convs,autos,knowledge,campaigns]=await Promise.all([
       sb.from("wa_settings").select("*").eq("workspace_id",id).single(),
       sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),
       sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,status,bot_enabled,notes)").eq("workspace_id",id).order("last_message_at",{ascending:false}),
       sb.from("wa_automations").select("*").eq("workspace_id",id).order("created_at"),
-      sb.from("wa_knowledge").select("*").eq("workspace_id",id).order("title")
+      sb.from("wa_knowledge").select("*").eq("workspace_id",id).order("title"),
+      sb.from("wa_campaigns").select("*").eq("workspace_id",id).order("created_at",{ascending:true})
     ]);
-    if(settings.error)throw settings.error;if(contacts.error)throw contacts.error;if(convs.error)throw convs.error;if(autos.error)throw autos.error;if(knowledge.error)throw knowledge.error;
-    state.settings=settings.data;state.contacts=contacts.data||[];state.conversations=convs.data||[];state.automations=autos.data||[];state.knowledge=knowledge.data||[];
+    if(settings.error)throw settings.error;if(contacts.error)throw contacts.error;if(convs.error)throw convs.error;if(autos.error)throw autos.error;if(knowledge.error)throw knowledge.error;if(campaigns.error)throw campaigns.error;
+    state.settings=settings.data;state.contacts=contacts.data||[];state.conversations=convs.data||[];state.automations=autos.data||[];state.knowledge=knowledge.data||[];state.campaigns=campaigns.data||[];
     if(!state.activeAutomation&&state.automations.length){state.activeAutomation=structuredClone(state.automations[0]);state.activeNode=state.activeAutomation.flow?.start||Object.keys(state.activeAutomation.flow?.nodes||{})[0]}
     renderAll(); if(showToast)toast("Painel atualizado.");
   }catch(err){console.error(err);toast(err.message||"Erro ao carregar o painel.","error")}
 }
-function renderAll(){renderDashboard();renderConversations();renderContacts();renderAutomations();renderKnowledge();renderSettings();}
+function renderAll(){renderDashboard();renderConversations();renderContacts();renderCampaigns();renderAutomations();renderKnowledge();renderSettings();}
 
 function renderDashboard(){
   const unread=state.conversations.reduce((n,c)=>n+(c.unread_count||0),0);
@@ -188,11 +190,69 @@ $("#toggleBotBtn").addEventListener("click",async()=>{
 
 function renderContacts(){
   const q=($("#contactSearch")?.value||"").toLowerCase().trim();
-  $("#contactsTable").innerHTML=state.contacts.filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q)).map(c=>'<tr><td><b>'+escapeHtml(c.name||"Sem nome")+'</b></td><td>'+escapeHtml(c.phone)+'</td><td>'+escapeHtml(c.status||"novo")+'</td><td><button class="toggle-chip '+(c.bot_enabled?"on":"")+'" data-contact-bot="'+c.id+'">'+(c.bot_enabled?"Ativo":"Pausado")+'</button></td><td>'+fmtDate(c.updated_at)+'</td></tr>').join("");
-  $$("[data-contact-bot]").forEach(b=>b.addEventListener("click",()=>toggleContactBot(b.dataset.contactBot)));
+  $("#contactsTable").innerHTML=state.contacts.filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q)).map(c=>'<tr><td><b>'+escapeHtml(c.name||"Sem nome")+'</b></td><td>'+escapeHtml(c.phone)+'</td><td>'+escapeHtml(c.status||"novo")+'</td><td><button class="toggle-chip '+(c.bot_enabled?"on":"")+'" data-contact-bot="'+c.id+'">'+(c.bot_enabled?"Ativo":"Pausado")+'</button></td><td><button class="toggle-chip '+(c.marketing_opt_in&&!c.marketing_opt_out_at?"on":"")+'" data-marketing="'+c.id+'">'+(c.marketing_opt_in&&!c.marketing_opt_out_at?"Autorizado":"Não autorizado")+'</button></td><td>'+fmtDate(c.updated_at)+'</td></tr>').join("");
+  $("[data-contact-bot]").forEach(b=>b.addEventListener("click",()=>toggleContactBot(b.dataset.contactBot)));
+  $("[data-marketing]").forEach(b=>b.addEventListener("click",()=>toggleMarketing(b.dataset.marketing)));
 }
 $("#contactSearch").addEventListener("input",renderContacts);
 async function toggleContactBot(id){const c=state.contacts.find(x=>x.id===id);if(!c)return;const {error}=await sb.from("wa_contacts").update({bot_enabled:!c.bot_enabled,bot_context:{},updated_at:new Date().toISOString()}).eq("id",id);if(error)return toast(error.message,"error");c.bot_enabled=!c.bot_enabled;renderContacts();renderDashboard()}
+async function toggleMarketing(id){
+  const c=state.contacts.find(x=>x.id===id);if(!c)return;
+  const value=!(c.marketing_opt_in&&!c.marketing_opt_out_at);
+  if(value&&!confirm("Confirme somente se este cliente autorizou receber ofertas pelo WhatsApp."))return;
+  const patch=value
+    ? {marketing_opt_in:true,marketing_opt_in_at:new Date().toISOString(),marketing_opt_out_at:null,marketing_source:"autorizado_no_painel",updated_at:new Date().toISOString()}
+    : {marketing_opt_in:false,marketing_opt_out_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  const {error}=await sb.from("wa_contacts").update(patch).eq("id",id);
+  if(error)return toast(error.message,"error");
+  Object.assign(c,patch);renderContacts();renderCampaigns();
+  toast(value?"Cliente autorizado para ofertas.":"Ofertas desativadas para este cliente.");
+}
+
+function renderCampaigns(){
+  const camp=state.campaigns[0];
+  const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at).length;
+  if($("#campaignEligible"))$("#campaignEligible").textContent=eligible;
+  if(!camp)return;
+  if($("#campaignName"))$("#campaignName").value=camp.name||"";
+  if($("#campaignMessage"))$("#campaignMessage").value=camp.message||"";
+  if($("#campaignHour"))$("#campaignHour").value=String(camp.daily_hour??12);
+  if($("#campaignEnabled"))$("#campaignEnabled").checked=!!camp.enabled;
+  if($("#campaignStatus"))$("#campaignStatus").textContent=camp.enabled
+    ? "Ativa • 1 envio por dia • "+String(camp.daily_hour??12).padStart(2,"0")+":00"
+    : "Desativada";
+  if($("#campaignLastSent"))$("#campaignLastSent").textContent=camp.last_sent_at?fmtDate(camp.last_sent_at):"Ainda não enviada";
+}
+$("#campaignForm")?.addEventListener("submit",async e=>{
+  e.preventDefault();
+  let camp=state.campaigns[0];
+  const payload={
+    workspace_id:state.workspace.id,
+    name:$("#campaignName").value.trim()||"JSTech — TV, IPTV e Receptores",
+    message:$("#campaignMessage").value.trim(),
+    enabled:$("#campaignEnabled").checked,
+    cadence:"daily",
+    daily_hour:Number($("#campaignHour").value||12),
+    updated_at:new Date().toISOString()
+  };
+  if(!payload.message)return toast("Escreva a mensagem da campanha.","error");
+  const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at).length;
+  if(payload.enabled&&eligible===0){
+    $("#campaignEnabled").checked=false;
+    payload.enabled=false;
+    toast("Nenhum cliente autorizou ofertas ainda. Marque os autorizados na aba Clientes.","error");
+  }
+  let result;
+  if(camp){
+    result=await sb.from("wa_campaigns").update(payload).eq("id",camp.id).select().single();
+  }else{
+    result=await sb.from("wa_campaigns").insert(payload).select().single();
+  }
+  if(result.error)return toast(result.error.message,"error");
+  state.campaigns=[result.data];
+  renderCampaigns();
+  toast(payload.enabled?"Campanha salva e programada 1x por dia.":"Campanha salva.");
+});
 
 function renderAutomations(){
   const list=$("#automationList");list.innerHTML=state.automations.map(a=>'<div class="automation-item '+(state.activeAutomation?.id===a.id?"active":"")+'" data-auto="'+a.id+'"><b>'+escapeHtml(a.name)+'</b><span>'+(a.enabled?"Ativa":"Desativada")+' • '+(a.trigger_texts||[]).join(", ")+'</span></div>').join("");

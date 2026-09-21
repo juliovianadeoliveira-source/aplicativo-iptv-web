@@ -365,7 +365,7 @@ function selectPanelConnector(id){
   renderPanelAppMappings();
   const list=$("#panelConnectorList");
   if(list){
-    $("[data-panel-select]",list).forEach(el=>el.classList.toggle("active",el.dataset.panelSelect===p.id));
+    $$("[data-panel-select]",list).forEach(el=>el.classList.toggle("active",el.dataset.panelSelect===p.id));
   }
 }
 function renderPanelAppMappings(){

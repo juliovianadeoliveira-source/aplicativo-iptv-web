@@ -330,6 +330,12 @@ function selectPanelConnector(id){
   $("#panelUsername").value="";
   $("#panelPassword").value="";
   $("#panelCredentialForm").classList.remove("hidden");
+  const botBtn=$("#togglePanelBotBtn");
+  if(botBtn){
+    botBtn.textContent=p.enabled?"Desativar no bot":"Ativar no bot";
+    botBtn.classList.toggle("primary",!!p.enabled);
+    botBtn.disabled=!p.has_credentials;
+  }
   renderPanelConnectors();
 }
 $("#panelSearch")?.addEventListener("input",renderPanelConnectors);
@@ -354,6 +360,29 @@ $("#panelCredentialForm")?.addEventListener("submit",async e=>{
     selectPanelConnector(p.id);
     toast("Acesso deste painel salvo com segurança.");
   }catch(err){toast(err.message||"Falha ao salvar o acesso.","error")}
+  finally{btn.disabled=false}
+});
+$("#openPanelBtn")?.addEventListener("click",()=>{
+  const p=state.activePanel;if(!p)return;
+  const url=$("#panelBaseUrl").value.trim()||p.base_url||"";
+  if(!url)return toast("Este painel ainda não tem endereço cadastrado.","error");
+  window.open(url,"_blank","noopener,noreferrer");
+});
+$("#togglePanelBotBtn")?.addEventListener("click",async()=>{
+  const p=state.activePanel;if(!p)return;
+  if(!p.has_credentials)return toast("Salve o usuário e a senha deste painel primeiro.","error");
+  const next=!p.enabled;
+  const btn=$("#togglePanelBotBtn");btn.disabled=true;
+  try{
+    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{
+      action:"update_panel",workspace_id:state.workspace.id,connector_id:p.id,enabled:next
+    }});
+    if(error)throw error;if(data?.error)throw new Error(data.error);
+    await loadPanelConnectors(false);
+    state.activePanel=state.panels.find(x=>x.id===p.id)||null;
+    selectPanelConnector(p.id);
+    toast(next?"Painel liberado para uso do bot.":"Painel removido do uso automático do bot.");
+  }catch(err){toast(err.message||"Falha ao alterar o painel.","error")}
   finally{btn.disabled=false}
 });
 $("#testPanelBtn")?.addEventListener("click",async()=>{

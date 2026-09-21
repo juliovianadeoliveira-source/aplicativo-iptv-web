@@ -173,6 +173,8 @@ def process_host_command(cmd):
             if not call_from or not call_id: raise RuntimeError("dados da ligação incompletos")
             reject_call(call_from,call_id,token)
             result={"rejected":True,"call_id":call_id}
+        elif action=="download_media":
+            result=download_media_and_reinject(cmd.get("payload") or {},token)
         else:
             raise RuntimeError("ação desconhecida: "+action)
         host_ack_command(wid,cid,True,result=result)
@@ -639,6 +641,73 @@ def process_panel_job(job):
     except Exception as e:
         ack_panel_job(jid,False,error=e)
 
+def _extract_download_data(result):
+    cur=result
+    for _ in range(5):
+        if isinstance(cur,dict):
+            for key in ("Data","data","base64","Base64"):
+                if key in cur and cur[key] not in (None,""):
+                    cur=cur[key]
+                    break
+            else:
+                return "", ""
+        elif isinstance(cur,str):
+            s=cur.strip()
+            if s.startswith("{") or s.startswith("["):
+                try:
+                    cur=json.loads(s)
+                    continue
+                except Exception:
+                    pass
+            if s.startswith("data:") and "," in s:
+                head,b64=s.split(",",1)
+                mt=head[5:].split(";",1)[0] if head.startswith("data:") else ""
+                return b64,mt
+            return s,""
+        else:
+            return "",""
+    return "",""
+
+def download_media_and_reinject(payload, token=None):
+    p=payload or {}
+    kind=str(p.get("kind","")).lower().strip()
+    endpoint={
+        "image":"/chat/downloadimage",
+        "audio":"/chat/downloadaudio",
+        "document":"/chat/downloaddocument",
+        "video":"/chat/downloadvideo",
+    }.get(kind)
+    if not endpoint:
+        raise RuntimeError("tipo de midia nao suportado")
+    body=p.get("download_body") or {}
+    result=wuz(endpoint,body,token)
+    b64,detected_mime=_extract_download_data(result)
+    if not b64:
+        raise RuntimeError("midia baixada sem dados")
+    mime=detected_mime or str(p.get("mime") or body.get("Mimetype") or "")
+    msg_key={"image":"imageMessage","audio":"audioMessage","document":"documentMessage","video":"videoMessage"}[kind]
+    info={
+        "Chat":str(p.get("chat") or ""),
+        "Sender":str(p.get("sender") or ""),
+        "ID":str(p.get("external_message_id") or ""),
+        "PushName":str(p.get("profile_name") or ""),
+        "IsFromMe":False,
+        "IsGroup":False,
+    }
+    message={msg_key:{"mimetype":mime}}
+    caption=str(p.get("caption") or "").strip()
+    if caption and kind in ("image","video","document"):
+        message[msg_key]["caption"]=caption
+    event={
+        "type":"Message",
+        "data":{"Info":info,"Message":message},
+        "base64":b64,
+        "mimeType":mime,
+        "fileName":str(p.get("file_name") or ""),
+    }
+    headers={"token":token or TOKEN,"Content-Type":"application/json"}
+    return http_json("https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-wa-wuzapi-webhook","POST",event,headers,40)
+
 def process_local_command(cmd):
     cid=str(cmd.get("id",""))
     action=str(cmd.get("action",""))
@@ -651,6 +720,9 @@ def process_local_command(cmd):
                 raise RuntimeError("dados da ligação incompletos")
             reject_call(call_from,call_id)
             ack_command(cid,True,result={"rejected":True,"call_id":call_id})
+        elif action=="download_media":
+            result=download_media_and_reinject(cmd.get("payload") or {},TOKEN)
+            ack_command(cid,True,result={"downloaded":True,"webhook":result})
         else:
             raise RuntimeError("ação desconhecida: "+action)
     except Exception as e:

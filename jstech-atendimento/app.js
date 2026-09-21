@@ -340,7 +340,10 @@ function selectPanelConnector(id){
     botBtn.disabled=!p.has_credentials;
   }
   renderPanelAppMappings();
-  renderPanelConnectors();
+  const list=$("#panelConnectorList");
+  if(list){
+    $("[data-panel-select]",list).forEach(el=>el.classList.toggle("active",el.dataset.panelSelect===p.id));
+  }
 }
 function renderPanelAppMappings(){
   const select=$("#panelAppSelect"),box=$("#panelAppMappings");

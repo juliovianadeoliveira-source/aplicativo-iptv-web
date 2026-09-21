@@ -1,6 +1,21 @@
 #!/usr/bin/env python3
-import json, time, urllib.request, urllib.error, subprocess, os, sys
+import json, time, urllib.request, urllib.error, subprocess, os, sys, re
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+try:
+    from playwright.sync_api import sync_playwright
+    HAS_PLAYWRIGHT=True
+except Exception:
+    sync_playwright=None
+    HAS_PLAYWRIGHT=False
+
+PANEL_SESSION_DIR=Path("/var/lib/jstech-panel-sessions")
+try:
+    PANEL_SESSION_DIR.mkdir(parents=True,exist_ok=True)
+    os.chmod(PANEL_SESSION_DIR,0o700)
+except Exception:
+    pass
 
 CLOUD="https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-wa-wuzapi-agent"
 WUZ="http://127.0.0.1:8080"
@@ -177,6 +192,375 @@ def process_host_message(m):
     except Exception as e:
         presence(phone,"paused",token); host_ack_message(wid,mid,False,error=e)
 
+
+def panel_browser_available():
+    return bool(HAS_PLAYWRIGHT)
+
+def panel_session_path(panel_id):
+    safe=re.sub(r"[^A-Za-z0-9_-]","_",str(panel_id or "panel"))
+    return str(PANEL_SESSION_DIR/(safe+".json"))
+
+def _body_text(page):
+    try:
+        return page.locator("body").inner_text(timeout=3000)
+    except Exception:
+        return ""
+
+def _norm_text(s):
+    s=str(s or "").lower()
+    repl={"á":"a","à":"a","ã":"a","â":"a","é":"e","ê":"e","í":"i","ó":"o","ô":"o","õ":"o","ú":"u","ç":"c"}
+    for a,b in repl.items(): s=s.replace(a,b)
+    return re.sub(r"\s+"," ",s).strip()
+
+def _first_visible(locator):
+    try:
+        n=min(locator.count(),25)
+        for i in range(n):
+            x=locator.nth(i)
+            try:
+                if x.is_visible(): return x
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return None
+
+def _find_input(page, kind):
+    loc=page.locator("input")
+    best=None; best_score=-1
+    try:
+        n=min(loc.count(),40)
+    except Exception:
+        n=0
+    for i in range(n):
+        el=loc.nth(i)
+        try:
+            if not el.is_visible(): continue
+            typ=(el.get_attribute("type") or "text").lower()
+            name=(el.get_attribute("name") or "").lower()
+            ph=(el.get_attribute("placeholder") or "").lower()
+            aria=(el.get_attribute("aria-label") or "").lower()
+            key=" ".join([name,ph,aria])
+            score=0
+            if kind=="password":
+                if typ=="password": score+=20
+                if "senha" in key or "password" in key: score+=10
+            elif kind=="username":
+                if typ in ("text","email","tel",""): score+=3
+                for w in ("usuario","usuário","username","login","email","e-mail"):
+                    if w in key: score+=8
+                if typ=="password": score=-100
+            elif kind=="search":
+                if typ in ("text","search",""): score+=2
+                for w in ("buscar","pesquisar","search","usuario","usuário","username","cliente"):
+                    if w in key: score+=6
+                if typ=="password": score=-100
+            elif kind=="name":
+                if typ in ("text",""): score+=2
+                for w in ("nome","name","cliente","observacao","observação"):
+                    if w in key: score+=6
+                if typ=="password": score=-100
+            if score>best_score:
+                best_score=score;best=el
+        except Exception:
+            continue
+    return best if best_score>0 else None
+
+def _click_by_text(page, patterns, scope=None):
+    root=scope or page
+    try:
+        loc=root.locator("button,a,[role=button],li")
+        n=min(loc.count(),250)
+    except Exception:
+        n=0
+    pats=[_norm_text(x) for x in patterns]
+    for i in range(n):
+        el=loc.nth(i)
+        try:
+            if not el.is_visible(): continue
+            txt=_norm_text(el.inner_text(timeout=800))
+            if not txt: continue
+            if any(p in txt for p in pats):
+                el.click(timeout=3000)
+                return True
+        except Exception:
+            continue
+    return False
+
+def _wait_after_action(page, ms=1800):
+    try:
+        page.wait_for_load_state("domcontentloaded",timeout=5000)
+    except Exception:
+        pass
+    try:
+        page.wait_for_timeout(ms)
+    except Exception:
+        pass
+
+def _looks_logged_in(page):
+    url=(page.url or "").lower()
+    body=_norm_text(_body_text(page))
+    pw=_first_visible(page.locator("input[type=password]"))
+    if pw is not None and any(x in body for x in ("entrar","login","sign in","acessar")):
+        return False
+    if any(x in url for x in ("/dashboard","#/dashboard","/customers","#/customers","/clientes","#/clientes")):
+        return True
+    return any(x in body for x in ("dashboard","clientes","subrevendas","teste rapido","teste rápido","saldo","creditos","créditos")) and pw is None
+
+def _login_panel(page,context,panel,creds):
+    base=str(panel.get("base_url") or "").strip()
+    if not base: raise RuntimeError("panel_url_missing")
+    try:
+        page.goto(base,wait_until="domcontentloaded",timeout=25000)
+    except Exception:
+        try: page.goto(base,wait_until="commit",timeout=25000)
+        except Exception as e: raise RuntimeError("panel_unreachable: "+str(e)[:180])
+
+    # Give Cloudflare/browser checks a little time without bypassing a CAPTCHA.
+    body=_norm_text(_body_text(page))
+    if "just a moment" in body or "verificando" in body or "checking your browser" in body:
+        page.wait_for_timeout(7000)
+
+    if _looks_logged_in(page):
+        try: context.storage_state(path=panel_session_path(panel.get("id")))
+        except Exception: pass
+        return True
+
+    user=_find_input(page,"username")
+    pwd=_find_input(page,"password")
+    if user is None or pwd is None:
+        return False
+    username=str((creds or {}).get("username") or "")
+    password=str((creds or {}).get("password") or "")
+    if not username or not password: raise RuntimeError("credentials_missing")
+    user.fill(username)
+    pwd.fill(password)
+    submit=_first_visible(page.locator("button[type=submit],input[type=submit]"))
+    if submit is not None:
+        submit.click(timeout=4000)
+    elif not _click_by_text(page,["entrar","acessar","login","sign in"]):
+        try: pwd.press("Enter")
+        except Exception: pass
+    _wait_after_action(page,2600)
+    ok=_looks_logged_in(page)
+    if ok:
+        try: context.storage_state(path=panel_session_path(panel.get("id")))
+        except Exception: pass
+    return ok
+
+def _parse_expiry(text):
+    s=str(text or "")
+    m=re.search(r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?",s)
+    if not m: return None
+    try:
+        dt=datetime(int(m.group(3)),int(m.group(2)),int(m.group(1)),int(m.group(4) or 23),int(m.group(5) or 59),tzinfo=timezone(timedelta(hours=-3)))
+        return dt.astimezone(timezone.utc).isoformat()
+    except Exception:
+        return None
+
+def _parse_access(text, fallback_username=""):
+    s=str(text or "")
+    out={}
+    pats={
+      "username":r"(?:usuario|usuário|username|login)\s*[:=-]\s*([A-Za-z0-9._@-]{3,80})",
+      "password":r"(?:senha|password|pass)\s*[:=-]\s*([^\s,;]{3,120})",
+      "dns":r"(?:dns)\s*[:=-]\s*(https?://[^\s]+|[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?::\d+)?)",
+      "code":r"(?:codigo|código|code)\s*[:=-]\s*([A-Za-z0-9._-]{3,120})"
+    }
+    for k,p in pats.items():
+        m=re.search(p,s,re.I)
+        if m: out[k]=m.group(1).strip().rstrip(".,;")
+    urls=re.findall(r"https?://[^\s<>'\"]+",s,re.I)
+    if urls:
+        m3u=next((u for u in urls if "get.php" in u or "m3u" in u.lower()),None)
+        if m3u: out["m3u"]=m3u.rstrip(".,;")
+        else: out["url"]=urls[0].rstrip(".,;")
+    if fallback_username and not out.get("username"): out["username"]=fallback_username
+    sc=re.search(r"\b(\d+)\s*(?:tela|telas|conexao|conexões|conexoes)\b",_norm_text(s))
+    if sc:
+        try: out["screen_count"]=max(1,min(10,int(sc.group(1))))
+        except Exception: pass
+    exp=_parse_expiry(s)
+    if exp: out["expires_at"]=exp
+    low=_norm_text(s)
+    if any(x in low for x in ("vencido","inativo","expired")): out["status"]="expired"
+    elif any(x in low for x in ("ativo","active")): out["status"]="active"
+    return out
+
+def _open_clients(page):
+    if any(x in (page.url or "").lower() for x in ("customers","clientes")): return True
+    if _click_by_text(page,["clientes","customers","usuarios","usuários"]):
+        _wait_after_action(page,1200)
+        return True
+    return False
+
+def _find_user_row(page,username):
+    un=_norm_text(username)
+    try:
+        for selector in ("tr","[role=row]",".MuiDataGrid-row",".v-data-table__tr",".table-row"):
+            loc=page.locator(selector)
+            n=min(loc.count(),500)
+            for i in range(n):
+                row=loc.nth(i)
+                try:
+                    if not row.is_visible(): continue
+                    txt=row.inner_text(timeout=700)
+                    if un and un in _norm_text(txt): return row,txt
+                except Exception:
+                    continue
+    except Exception:
+        pass
+    body=_body_text(page)
+    if un in _norm_text(body): return None,body
+    return None,""
+
+def _panel_search_user(page,username):
+    _open_clients(page)
+    search=_find_input(page,"search")
+    if search is not None:
+        try:
+            search.fill(username)
+            try: search.press("Enter")
+            except Exception: pass
+            _wait_after_action(page,1000)
+        except Exception:
+            pass
+    row,text=_find_user_row(page,username)
+    if not text:
+        return {"found":False,"username":username}
+    data=_parse_access(text,username)
+    # Read playlist/access data when there is an explicit safe action.
+    if row is not None:
+        if _click_by_text(page,["playlist","dados de acesso","acesso","m3u"],scope=row):
+            _wait_after_action(page,900)
+            extra=_parse_access(_body_text(page),username)
+            data.update({k:v for k,v in extra.items() if v})
+    return {"found":True,**data}
+
+def _panel_generate_test(page,job):
+    screens=int(job.get("screen_count") or 1)
+    code=str(job.get("panel_app_code") or "").strip()
+    if not code:
+        raise RuntimeError("panel_app_code_required")
+    # The mapping value is intentionally used as the exact test/product selector.
+    if not _click_by_text(page,[code]):
+        raise RuntimeError("test_profile_not_found: "+code[:80])
+    _wait_after_action(page,900)
+
+    name=str(job.get("customer_name") or job.get("customer_phone") or "Teste WhatsApp").strip()
+    name_input=_find_input(page,"name")
+    if name_input is not None:
+        try:
+            if not name_input.input_value(): name_input.fill(name[:80])
+        except Exception:
+            pass
+
+    # Confirm only recognized create/generate actions.
+    if _click_by_text(page,["gerar teste","criar teste","confirmar","gerar","criar"]):
+        _wait_after_action(page,1800)
+
+    result=_parse_access(_body_text(page))
+    username=result.get("username")
+    if not username:
+        raise RuntimeError("test_created_but_credentials_not_detected")
+
+    # Add only the exact number of extra screens requested, and only through an explicit action.
+    if screens>1:
+        for _ in range(screens-1):
+            if not _click_by_text(page,["adicionar tela","adicionar conexão","adicionar conexao","add screen"]):
+                raise RuntimeError("extra_screen_action_not_found")
+            _wait_after_action(page,700)
+            _click_by_text(page,["confirmar","adicionar","salvar"])
+            _wait_after_action(page,700)
+    result["screen_count"]=screens
+    result["created"]=True
+    if not result.get("status"): result["status"]="active"
+    return result
+
+def _panel_renew_user(page,job):
+    username=str((job.get("payload") or {}).get("username") or "").strip()
+    if not username: raise RuntimeError("username_required")
+    _open_clients(page)
+    search=_find_input(page,"search")
+    if search is not None:
+        try: search.fill(username); search.press("Enter")
+        except Exception: pass
+        _wait_after_action(page,900)
+    row,text=_find_user_row(page,username)
+    if not text: return {"found":False,"username":username}
+    if row is None or not _click_by_text(page,["renovar","renew"],scope=row):
+        raise RuntimeError("renew_action_not_found")
+    _wait_after_action(page,700)
+    days=int(job.get("plan_days") or 30)
+    labels={30:["30 dias","1 mes","1 mês","mensal"],90:["90 dias","3 meses","trimestral"],180:["180 dias","6 meses","semestral"],365:["365 dias","12 meses","anual"]}.get(days,[str(days)])
+    if not _click_by_text(page,labels):
+        # Select option by visible text when a select is used.
+        sel=_first_visible(page.locator("select"))
+        if sel is not None:
+            picked=False
+            for label in labels:
+                try:
+                    sel.select_option(label=label)
+                    picked=True;break
+                except Exception: pass
+            if not picked: raise RuntimeError("renew_period_not_found")
+        else:
+            raise RuntimeError("renew_period_not_found")
+    _click_by_text(page,["confirmar","renovar","salvar"])
+    _wait_after_action(page,1500)
+    refreshed=_panel_search_user(page,username)
+    refreshed["activated"]=bool(refreshed.get("found"))
+    return refreshed
+
+def run_panel_job(job):
+    if not HAS_PLAYWRIGHT:
+        raise RuntimeError("playwright_not_installed")
+    panel=job.get("panel") or {}
+    creds=job.get("credentials") or {}
+    action=str(job.get("action_type") or "")
+    state_path=panel_session_path(panel.get("id"))
+    with sync_playwright() as p:
+        args=["--no-sandbox","--disable-dev-shm-usage","--disable-blink-features=AutomationControlled"]
+        browser=p.chromium.launch(headless=True,args=args)
+        try:
+            context_args={"viewport":{"width":1365,"height":900},"locale":"pt-BR"}
+            if os.path.exists(state_path):
+                context_args["storage_state"]=state_path
+            context=browser.new_context(**context_args)
+            page=context.new_page()
+            ok=_login_panel(page,context,panel,creds)
+            if not ok:
+                raise RuntimeError("login_not_validated")
+            if action=="probe_login":
+                return {"authenticated":True,"status":"connected"}
+            if action in ("search_user","refresh_access","check_codes"):
+                username=str((job.get("payload") or {}).get("username") or "").strip()
+                if not username: raise RuntimeError("username_required")
+                return _panel_search_user(page,username)
+            if action=="test":
+                return _panel_generate_test(page,job)
+            if action in ("renew","activate"):
+                return _panel_renew_user(page,job)
+            raise RuntimeError("panel_action_not_supported: "+action)
+        finally:
+            try: browser.close()
+            except Exception: pass
+
+def ack_panel_job(job_id,ok,result=None,error=None):
+    payload={"job_id":job_id,"ok":bool(ok),"result":result or {}}
+    if error: payload["error"]=str(error)[:1500]
+    try: cloud("ack_panel_job",**payload)
+    except Exception: pass
+
+def process_panel_job(job):
+    jid=str(job.get("id",""))
+    if not jid: return
+    try:
+        result=run_panel_job(job)
+        ack_panel_job(jid,True,result=result)
+    except Exception as e:
+        ack_panel_job(jid,False,error=e)
+
 def process_local_command(cmd):
     cid=str(cmd.get("id",""))
     action=str(cmd.get("action",""))
@@ -210,12 +594,15 @@ def main():
             for hm in host.get("messages",[]) or []:
                 process_host_message(hm)
 
-            data=cloud("pull")
+            data=cloud("pull",panel_capable=panel_browser_available())
             rows=data.get("messages",[])
             local_commands=data.get("commands",[]) or []
+            panel_jobs=data.get("panel_jobs",[]) or []
             for cmd in local_commands:
                 process_local_command(cmd)
-            if not rows and not local_commands and not host.get("messages") and not host.get("commands"):
+            for job in panel_jobs:
+                process_panel_job(job)
+            if not rows and not local_commands and not panel_jobs and not host.get("messages") and not host.get("commands"):
                 time.sleep(1.0)
                 continue
             for m in rows:

@@ -26,8 +26,8 @@ fi
 
 AGENT_TMP="/tmp/wuzapi-supabase-agent.py"
 rm -f "$AGENT_TMP"
-curl -fsSL --retry 3 "https://cdn.jsdelivr.net/gh/juliovianadeoliveira-source/aplicativo-iptv-web@db7b31213b72c2f4bfaaf6ed06dd2b5247454289/jstech-whatsapp-bridge/wuzapi-supabase-agent.py" -o "$AGENT_TMP" \
-|| curl -fsSL --retry 3 "https://raw.githubusercontent.com/juliovianadeoliveira-source/aplicativo-iptv-web/db7b31213b72c2f4bfaaf6ed06dd2b5247454289/jstech-whatsapp-bridge/wuzapi-supabase-agent.py" -o "$AGENT_TMP"
+curl -fsSL --retry 3 "https://cdn.jsdelivr.net/gh/juliovianadeoliveira-source/aplicativo-iptv-web@2c237843fabbb26d186fcf71ef192303360d0d13/jstech-whatsapp-bridge/wuzapi-supabase-agent.py" -o "$AGENT_TMP" \
+|| curl -fsSL --retry 3 "https://raw.githubusercontent.com/juliovianadeoliveira-source/aplicativo-iptv-web/2c237843fabbb26d186fcf71ef192303360d0d13/jstech-whatsapp-bridge/wuzapi-supabase-agent.py" -o "$AGENT_TMP"
 install -m 0755 "$AGENT_TMP" /usr/local/bin/jstech-wuzapi-agent.py
 
 # Ambiente isolado para a automacao dos paineis. Se o navegador nao puder

@@ -40,6 +40,7 @@
         <button class="nav-item" data-page="contacts">♙ <span>Clientes</span></button>
         <button class="nav-item" data-page="campaigns">✉ <span>Campanhas</span></button>
         <button class="nav-item" data-page="organic">◎ <span>Divulgação grátis</span></button>
+        <button class="nav-item" data-page="panels">▣ <span>Painéis automáticos</span></button>
         <button class="nav-item" id="resellerNav" data-page="resellers">◆ <span>Revendas</span></button>
         <button class="nav-item" data-page="automation">⌘ <span>Automação</span></button>
         <button class="nav-item" data-page="knowledge">✦ <span>Respostas / Conteúdo</span></button>
@@ -203,6 +204,38 @@
               <div><b>4</b><span>A IA atende automaticamente e continua a venda.</span></div>
             </div>
             <a class="btn primary" href="https://juliovianadeoliveira-source.github.io/aplicativo-iptv-web/jstech-oferta/?src=painel" target="_blank">Abrir página pública</a>
+          </article>
+        </div>
+      </section>
+
+      <section id="page-panels" class="page">
+        <div class="settings-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">Automação IPTV</p><h3>Painéis do Multi Painéis</h3></div>
+              <button id="reloadPanelsBtn" class="btn ghost compact">↻ Atualizar</button>
+            </div>
+            <p class="muted">Cada painel pode ter um usuário e uma senha diferentes. As credenciais ficam criptografadas e não aparecem novamente depois de salvas.</p>
+            <div class="search-row"><input id="panelSearch" placeholder="Buscar painel"></div>
+            <div id="panelConnectorList" class="knowledge-list"><p class="muted">Carregando painéis...</p></div>
+          </article>
+
+          <article class="panel">
+            <p class="eyebrow">Credenciais individuais</p>
+            <h3 id="panelCredentialTitle">Escolha um painel</h3>
+            <p id="panelCredentialHint" class="muted">Selecione um painel na lista para cadastrar o acesso dele.</p>
+            <form id="panelCredentialForm" class="stack hidden">
+              <input id="panelConnectorId" type="hidden">
+              <label>Endereço do painel<input id="panelBaseUrl" type="url" placeholder="https://painel.exemplo.com/"></label>
+              <label>Usuário<input id="panelUsername" autocomplete="off" placeholder="Usuário deste painel"></label>
+              <label>Senha<input id="panelPassword" type="password" autocomplete="new-password" placeholder="Senha deste painel"></label>
+              <p class="muted">A senha é enviada direto para o cofre criptografado. Depois de salvar, ela não fica visível nesta tela.</p>
+              <div class="row-actions">
+                <button class="btn primary" type="submit">Salvar acesso</button>
+                <button id="testPanelBtn" class="btn ghost" type="button">Testar site</button>
+                <button id="clearPanelCredentialsBtn" class="btn ghost" type="button">Remover acesso</button>
+              </div>
+            </form>
           </article>
         </div>
       </section>

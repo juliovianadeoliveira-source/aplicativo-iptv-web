@@ -624,10 +624,15 @@ async function refreshBridgeStatus(){
     state.settings.bridge_connected=connected;
     renderBridgeUi(connected,data.configured!==false);
     if(data.qr&&!connected){
-      $("#qrImage").src=data.qr;
+      if($("#qrImage").getAttribute("src")!==data.qr)$("#qrImage").src=data.qr;
       $("#qrPanel").classList.remove("hidden");
       $("#qrConnectionTitle").textContent="Escaneie o QR Code";
-      $("#qrConnectionHint").textContent=state.bridgeHosted?"Abra o WhatsApp da revenda → Aparelhos conectados → Conectar um aparelho.":"Aguardando leitura pelo WhatsApp...";
+      $("#qrConnectionHint").textContent=state.bridgeHosted
+        ?"QR renovado automaticamente. Abra o WhatsApp da revenda → Aparelhos conectados → Conectar um aparelho."
+        :"QR renovado automaticamente. Aguardando leitura pelo WhatsApp...";
+    }else if(!connected){
+      $("#qrImage").removeAttribute("src");
+      $("#qrPanel").classList.add("hidden");
     }
     if(data.error&&!connected)toast(String(data.error),"error");
     renderDashboard();
@@ -666,18 +671,20 @@ async function startBridgeConnect(){
         return;
       }
       if(s?.qr){
-        $("#qrImage").src=s.qr;
+        if($("#qrImage").getAttribute("src")!==s.qr)$("#qrImage").src=s.qr;
         $("#qrPanel").classList.remove("hidden");
         $("#qrConnectionTitle").textContent="Escaneie o QR Code";
-        $("#qrConnectionHint").textContent=state.bridgeHosted?"Use o WhatsApp da revenda para escanear.":"Aguardando leitura pelo WhatsApp...";
-      }
-      if(tries>=45){
-        clearInterval(bridgePoll);bridgePoll=null;
+        $("#qrConnectionHint").textContent=state.bridgeHosted
+          ?"QR renovado automaticamente. Use o WhatsApp da revenda para escanear."
+          :"QR renovado automaticamente. Aguardando leitura pelo WhatsApp...";
+      }else if(!s?.connected){
+        $("#qrImage").removeAttribute("src");
+        $("#qrPanel").classList.add("hidden");
       }
     };
     await poll();
     if(!state.settings?.bridge_connected){
-      bridgePoll=setInterval(poll,2500);
+      bridgePoll=setInterval(poll,10000);
       toast(data.qr?"QR Code gerado.":"Preparando seu QR Code...");
     }
   }catch(err){

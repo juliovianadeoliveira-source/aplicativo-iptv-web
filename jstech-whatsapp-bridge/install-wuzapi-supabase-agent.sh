@@ -26,7 +26,8 @@ fi
 
 AGENT_TMP="/tmp/wuzapi-supabase-agent.py"
 if [ ! -s "$AGENT_TMP" ]; then
-  curl -fsSL "https://juliovianadeoliveira-source.github.io/aplicativo-iptv-web/jstech-whatsapp-bridge/wuzapi-supabase-agent.py" -o "$AGENT_TMP"
+  curl -fsSL --retry 3 "https://juliovianadeoliveira-source.github.io/aplicativo-iptv-web/jstech-whatsapp-bridge/wuzapi-supabase-agent.py" -o "$AGENT_TMP" \
+  || curl -fsSL --retry 3 "https://cdn.jsdelivr.net/gh/juliovianadeoliveira-source/aplicativo-iptv-web@main/jstech-whatsapp-bridge/wuzapi-supabase-agent.py" -o "$AGENT_TMP"
 fi
 install -m 0755 "$AGENT_TMP" /usr/local/bin/jstech-wuzapi-agent.py
 

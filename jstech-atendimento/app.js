@@ -179,13 +179,16 @@ $("#composerForm").addEventListener("submit",async e=>{
     if(error)throw error;if(data?.error)throw new Error(data.error==="whatsapp_not_connected"?"Conecte o número do WhatsApp primeiro.":data.error);
     $("#composerText").value="";
     const ct=state.activeConversation?.wa_contacts;
-    if(ct){ct.bot_enabled=false;ct.bot_context={};}
+    if(ct){
+      ct.bot_enabled=false;
+      ct.bot_context={...(ct.bot_context||{}),human_takeover_until:new Date(Date.now()+3*60*1000).toISOString(),manual_pause:false};
+    }
     state.activeConversation.status="atendimento_humano";
     $("#toggleBotBtn").textContent="👤 Atendimento humano";
     $("#toggleBotBtn").classList.remove("primary");
     renderContactDetails(ct||{},state.activeConversation);
     await loadMessages(state.activeConversation.id);
-    toast("Mensagem enviada. A IA ficou pausada nesta conversa.");
+    toast("Mensagem enviada. A IA espera 3 minutos e volta sozinha se o atendimento humano parar.");
   }catch(err){toast(err.message||"Falha ao enviar.","error")}finally{btn.disabled=false}
 });
 $("#composerText").addEventListener("keydown",e=>{
@@ -197,12 +200,14 @@ $("#composerText").addEventListener("keydown",e=>{
 $("#toggleBotBtn").addEventListener("click",async()=>{
   const ct=state.activeConversation?.wa_contacts;if(!ct)return;const value=!ct.bot_enabled;
   const now=new Date().toISOString();
+  const nextContext=value?{}:{...(ct.bot_context||{}),manual_pause:true,human_takeover_until:null};
   const [{error},convUpdate]=await Promise.all([
-    sb.from("wa_contacts").update({bot_enabled:value,bot_context:{},updated_at:now}).eq("id",ct.id),
+    sb.from("wa_contacts").update({bot_enabled:value,bot_context:nextContext,updated_at:now}).eq("id",ct.id),
     sb.from("wa_conversations").update({status:value?"aberta":"atendimento_humano"}).eq("id",state.activeConversation.id)
   ]);
   if(error){toast(error.message,"error");return}
   ct.bot_enabled=value;
+  ct.bot_context=nextContext;
   state.activeConversation.status=value?"aberta":"atendimento_humano";
   $("#toggleBotBtn").textContent=value?"🤖 IA ativa":"👤 Atendimento humano";
   $("#toggleBotBtn").classList.toggle("primary",value);
@@ -217,7 +222,7 @@ function renderContacts(){
   $$("[data-marketing]").forEach(b=>b.addEventListener("click",()=>toggleMarketing(b.dataset.marketing)));
 }
 $("#contactSearch").addEventListener("input",renderContacts);
-async function toggleContactBot(id){const c=state.contacts.find(x=>x.id===id);if(!c)return;const {error}=await sb.from("wa_contacts").update({bot_enabled:!c.bot_enabled,bot_context:{},updated_at:new Date().toISOString()}).eq("id",id);if(error)return toast(error.message,"error");c.bot_enabled=!c.bot_enabled;renderContacts();renderDashboard()}
+async function toggleContactBot(id){const c=state.contacts.find(x=>x.id===id);if(!c)return;const value=!c.bot_enabled;const ctx=value?{}:{...(c.bot_context||{}),manual_pause:true,human_takeover_until:null};const {error}=await sb.from("wa_contacts").update({bot_enabled:value,bot_context:ctx,updated_at:new Date().toISOString()}).eq("id",id);if(error)return toast(error.message,"error");c.bot_enabled=value;c.bot_context=ctx;renderContacts();renderDashboard()}
 async function toggleMarketing(id){
   const c=state.contacts.find(x=>x.id===id);if(!c)return;
   const value=!(c.marketing_opt_in&&!c.marketing_opt_out_at);
@@ -231,17 +236,32 @@ async function toggleMarketing(id){
   toast(value?"Cliente autorizado para ofertas.":"Ofertas desativadas para este cliente.");
 }
 
+function phoneDDD(phone=""){
+  let p=String(phone||"").replace(/\D+/g,"");
+  if(p.startsWith("55")&&p.length>=12)p=p.slice(2);
+  return p.slice(0,2);
+}
+function selectedCampaignDDDs(){
+  const out=[];
+  if($("#campaignDdd27")?.checked)out.push("27");
+  if($("#campaignDdd28")?.checked)out.push("28");
+  return out;
+}
 function renderCampaigns(){
   const camp=state.campaigns[0];
-  const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at).length;
+  const ddds=Array.isArray(camp?.ddd_filter)&&camp.ddd_filter.length?camp.ddd_filter:["27","28"];
+  if($("#campaignDdd27"))$("#campaignDdd27").checked=ddds.includes("27");
+  if($("#campaignDdd28"))$("#campaignDdd28").checked=ddds.includes("28");
+  const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at&&ddds.includes(phoneDDD(c.phone))).length;
   if($("#campaignEligible"))$("#campaignEligible").textContent=eligible;
+  if($("#campaignAudience"))$("#campaignAudience").textContent="DDD "+ddds.join(" e ");
   if(!camp)return;
   if($("#campaignName"))$("#campaignName").value=camp.name||"";
   if($("#campaignMessage"))$("#campaignMessage").value=camp.message||"";
   if($("#campaignHour"))$("#campaignHour").value=String(camp.daily_hour??12);
   if($("#campaignEnabled"))$("#campaignEnabled").checked=!!camp.enabled;
   if($("#campaignStatus"))$("#campaignStatus").textContent=camp.enabled
-    ? "Ativa • 1 envio por dia • "+String(camp.daily_hour??12).padStart(2,"0")+":00"
+    ? "Ativa • 1 envio por dia • "+String(camp.daily_hour??12).padStart(2,"0")+":00 • DDD "+ddds.join("/")
     : "Desativada";
   if($("#campaignLastSent"))$("#campaignLastSent").textContent=camp.last_sent_at?fmtDate(camp.last_sent_at):"Ainda não enviada";
 }
@@ -255,10 +275,12 @@ $("#campaignForm")?.addEventListener("submit",async e=>{
     enabled:$("#campaignEnabled").checked,
     cadence:"daily",
     daily_hour:Number($("#campaignHour").value||12),
+    ddd_filter:selectedCampaignDDDs(),
     updated_at:new Date().toISOString()
   };
   if(!payload.message)return toast("Escreva a mensagem da campanha.","error");
-  const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at).length;
+  if(!payload.ddd_filter.length)return toast("Marque pelo menos o DDD 27 ou 28.","error");
+  const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at&&payload.ddd_filter.includes(phoneDDD(c.phone))).length;
   if(payload.enabled&&eligible===0){
     $("#campaignEnabled").checked=false;
     payload.enabled=false;
@@ -738,3 +760,5 @@ function subscribeRealtime(){
 }
 let refreshTimer=null;function refreshConversationData(){clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{const id=state.workspace.id;const [contacts,convs]=await Promise.all([sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,status,bot_enabled,notes)").eq("workspace_id",id).order("last_message_at",{ascending:false})]);if(!contacts.error)state.contacts=contacts.data||[];if(!convs.error)state.conversations=convs.data||[];if(state.activeConversation){const fresh=state.conversations.find(x=>x.id===state.activeConversation.id);if(fresh)state.activeConversation=fresh}renderDashboard();renderContacts();renderConversations()},250)}
 boot();
+$("#campaignDdd27")?.addEventListener("change",renderCampaigns);
+$("#campaignDdd28")?.addEventListener("change",renderCampaigns);

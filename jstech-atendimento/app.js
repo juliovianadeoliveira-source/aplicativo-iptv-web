@@ -318,7 +318,8 @@ function renderPanelConnectors(){
       +'<span class="pill '+(p.has_credentials?"success":"warning")+'">'+escapeHtml(status)+'</span></div>'
       +'<p>'+escapeHtml((p.capabilities||[]).join(" • ")||"teste • criar usuário • renovar")+'</p></div>';
   }).join("");
-  $$("[data-panel-select]",list).forEach(el=>el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect)));
+  $("[data-panel-select]",list).forEach(el=>el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect)));
+  if(!state.activePanel && rows.length)selectPanelConnector(rows[0].id);
 }
 function selectPanelConnector(id){
   const p=state.panels.find(x=>x.id===id);if(!p)return;

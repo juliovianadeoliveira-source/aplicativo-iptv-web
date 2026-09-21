@@ -708,6 +708,43 @@ def download_media_and_reinject(payload, token=None):
     headers={"token":token or TOKEN,"Content-Type":"application/json"}
     return http_json("https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-wa-wuzapi-webhook","POST",event,headers,40)
 
+def local_status_snapshot(ensure_connect=False):
+    if ensure_connect:
+        try:
+            wuz("/session/connect",{"Subscribe":["All"],"Immediate":True},TOKEN)
+        except Exception:
+            pass
+        time.sleep(.6)
+
+    st=wuz_get("/session/status",TOKEN)
+    d=st.get("data",{}) if isinstance(st,dict) else {}
+    logged=bool(d.get("loggedIn") or d.get("LoggedIn"))
+    result={
+        "connected":logged,
+        "ready":True,
+        "status":"connected" if logged else "waiting_qr",
+        "qr_code":None,
+        "qr_expires_at":None,
+    }
+    jid=str(d.get("jid") or d.get("JID") or "").strip()
+    name=str(d.get("name") or d.get("Name") or "").strip()
+    if jid: result["jid"]=jid
+    if name: result["name"]=name
+
+    if logged:
+        return result
+
+    try:
+        q=wuz_get("/session/qr",TOKEN)
+        qd=q.get("data",{}) if isinstance(q,dict) else {}
+        qr=qd.get("QRCode") or qd.get("qrcode")
+        if isinstance(qr,str) and qr.startswith("data:image"):
+            result["qr_code"]=qr
+            result["qr_expires_at"]=(datetime.now(timezone.utc)+timedelta(seconds=115)).isoformat()
+    except Exception:
+        pass
+    return result
+
 def process_local_command(cmd):
     cid=str(cmd.get("id",""))
     action=str(cmd.get("action",""))
@@ -723,6 +760,24 @@ def process_local_command(cmd):
         elif action=="download_media":
             result=download_media_and_reinject(cmd.get("payload") or {},TOKEN)
             ack_command(cid,True,result={"downloaded":True,"webhook":result})
+        elif action=="connect":
+            result=local_status_snapshot(True)
+            ack_command(cid,True,result=result)
+        elif action=="status":
+            result=local_status_snapshot(False)
+            ack_command(cid,True,result=result)
+        elif action=="logout":
+            try:
+                wuz("/session/logout",{},TOKEN)
+            except Exception:
+                pass
+            ack_command(cid,True,result={
+                "connected":False,
+                "ready":True,
+                "status":"logged_out",
+                "qr_code":None,
+                "qr_expires_at":None,
+            })
         else:
             raise RuntimeError("ação desconhecida: "+action)
     except Exception as e:
@@ -736,7 +791,13 @@ def main():
         try:
             now=time.time()
             if now-last_hb>25:
-                cloud("heartbeat")
+                try:
+                    cloud("heartbeat",**local_status_snapshot(False))
+                except Exception:
+                    try:
+                        cloud("heartbeat",connected=False,status="offline",qr_code=None,qr_expires_at=None)
+                    except Exception:
+                        pass
                 last_hb=now
             host=cloud("host_pull")
             for cmd in host.get("commands",[]) or []:

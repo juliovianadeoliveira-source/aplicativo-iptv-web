@@ -726,7 +726,17 @@ def download_media_and_reinject(payload, token=None):
     return http_json("https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-wa-wuzapi-webhook","POST",event,headers,40)
 
 def local_status_snapshot(ensure_connect=False):
-    if ensure_connect:
+    initial={}
+    try:
+        st0=wuz_get("/session/status",TOKEN)
+        initial=st0.get("data",{}) if isinstance(st0,dict) else {}
+    except Exception:
+        initial={}
+
+    logged0=bool(initial.get("loggedIn") or initial.get("LoggedIn"))
+    wire0=bool(initial.get("connected") if "connected" in initial else initial.get("Connected",logged0))
+
+    if ensure_connect and not (logged0 and wire0):
         try:
             wuz("/session/connect",{"Subscribe":["All"],"Immediate":True},TOKEN)
         except Exception:
@@ -741,10 +751,13 @@ def local_status_snapshot(ensure_connect=False):
         st=wuz_get("/session/status",TOKEN)
         d=st.get("data",{}) if isinstance(st,dict) else {}
         logged=bool(d.get("loggedIn") or d.get("LoggedIn"))
+        wire=bool(d.get("connected") if "connected" in d else d.get("Connected",logged))
+        connected=bool(logged and wire)
+
         result={
-            "connected":logged,
+            "connected":connected,
             "ready":True,
-            "status":"connected" if logged else "waiting_qr",
+            "status":"connected" if connected else ("reconnecting" if logged else "waiting_qr"),
             "qr_code":None,
             "qr_expires_at":None,
         }
@@ -753,8 +766,17 @@ def local_status_snapshot(ensure_connect=False):
         if jid: result["jid"]=jid
         if name: result["name"]=name
 
-        if logged:
+        if connected:
             return result
+
+        if logged:
+            if ensure_connect:
+                try:
+                    wuz("/session/connect",{"Subscribe":["All"],"Immediate":True},TOKEN)
+                except Exception:
+                    pass
+            last_result=result
+            continue
 
         try:
             q=wuz_get("/session/qr",TOKEN)
@@ -762,7 +784,7 @@ def local_status_snapshot(ensure_connect=False):
             qr=qd.get("QRCode") or qd.get("qrcode")
             if isinstance(qr,str) and qr.startswith("data:image"):
                 result["qr_code"]=qr
-                result["qr_expires_at"]=(datetime.now(timezone.utc)+timedelta(seconds=115)).isoformat()
+                result["qr_expires_at"]=(datetime.now(timezone.utc)+timedelta(seconds=70)).isoformat()
                 return result
         except Exception:
             pass
@@ -772,7 +794,7 @@ def local_status_snapshot(ensure_connect=False):
     return last_result or {
         "connected":False,
         "ready":True,
-        "status":"waiting_qr",
+        "status":"offline",
         "qr_code":None,
         "qr_expires_at":None,
     }
@@ -824,7 +846,7 @@ def main():
             now=time.time()
             if now-last_hb>25:
                 try:
-                    cloud("heartbeat",**local_status_snapshot(False))
+                    cloud("heartbeat",**local_status_snapshot(True))
                 except Exception:
                     try:
                         cloud("heartbeat",connected=False,status="offline",qr_code=None,qr_expires_at=None)

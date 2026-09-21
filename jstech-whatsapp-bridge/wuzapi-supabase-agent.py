@@ -414,6 +414,57 @@ def _find_user_row(page,username):
     if un in _norm_text(body): return None,body
     return None,""
 
+
+def _detect_panel_apps(page,known_apps):
+    apps=known_apps if isinstance(known_apps,list) else []
+    if not apps: return []
+
+    def scan_text_and_options():
+        body=_norm_text(_body_text(page))
+        option_rows=[]
+        try:
+            opts=page.locator("option")
+            for i in range(min(opts.count(),300)):
+                o=opts.nth(i)
+                try:
+                    txt=(o.inner_text(timeout=500) or "").strip()
+                    val=(o.get_attribute("value") or "").strip()
+                    if txt: option_rows.append((txt,val))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        found=[]
+        seen=set()
+        for app in apps:
+            aid=str(app.get("id") or "")
+            name=str(app.get("name") or "").strip()
+            aliases=app.get("aliases") or []
+            names=[name]+[str(x) for x in aliases if str(x).strip()]
+            hit=False; code=""
+            for txt,val in option_rows:
+                nt=_norm_text(txt)
+                if any(_norm_text(n) and _norm_text(n) in nt for n in names):
+                    hit=True
+                    code=val or txt
+                    break
+            if not hit:
+                hit=any(_norm_text(n) and _norm_text(n) in body for n in names)
+            if hit and aid and aid not in seen:
+                seen.add(aid)
+                found.append({"app_catalog_id":aid,"app_name":name,"panel_app_code":code or name})
+        return found
+
+    found=scan_text_and_options()
+    if found: return found
+
+    # Abre somente uma tela de preparação de teste; não confirma nem gera nada.
+    if _click_by_text(page,["teste rapido","teste rápido","novo teste"]):
+        _wait_after_action(page,900)
+        return scan_text_and_options()
+    return []
+
 def _panel_search_user(page,username):
     _open_clients(page)
     search=_find_input(page,"search")
@@ -443,8 +494,33 @@ def _panel_generate_test(page,job):
     if not code:
         raise RuntimeError("panel_app_code_required")
     # The mapping value is intentionally used as the exact test/product selector.
-    if not _click_by_text(page,[code]):
-        raise RuntimeError("test_profile_not_found: "+code[:80])
+    app_name=str(job.get("app_name") or "").strip()
+    selected=False
+    try:
+        selects=page.locator("select")
+        for i in range(min(selects.count(),20)):
+            sel=selects.nth(i)
+            try:
+                if code:
+                    sel.select_option(value=code)
+                    selected=True
+                    break
+            except Exception:
+                pass
+            if app_name:
+                try:
+                    sel.select_option(label=app_name)
+                    selected=True
+                    break
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    if not selected:
+        labels=[x for x in (code,app_name) if x]
+        selected=_click_by_text(page,labels)
+    if not selected:
+        raise RuntimeError("test_profile_not_found: "+(app_name or code)[:80])
     _wait_after_action(page,900)
 
     name=str(job.get("customer_name") or job.get("customer_phone") or "Teste WhatsApp").strip()
@@ -532,7 +608,8 @@ def run_panel_job(job):
             if not ok:
                 raise RuntimeError("login_not_validated")
             if action=="probe_login":
-                return {"authenticated":True,"status":"connected"}
+                detected=_detect_panel_apps(page,job.get("known_apps") or [])
+                return {"authenticated":True,"status":"connected","detected_apps":detected}
             if action in ("search_user","refresh_access","check_codes"):
                 username=str((job.get("payload") or {}).get("username") or "").strip()
                 if not username: raise RuntimeError("username_required")

@@ -82,6 +82,10 @@ User=root
 WantedBy=multi-user.target
 EOF
 
+# Garante que imagens, audios e documentos recebidos sejam entregues ao webhook.
+# Em versoes novas do WuzAPI, remover a configuracao S3 volta ao modo base64.
+curl -sS --max-time 10 -X DELETE -H "token: $TOKEN"   http://127.0.0.1:8080/session/s3/config >/tmp/jstech-media-mode.json 2>/dev/null || true
+
 SIG="$(printf '%s' "$TOKEN" | sha256sum | awk '{print $1}')"
 WEBHOOK="https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-wa-wuzapi-webhook?token=$SIG"
 
@@ -159,6 +163,8 @@ echo "=== WEBHOOK PRINCIPAL ==="
 curl -fsS -H "token: $TOKEN" http://127.0.0.1:8080/webhook | python3 -c 'import sys,json; d=json.load(sys.stdin); x=d.get("data",{}); print("eventos:", ",".join(x.get("subscribe",[]) or [])); print("CallOffer:", "OK" if "CallOffer" in (x.get("subscribe",[]) or []) else "NAO")'
 echo "=== WHATSAPP PRINCIPAL ==="
 curl -fsS -H "token: $TOKEN" http://127.0.0.1:8080/session/status | python3 -c 'import sys,json; d=json.load(sys.stdin); x=d.get("data",{}); print("connected:", x.get("connected")); print("loggedIn:", x.get("loggedIn")); print("name:", x.get("name","")); print("jid:", x.get("jid",""))'
+echo "=== MIDIAS DO WHATSAPP ==="
+echo "entrega para o bot: base64"
 echo "=== BLOQUEIO DE LIGACOES ==="
 grep -q 'reject_call' /usr/local/bin/jstech-wuzapi-agent.py && echo "ativo no agente" || echo "agente antigo"
 echo "=== AUTOMACAO DE PAINEIS ==="

@@ -126,7 +126,7 @@ EOF
 
   local users
   users="$(curl -sS --max-time 10 -H "Authorization: $admin" http://127.0.0.1:8080/admin/users || true)"
-  if ! printf '%s' "$users" | grep -Fq ""token":"$user""; then
+  if ! printf '%s' "$users" | grep -Fq "$user"; then
     curl -fsS --max-time 15 -X POST \
       -H "Authorization: $admin" \
       -H "Content-Type: application/json" \

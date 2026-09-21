@@ -714,36 +714,51 @@ def local_status_snapshot(ensure_connect=False):
             wuz("/session/connect",{"Subscribe":["All"],"Immediate":True},TOKEN)
         except Exception:
             pass
-        time.sleep(.6)
 
-    st=wuz_get("/session/status",TOKEN)
-    d=st.get("data",{}) if isinstance(st,dict) else {}
-    logged=bool(d.get("loggedIn") or d.get("LoggedIn"))
-    result={
-        "connected":logged,
+    tries=8 if ensure_connect else 1
+    last_result=None
+    for _ in range(tries):
+        if ensure_connect:
+            time.sleep(.8)
+
+        st=wuz_get("/session/status",TOKEN)
+        d=st.get("data",{}) if isinstance(st,dict) else {}
+        logged=bool(d.get("loggedIn") or d.get("LoggedIn"))
+        result={
+            "connected":logged,
+            "ready":True,
+            "status":"connected" if logged else "waiting_qr",
+            "qr_code":None,
+            "qr_expires_at":None,
+        }
+        jid=str(d.get("jid") or d.get("JID") or "").strip()
+        name=str(d.get("name") or d.get("Name") or "").strip()
+        if jid: result["jid"]=jid
+        if name: result["name"]=name
+
+        if logged:
+            return result
+
+        try:
+            q=wuz_get("/session/qr",TOKEN)
+            qd=q.get("data",{}) if isinstance(q,dict) else {}
+            qr=qd.get("QRCode") or qd.get("qrcode")
+            if isinstance(qr,str) and qr.startswith("data:image"):
+                result["qr_code"]=qr
+                result["qr_expires_at"]=(datetime.now(timezone.utc)+timedelta(seconds=115)).isoformat()
+                return result
+        except Exception:
+            pass
+
+        last_result=result
+
+    return last_result or {
+        "connected":False,
         "ready":True,
-        "status":"connected" if logged else "waiting_qr",
+        "status":"waiting_qr",
         "qr_code":None,
         "qr_expires_at":None,
     }
-    jid=str(d.get("jid") or d.get("JID") or "").strip()
-    name=str(d.get("name") or d.get("Name") or "").strip()
-    if jid: result["jid"]=jid
-    if name: result["name"]=name
-
-    if logged:
-        return result
-
-    try:
-        q=wuz_get("/session/qr",TOKEN)
-        qd=q.get("data",{}) if isinstance(q,dict) else {}
-        qr=qd.get("QRCode") or qd.get("qrcode")
-        if isinstance(qr,str) and qr.startswith("data:image"):
-            result["qr_code"]=qr
-            result["qr_expires_at"]=(datetime.now(timezone.utc)+timedelta(seconds=115)).isoformat()
-    except Exception:
-        pass
-    return result
 
 def process_local_command(cmd):
     cid=str(cmd.get("id",""))

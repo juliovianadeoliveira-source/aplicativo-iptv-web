@@ -210,8 +210,8 @@ $("#toggleBotBtn").addEventListener("click",async()=>{
 function renderContacts(){
   const q=($("#contactSearch")?.value||"").toLowerCase().trim();
   $("#contactsTable").innerHTML=state.contacts.filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q)).map(c=>'<tr><td><b>'+escapeHtml(c.name||"Sem nome")+'</b></td><td>'+escapeHtml(c.phone)+'</td><td>'+escapeHtml(c.status||"novo")+'</td><td><button class="toggle-chip '+(c.bot_enabled?"on":"")+'" data-contact-bot="'+c.id+'">'+(c.bot_enabled?"Ativo":"Pausado")+'</button></td><td><button class="toggle-chip '+(c.marketing_opt_in&&!c.marketing_opt_out_at?"on":"")+'" data-marketing="'+c.id+'">'+(c.marketing_opt_in&&!c.marketing_opt_out_at?"Autorizado":"Não autorizado")+'</button></td><td>'+fmtDate(c.updated_at)+'</td></tr>').join("");
-  $$$("[data-contact-bot]").forEach(b=>b.addEventListener("click",()=>toggleContactBot(b.dataset.contactBot)));
-  $$$("[data-marketing]").forEach(b=>b.addEventListener("click",()=>toggleMarketing(b.dataset.marketing)));
+  $("[data-contact-bot]").forEach(b=>b.addEventListener("click",()=>toggleContactBot(b.dataset.contactBot)));
+  $("[data-marketing]").forEach(b=>b.addEventListener("click",()=>toggleMarketing(b.dataset.marketing)));
 }
 $("#contactSearch").addEventListener("input",renderContacts);
 async function toggleContactBot(id){const c=state.contacts.find(x=>x.id===id);if(!c)return;const {error}=await sb.from("wa_contacts").update({bot_enabled:!c.bot_enabled,bot_context:{},updated_at:new Date().toISOString()}).eq("id",id);if(error)return toast(error.message,"error");c.bot_enabled=!c.bot_enabled;renderContacts();renderDashboard()}
@@ -277,14 +277,14 @@ $("#campaignForm")?.addEventListener("submit",async e=>{
 const ORGANIC_BASE="https://juliovianadeoliveira-source.github.io/aplicativo-iptv-web/jstech-oferta/";
 function organicLink(src){return ORGANIC_BASE+"?src="+encodeURIComponent(src)}
 function renderOrganicLinks(){
-  $$$("[data-organic-link]").forEach(el=>{
+  $("[data-organic-link]").forEach(el=>{
     const src=el.dataset.organicLink;
     const url=organicLink(src);
     el.textContent=url;
     el.href=url;
   });
 }
-$$$("[data-copy-organic]").forEach(btn=>btn.addEventListener("click",async()=>{
+$("[data-copy-organic]").forEach(btn=>btn.addEventListener("click",async()=>{
   const src=btn.dataset.copyOrganic;
   try{
     await navigator.clipboard.writeText(organicLink(src));
@@ -552,7 +552,7 @@ resetSimulator();
 function renderKnowledge(){
   const list=$("#knowledgeList");if(!state.knowledge.length){list.innerHTML='<p class="muted">Nenhuma informação cadastrada.</p>';return}
   list.innerHTML=state.knowledge.map(k=>'<div class="knowledge-item"><div class="knowledge-item-head"><div><b>'+escapeHtml(k.title)+'</b><p>'+escapeHtml((k.keywords||[]).join(", "))+'</p></div><div class="knowledge-actions"><button data-ke="'+k.id+'">Editar</button><button data-kd="'+k.id+'">Excluir</button></div></div><p>'+escapeHtml(k.content.slice(0,150))+(k.content.length>150?"…":"")+'</p></div>').join("");
-  $$$("[data-ke]").forEach(b=>b.addEventListener("click",()=>editKnowledge(b.dataset.ke)));$$$("[data-kd]").forEach(b=>b.addEventListener("click",()=>deleteKnowledge(b.dataset.kd)));
+  $("[data-ke]").forEach(b=>b.addEventListener("click",()=>editKnowledge(b.dataset.ke)));$("[data-kd]").forEach(b=>b.addEventListener("click",()=>deleteKnowledge(b.dataset.kd)));
 }
 function editKnowledge(id){const k=state.knowledge.find(x=>x.id===id);state.editingKnowledge=id;$("#knowledgeFormTitle").textContent="Editar informação";$("#knowledgeTitle").value=k.title;$("#knowledgeKeywords").value=(k.keywords||[]).join(", ");$("#knowledgeContent").value=k.content}
 function clearKnowledge(){state.editingKnowledge=null;$("#knowledgeFormTitle").textContent="Nova informação";$("#knowledgeForm").reset()}

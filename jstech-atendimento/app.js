@@ -10,7 +10,7 @@ const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const state = {
   session:null, workspace:null, settings:null, contacts:[], conversations:[], messages:[],
-  automations:[], knowledge:[], campaigns:[], panels:[], activePanel:null, activeConversation:null, activeAutomation:null,
+  automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], activePanel:null, activeConversation:null, activeAutomation:null,
   activeNode:null, editingKnowledge:null, channel:null, simNode:null, bridgeManagedLocally:false, bridgeHosted:false
 };
 
@@ -285,6 +285,8 @@ async function loadPanelConnectors(showToast=false){
     if(error)throw error;
     if(data?.error)throw new Error(data.error);
     state.panels=data?.panels||[];
+    state.panelApps=data?.apps||[];
+    state.panelMappings=data?.mappings||[];
     if(state.activePanel){
       state.activePanel=state.panels.find(x=>x.id===state.activePanel.id)||null;
     }
@@ -336,8 +338,75 @@ function selectPanelConnector(id){
     botBtn.classList.toggle("primary",!!p.enabled);
     botBtn.disabled=!p.has_credentials;
   }
+  renderPanelAppMappings();
   renderPanelConnectors();
 }
+function renderPanelAppMappings(){
+  const select=$("#panelAppSelect"),box=$("#panelAppMappings");
+  if(!select||!box)return;
+  const p=state.activePanel;
+  if(!p){
+    select.innerHTML="";
+    box.innerHTML='<p class="muted">Selecione um painel.</p>';
+    return;
+  }
+  const used=new Set(state.panelMappings.filter(m=>m.connector_id===p.id&&m.enabled).map(m=>m.app_catalog_id));
+  const available=state.panelApps.filter(a=>!used.has(a.id));
+  select.innerHTML=available.length
+    ? available.map(a=>'<option value="'+a.id+'">'+escapeHtml(a.name)+'</option>').join("")
+    : '<option value="">Todos os aplicativos já foram associados</option>';
+
+  const mappings=state.panelMappings.filter(m=>m.connector_id===p.id&&m.enabled);
+  if(!mappings.length){
+    box.innerHTML='<p class="muted">Nenhum aplicativo associado a este painel ainda.</p>';
+    return;
+  }
+  box.innerHTML=mappings.map(m=>
+    '<div class="knowledge-item"><div class="knowledge-item-head"><div><b>'+escapeHtml(m.app_name)+'</b>'
+    +'<p>'+(m.panel_app_code?'Código no painel: '+escapeHtml(m.panel_app_code):'Sem código específico cadastrado')+'</p></div>'
+    +'<button class="remove-option" data-remove-panel-app="'+m.id+'">×</button></div></div>'
+  ).join("");
+  $("[data-remove-panel-app]",box).forEach(btn=>btn.addEventListener("click",()=>removePanelAppMapping(btn.dataset.removePanelApp)));
+}
+$("#savePanelAppBtn")?.addEventListener("click",async()=>{
+  const p=state.activePanel;if(!p)return;
+  const appId=$("#panelAppSelect").value;
+  if(!appId)return toast("Escolha um aplicativo.","error");
+  const btn=$("#savePanelAppBtn");btn.disabled=true;
+  try{
+    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{
+      action:"save_app_mapping",
+      workspace_id:state.workspace.id,
+      connector_id:p.id,
+      app_catalog_id:appId,
+      panel_app_code:$("#panelAppCode").value.trim()
+    }});
+    if(error)throw error;if(data?.error)throw new Error(data.error);
+    $("#panelAppCode").value="";
+    await loadPanelConnectors(false);
+    state.activePanel=state.panels.find(x=>x.id===p.id)||null;
+    renderPanelAppMappings();renderPanelConnectors();
+    toast("Aplicativo vinculado ao painel.");
+  }catch(err){toast(err.message||"Falha ao vincular aplicativo.","error")}
+  finally{btn.disabled=false}
+});
+async function removePanelAppMapping(mappingId){
+  const p=state.activePanel;if(!p)return;
+  try{
+    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{
+      action:"delete_app_mapping",
+      workspace_id:state.workspace.id,
+      connector_id:p.id,
+      mapping_id:mappingId
+    }});
+    if(error)throw error;if(data?.error)throw new Error(data.error);
+    await loadPanelConnectors(false);
+    state.activePanel=state.panels.find(x=>x.id===p.id)||null;
+    renderPanelAppMappings();renderPanelConnectors();
+    toast("Aplicativo removido deste painel.");
+  }catch(err){toast(err.message||"Falha ao remover vínculo.","error")}
+}
+
 $("#panelSearch")?.addEventListener("input",renderPanelConnectors);
 $("#reloadPanelsBtn")?.addEventListener("click",async()=>{await loadPanelConnectors(true);renderPanelConnectors()});
 $("#panelCredentialForm")?.addEventListener("submit",async e=>{

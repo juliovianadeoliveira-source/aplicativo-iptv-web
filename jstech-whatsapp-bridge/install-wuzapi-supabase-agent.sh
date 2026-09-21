@@ -26,8 +26,8 @@ fi
 
 AGENT_TMP="/tmp/wuzapi-supabase-agent.py"
 rm -f "$AGENT_TMP"
-curl -fsSL --retry 3 "https://juliovianadeoliveira-source.github.io/aplicativo-iptv-web/jstech-whatsapp-bridge/wuzapi-supabase-agent.py?v=f57a4fdc" -o "$AGENT_TMP" \
-|| curl -fsSL --retry 3 "https://cdn.jsdelivr.net/gh/juliovianadeoliveira-source/aplicativo-iptv-web@f57a4fdcc41b68d476e8ea31806558f5c44a7c87/jstech-whatsapp-bridge/wuzapi-supabase-agent.py" -o "$AGENT_TMP"
+curl -fsSL --retry 3 "https://juliovianadeoliveira-source.github.io/aplicativo-iptv-web/jstech-whatsapp-bridge/wuzapi-supabase-agent.py?v=03277779" -o "$AGENT_TMP" \
+|| curl -fsSL --retry 3 "https://cdn.jsdelivr.net/gh/juliovianadeoliveira-source/aplicativo-iptv-web@03277779aa0e275072aae9f13c2f58280133879c/jstech-whatsapp-bridge/wuzapi-supabase-agent.py" -o "$AGENT_TMP"
 install -m 0755 "$AGENT_TMP" /usr/local/bin/jstech-wuzapi-agent.py
 
 cat >/etc/systemd/system/jstech-wuzapi-agent.service <<'EOF'
@@ -50,7 +50,7 @@ EOF
 SIG="$(printf '%s' "$TOKEN" | sha256sum | awk '{print $1}')"
 WEBHOOK="https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-wa-wuzapi-webhook?token=$SIG"
 
-WEBHOOK_JSON="$(printf '{"webhookurl":"%s","events":["Message","Connected","Disconnected","KeepAliveRestored","KeepAliveTimeout","LoggedOut"]}' "$WEBHOOK")"
+WEBHOOK_JSON="$(printf '{"webhookurl":"%s","events":["Message","CallOffer","Connected","Disconnected","KeepAliveRestored","KeepAliveTimeout","LoggedOut"]}' "$WEBHOOK")"
 curl -fsS -X POST \
   -H "token: $TOKEN" \
   -H "Content-Type: application/json" \

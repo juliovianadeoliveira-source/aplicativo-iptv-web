@@ -433,6 +433,22 @@ async function removePanelAppMapping(mappingId){
 
 $("#panelSearch")?.addEventListener("input",renderPanelConnectors);
 $("#reloadPanelsBtn")?.addEventListener("click",async()=>{await loadPanelConnectors(true);renderPanelConnectors()});
+let panelCredentialAutoSaveTimer=null;
+function schedulePanelCredentialAutoSave(){
+  clearTimeout(panelCredentialAutoSaveTimer);
+  panelCredentialAutoSaveTimer=setTimeout(()=>{
+    const form=$("#panelCredentialForm");
+    const user=$("#panelUsername")?.value?.trim();
+    const pass=$("#panelPassword")?.value||"";
+    if(form&&!form.classList.contains("hidden")&&user&&pass){
+      form.requestSubmit();
+    }
+  },700);
+}
+$("#panelUsername")?.addEventListener("change",schedulePanelCredentialAutoSave);
+$("#panelPassword")?.addEventListener("change",schedulePanelCredentialAutoSave);
+$("#panelPassword")?.addEventListener("blur",schedulePanelCredentialAutoSave);
+
 $("#panelCredentialForm")?.addEventListener("submit",async e=>{
   e.preventDefault();
   const p=state.activePanel;if(!p)return;

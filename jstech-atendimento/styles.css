@@ -6,3 +6,12 @@
 .qr-panel{display:grid;grid-template-columns:190px 1fr;gap:18px;align-items:center;border:1px solid rgba(54,211,153,.26);border-radius:16px;background:#07131f;padding:16px}.qr-panel img{width:190px;height:190px;object-fit:contain;background:white;border-radius:12px;padding:8px}.qr-panel p{color:var(--muted);margin:7px 0}.qr-panel small{color:#7d92aa}
 .advanced-box{border:1px dashed #314761;border-radius:14px;padding:12px 14px;background:#091525}.advanced-box summary{cursor:pointer;font-weight:800;color:#b9c9dc}.advanced-box[open] summary{margin-bottom:14px}.advanced-box .muted{font-size:.8rem}
 @media(max-width:560px){.qr-panel{grid-template-columns:1fr;justify-items:center;text-align:center}.qr-panel img{width:min(220px,80vw);height:auto}}
+
+/* Conversas: evita o composer sumir quando a janela fica baixa */
+.chat-panel,.chat-active{min-height:0}
+.messages{min-height:0}
+.composer{flex:0 0 auto;background:#0d1929;position:sticky;bottom:0;z-index:2}
+@media(max-height:650px){
+  .chat-layout{height:calc(100vh - 120px);min-height:0}
+  .topbar{height:72px;margin-bottom:12px}
+}

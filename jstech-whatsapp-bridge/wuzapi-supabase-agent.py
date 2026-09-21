@@ -143,7 +143,7 @@ def hosted_connect(token):
             qd=q.get("data",{}) if isinstance(q,dict) else {}
             qr=qd.get("QRCode") or qd.get("qrcode")
             if isinstance(qr,str) and qr.startswith("data:image"):
-                exp=(datetime.now(timezone.utc)+timedelta(seconds=115)).isoformat()
+                exp=(datetime.now(timezone.utc)+timedelta(seconds=70)).isoformat()
                 return {"connected":False,"ready":True,"status":"waiting_qr","qr_code":qr,"qr_expires_at":exp}
         except Exception: pass
     raise RuntimeError("QR Code ainda não foi gerado")
@@ -161,7 +161,24 @@ def process_host_command(cmd):
             st=wuz_get("/session/status",token)
             d=st.get("data",{}) if isinstance(st,dict) else {}
             connected=bool(d.get("loggedIn") or d.get("LoggedIn"))
-            result={"connected":connected,"ready":True,"status":"connected" if connected else "waiting_qr"}
+            if connected:
+                result={"connected":True,"ready":True,"status":"connected","qr_code":None,"qr_expires_at":None}
+            else:
+                result=None
+                try:
+                    q=wuz_get("/session/qr",token)
+                    qd=q.get("data",{}) if isinstance(q,dict) else {}
+                    qr=qd.get("QRCode") or qd.get("qrcode")
+                    if isinstance(qr,str) and qr.startswith("data:image"):
+                        result={
+                            "connected":False,"ready":True,"status":"waiting_qr",
+                            "qr_code":qr,
+                            "qr_expires_at":(datetime.now(timezone.utc)+timedelta(seconds=70)).isoformat()
+                        }
+                except Exception:
+                    pass
+                if result is None:
+                    result=hosted_connect(token)
         elif action=="logout":
             try: wuz("/session/logout",{},token)
             except Exception: pass

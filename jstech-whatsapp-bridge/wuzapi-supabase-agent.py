@@ -2,6 +2,7 @@
 import json, time, urllib.request, urllib.error, subprocess, os, sys, re
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 try:
     from playwright.sync_api import sync_playwright
@@ -677,8 +678,9 @@ def main():
             panel_jobs=data.get("panel_jobs",[]) or []
             for cmd in local_commands:
                 process_local_command(cmd)
-            for job in panel_jobs:
-                process_panel_job(job)
+            if panel_jobs:
+                with ThreadPoolExecutor(max_workers=min(3,len(panel_jobs))) as pool:
+                    list(pool.map(process_panel_job,panel_jobs))
             if not rows and not local_commands and not panel_jobs and not host.get("messages") and not host.get("commands"):
                 time.sleep(1.0)
                 continue

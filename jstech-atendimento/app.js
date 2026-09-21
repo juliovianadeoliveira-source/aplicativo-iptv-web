@@ -10,7 +10,7 @@ const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const state = {
   session:null, workspace:null, settings:null, contacts:[], conversations:[], messages:[],
-  automations:[], knowledge:[], campaigns:[], activeConversation:null, activeAutomation:null,
+  automations:[], knowledge:[], campaigns:[], panels:[], activePanel:null, activeConversation:null, activeAutomation:null,
   activeNode:null, editingKnowledge:null, channel:null, simNode:null, bridgeManagedLocally:false, bridgeHosted:false
 };
 
@@ -27,7 +27,7 @@ function pageMeta(page){
   return ({
     dashboard:["Visão geral","Dashboard"],conversations:["Atendimento","Conversas"],
     contacts:["CRM","Clientes"],campaigns:["Marketing","Campanhas"],
-    organic:["Captação","Divulgação grátis"],
+    organic:["Captação","Divulgação grátis"],panels:["Integrações","Painéis automáticos"],
     automation:["Fluxos e regras","Automação"],
     knowledge:["Conteúdo","Respostas prontas"],resellers:["Revenda","Revendedores"],settings:["Integrações","Configurações"]
   })[page];
@@ -98,10 +98,11 @@ async function loadAll(showToast=false){
     if(settings.error)throw settings.error;if(contacts.error)throw contacts.error;if(convs.error)throw convs.error;if(autos.error)throw autos.error;if(knowledge.error)throw knowledge.error;if(campaigns.error)throw campaigns.error;
     state.settings=settings.data;state.contacts=contacts.data||[];state.conversations=convs.data||[];state.automations=autos.data||[];state.knowledge=knowledge.data||[];state.campaigns=campaigns.data||[];
     if(!state.activeAutomation&&state.automations.length){state.activeAutomation=structuredClone(state.automations[0]);state.activeNode=state.activeAutomation.flow?.start||Object.keys(state.activeAutomation.flow?.nodes||{})[0]}
+    await loadPanelConnectors(false);
     renderAll(); if(showToast)toast("Painel atualizado.");
   }catch(err){console.error(err);toast(err.message||"Erro ao carregar o painel.","error")}
 }
-function renderAll(){renderDashboard();renderConversations();renderContacts();renderCampaigns();renderOrganicLinks();renderAutomations();renderKnowledge();renderSettings();}
+function renderAll(){renderDashboard();renderConversations();renderContacts();renderCampaigns();renderOrganicLinks();renderPanelConnectors();renderAutomations();renderKnowledge();renderSettings();}
 
 function renderDashboard(){
   const unread=state.conversations.reduce((n,c)=>n+(c.unread_count||0),0);
@@ -275,6 +276,112 @@ $("[data-copy-organic]").forEach(btn=>btn.addEventListener("click",async()=>{
     prompt("Copie o link:",organicLink(src));
   }
 }));
+
+
+async function loadPanelConnectors(showToast=false){
+  if(!state.workspace?.id)return;
+  try{
+    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{action:"list",workspace_id:state.workspace.id}});
+    if(error)throw error;
+    if(data?.error)throw new Error(data.error);
+    state.panels=data?.panels||[];
+    if(state.activePanel){
+      state.activePanel=state.panels.find(x=>x.id===state.activePanel.id)||null;
+    }
+    if(showToast)toast("Painéis atualizados.");
+  }catch(err){
+    console.error("panel admin",err);
+    state.panels=[];
+    if(showToast)toast("Não foi possível carregar os painéis.","error");
+  }
+}
+function panelStatusLabel(p){
+  if(p.has_credentials)return "Acesso salvo";
+  if(p.last_status==="site_online")return "Site online";
+  return "Aguardando acesso";
+}
+function renderPanelConnectors(){
+  const list=$("#panelConnectorList");
+  if(!list)return;
+  const q=($("#panelSearch")?.value||"").toLowerCase().trim();
+  const rows=state.panels.filter(p=>!q||(p.name||"").toLowerCase().includes(q)||(p.base_url||"").toLowerCase().includes(q));
+  if(!rows.length){
+    list.innerHTML='<p class="muted">'+(state.panels.length?"Nenhum painel encontrado.":"Nenhum painel carregado.")+'</p>';
+    return;
+  }
+  list.innerHTML=rows.map(p=>{
+    const status=panelStatusLabel(p);
+    return '<div class="knowledge-item panel-connector-item '+(state.activePanel?.id===p.id?"active":"")+'" data-panel-select="'+p.id+'">'
+      +'<div class="knowledge-item-head"><div><b>'+escapeHtml(p.name)+'</b><p>'+escapeHtml(p.base_url||"Endereço ainda não identificado")+'</p></div>'
+      +'<span class="pill '+(p.has_credentials?"success":"warning")+'">'+escapeHtml(status)+'</span></div>'
+      +'<p>'+escapeHtml((p.capabilities||[]).join(" • ")||"teste • criar usuário • renovar")+'</p></div>';
+  }).join("");
+  $("[data-panel-select]",list).forEach(el=>el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect)));
+}
+function selectPanelConnector(id){
+  const p=state.panels.find(x=>x.id===id);if(!p)return;
+  state.activePanel=p;
+  $("#panelCredentialTitle").textContent=p.name;
+  $("#panelCredentialHint").textContent=p.has_credentials
+    ?"Este painel já tem credenciais próprias salvas. Digite novas credenciais somente se quiser substituir o acesso."
+    :"Cadastre o usuário e a senha específicos deste painel.";
+  $("#panelConnectorId").value=p.id;
+  $("#panelBaseUrl").value=p.base_url||"";
+  $("#panelUsername").value="";
+  $("#panelPassword").value="";
+  $("#panelCredentialForm").classList.remove("hidden");
+  renderPanelConnectors();
+}
+$("#panelSearch")?.addEventListener("input",renderPanelConnectors);
+$("#reloadPanelsBtn")?.addEventListener("click",async()=>{await loadPanelConnectors(true);renderPanelConnectors()});
+$("#panelCredentialForm")?.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const p=state.activePanel;if(!p)return;
+  const username=$("#panelUsername").value.trim();
+  const password=$("#panelPassword").value;
+  const base_url=$("#panelBaseUrl").value.trim();
+  if(!username||!password)return toast("Informe o usuário e a senha deste painel.","error");
+  const btn=e.submitter||$("#panelCredentialForm button[type='submit']");btn.disabled=true;
+  try{
+    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{
+      action:"save_credentials",workspace_id:state.workspace.id,connector_id:p.id,
+      username,password,base_url
+    }});
+    if(error)throw error;if(data?.error)throw new Error(data.error);
+    $("#panelUsername").value="";$("#panelPassword").value="";
+    await loadPanelConnectors(false);
+    state.activePanel=state.panels.find(x=>x.id===p.id)||null;
+    selectPanelConnector(p.id);
+    toast("Acesso deste painel salvo com segurança.");
+  }catch(err){toast(err.message||"Falha ao salvar o acesso.","error")}
+  finally{btn.disabled=false}
+});
+$("#testPanelBtn")?.addEventListener("click",async()=>{
+  const p=state.activePanel;if(!p)return;
+  const base_url=$("#panelBaseUrl").value.trim();
+  const btn=$("#testPanelBtn");btn.disabled=true;btn.textContent="Testando...";
+  try{
+    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{
+      action:"test_site",workspace_id:state.workspace.id,connector_id:p.id,base_url
+    }});
+    if(error)throw error;if(data?.error)throw new Error(data.error);
+    await loadPanelConnectors(false);state.activePanel=state.panels.find(x=>x.id===p.id)||null;renderPanelConnectors();
+    toast(data?.ok?"Site do painel respondeu.":"O site do painel não respondeu.","error");
+  }catch(err){toast(err.message||"Falha ao testar o painel.","error")}
+  finally{btn.disabled=false;btn.textContent="Testar site"}
+});
+$("#clearPanelCredentialsBtn")?.addEventListener("click",async()=>{
+  const p=state.activePanel;if(!p)return;
+  if(!confirm("Remover o usuário e a senha salvos deste painel?"))return;
+  try{
+    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{
+      action:"clear_credentials",workspace_id:state.workspace.id,connector_id:p.id
+    }});
+    if(error)throw error;if(data?.error)throw new Error(data.error);
+    await loadPanelConnectors(false);state.activePanel=state.panels.find(x=>x.id===p.id)||null;selectPanelConnector(p.id);
+    toast("Credenciais removidas deste painel.");
+  }catch(err){toast(err.message||"Falha ao remover o acesso.","error")}
+});
 
 function renderAutomations(){
   const list=$("#automationList");list.innerHTML=state.automations.map(a=>'<div class="automation-item '+(state.activeAutomation?.id===a.id?"active":"")+'" data-auto="'+a.id+'"><b>'+escapeHtml(a.name)+'</b><span>'+(a.enabled?"Ativa":"Desativada")+' • '+(a.trigger_texts||[]).join(", ")+'</span></div>').join("");

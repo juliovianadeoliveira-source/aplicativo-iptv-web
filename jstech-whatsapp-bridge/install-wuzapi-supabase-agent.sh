@@ -24,7 +24,11 @@ if [ -z "$STATUS" ]; then
   exit 1
 fi
 
-install -m 0755 /tmp/wuzapi-supabase-agent.py /usr/local/bin/jstech-wuzapi-agent.py
+AGENT_TMP="/tmp/wuzapi-supabase-agent.py"
+if [ ! -s "$AGENT_TMP" ]; then
+  curl -fsSL "https://raw.githubusercontent.com/juliovianadeoliveira-source/aplicativo-iptv-web/main/jstech-whatsapp-bridge/wuzapi-supabase-agent.py" -o "$AGENT_TMP"
+fi
+install -m 0755 "$AGENT_TMP" /usr/local/bin/jstech-wuzapi-agent.py
 
 cat >/etc/systemd/system/jstech-wuzapi-agent.service <<'EOF'
 [Unit]
@@ -46,11 +50,7 @@ EOF
 SIG="$(printf '%s' "$TOKEN" | sha256sum | awk '{print $1}')"
 WEBHOOK="https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-wa-wuzapi-webhook?token=$SIG"
 
-curl -fsS -X POST \
-  -H "token: $TOKEN" \
-  -H "Content-Type: application/json" \
-  --data "{\"webhookurl\":\"$WEBHOOK\",\"events\":[\"Message\",\"Connected\",\"Disconnected\",\"KeepAliveRestored\",\"KeepAliveTimeout\",\"LoggedOut\"]}" \
-  http://127.0.0.1:8080/webhook >/tmp/jstech-webhook-result.json
+curl -fsS -X POST   -H "token: $TOKEN"   -H "Content-Type: application/json"   --data "{"webhookurl":"$WEBHOOK","events":["Message","Connected","Disconnected","KeepAliveRestored","KeepAliveTimeout","LoggedOut"]}"   http://127.0.0.1:8080/webhook >/tmp/jstech-webhook-result.json
 
 mkdir -p /etc/systemd/system/wuzapi.service.d
 cat >/etc/systemd/system/wuzapi.service.d/restart.conf <<'EOF'
@@ -70,9 +70,7 @@ STATUS="$(curl -s --max-time 10 -H "token: $TOKEN" http://127.0.0.1:8080/session
 CONNECTED="$(printf '%s' "$STATUS" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(str(d.get("data",{}).get("connected",False)).lower())' 2>/dev/null || echo false)"
 LOGGED="$(printf '%s' "$STATUS" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(str(d.get("data",{}).get("loggedIn",False)).lower())' 2>/dev/null || echo false)"
 if [ "$CONNECTED" != "true" ] && [ "$LOGGED" = "true" ]; then
-  curl -s --max-time 15 -X POST -H "token: $TOKEN" -H "Content-Type: application/json" \
-    --data '{"Subscribe":["All"],"Immediate":true}' \
-    http://127.0.0.1:8080/session/connect >/dev/null || true
+  curl -s --max-time 15 -X POST -H "token: $TOKEN" -H "Content-Type: application/json"     --data '{"Subscribe":["All"],"Immediate":true}'     http://127.0.0.1:8080/session/connect >/dev/null || true
 fi
 EOF
 chmod +x /usr/local/bin/jstech-wuzapi-keepalive.sh
@@ -103,15 +101,23 @@ EOF
 systemctl daemon-reload
 systemctl enable wuzapi >/dev/null 2>&1 || true
 systemctl enable --now jstech-wuzapi-agent.service
+systemctl restart jstech-wuzapi-agent.service
 systemctl enable --now jstech-wuzapi-keepalive.timer
 
 sleep 2
 
 echo "=== AGENTE JSTech ==="
 systemctl is-active jstech-wuzapi-agent.service
-echo "=== WEBHOOK ==="
+echo "=== MULTI-REVENDA ==="
+python3 - <<'PY'
+import importlib.util
+p="/usr/local/bin/jstech-wuzapi-agent.py"
+spec=importlib.util.spec_from_file_location("a",p);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+print("admin-token:", "OK" if m.read_admin_token() else "NAO_ENCONTRADO")
+PY
+echo "=== WEBHOOK PRINCIPAL ==="
 curl -fsS -H "token: $TOKEN" http://127.0.0.1:8080/webhook
 echo
-echo "=== WHATSAPP ==="
+echo "=== WHATSAPP PRINCIPAL ==="
 curl -fsS -H "token: $TOKEN" http://127.0.0.1:8080/session/status
 echo

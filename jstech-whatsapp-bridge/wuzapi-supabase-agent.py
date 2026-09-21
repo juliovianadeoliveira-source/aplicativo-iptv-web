@@ -125,12 +125,17 @@ def process_host_command(cmd):
             ensure_hosted_user(name,token,sig); result=hosted_connect(token)
         elif action=="connect":
             result=hosted_connect(token)
+        elif action=="status":
+            st=wuz_get("/session/status",token)
+            d=st.get("data",{}) if isinstance(st,dict) else {}
+            connected=bool(d.get("loggedIn") or d.get("LoggedIn"))
+            result={"connected":connected,"ready":True,"status":"connected" if connected else "waiting_qr"}
         elif action=="logout":
             try: wuz("/session/logout",{},token)
             except Exception: pass
             result={"connected":False,"ready":True,"status":"logged_out","qr_code":None,"qr_expires_at":None}
         else:
-            result={"connected":False,"ready":True,"status":"offline"}
+            raise RuntimeError("ação desconhecida: "+action)
         host_ack_command(wid,cid,True,result=result)
     except Exception as e:
         host_ack_command(wid,cid,False,error=e)

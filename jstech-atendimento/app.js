@@ -27,6 +27,7 @@ function pageMeta(page){
   return ({
     dashboard:["Visão geral","Dashboard"],conversations:["Atendimento","Conversas"],
     contacts:["CRM","Clientes"],campaigns:["Marketing","Campanhas"],
+    organic:["Captação","Divulgação grátis"],
     automation:["Fluxos e regras","Automação"],
     knowledge:["Conteúdo","Respostas prontas"],resellers:["Revenda","Revendedores"],settings:["Integrações","Configurações"]
   })[page];
@@ -100,7 +101,7 @@ async function loadAll(showToast=false){
     renderAll(); if(showToast)toast("Painel atualizado.");
   }catch(err){console.error(err);toast(err.message||"Erro ao carregar o painel.","error")}
 }
-function renderAll(){renderDashboard();renderConversations();renderContacts();renderCampaigns();renderAutomations();renderKnowledge();renderSettings();}
+function renderAll(){renderDashboard();renderConversations();renderContacts();renderCampaigns();renderOrganicLinks();renderAutomations();renderKnowledge();renderSettings();}
 
 function renderDashboard(){
   const unread=state.conversations.reduce((n,c)=>n+(c.unread_count||0),0);
@@ -253,6 +254,27 @@ $("#campaignForm")?.addEventListener("submit",async e=>{
   renderCampaigns();
   toast(payload.enabled?"Campanha salva e programada 1x por dia.":"Campanha salva.");
 });
+
+
+const ORGANIC_BASE="https://juliovianadeoliveira-source.github.io/aplicativo-iptv-web/jstech-oferta/";
+function organicLink(src){return ORGANIC_BASE+"?src="+encodeURIComponent(src)}
+function renderOrganicLinks(){
+  $("[data-organic-link]").forEach(el=>{
+    const src=el.dataset.organicLink;
+    const url=organicLink(src);
+    el.textContent=url;
+    el.href=url;
+  });
+}
+$("[data-copy-organic]").forEach(btn=>btn.addEventListener("click",async()=>{
+  const src=btn.dataset.copyOrganic;
+  try{
+    await navigator.clipboard.writeText(organicLink(src));
+    toast("Link de divulgação copiado.");
+  }catch{
+    prompt("Copie o link:",organicLink(src));
+  }
+}));
 
 function renderAutomations(){
   const list=$("#automationList");list.innerHTML=state.automations.map(a=>'<div class="automation-item '+(state.activeAutomation?.id===a.id?"active":"")+'" data-auto="'+a.id+'"><b>'+escapeHtml(a.name)+'</b><span>'+(a.enabled?"Ativa":"Desativada")+' • '+(a.trigger_texts||[]).join(", ")+'</span></div>').join("");

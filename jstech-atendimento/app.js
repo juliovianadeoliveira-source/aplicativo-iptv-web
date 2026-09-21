@@ -317,6 +317,9 @@ async function loadPanelConnectors(showToast=false){
   }
 }
 function panelStatusLabel(p){
+  if(p.last_status==="driver_ready")return "Conectado";
+  if(p.last_status==="validando_login")return "Validando login";
+  if(p.last_status==="auth_failed")return "Login não validado";
   if(p.has_credentials)return "Acesso salvo";
   if(p.last_status==="site_online")return "Site online";
   return "Aguardando acesso";
@@ -447,7 +450,7 @@ $("#panelCredentialForm")?.addEventListener("submit",async e=>{
     await loadPanelConnectors(false);
     state.activePanel=state.panels.find(x=>x.id===p.id)||null;
     selectPanelConnector(p.id);
-    toast("Acesso deste painel salvo com segurança.");
+    toast("Acesso salvo. A validação automática do painel foi iniciada.");
   }catch(err){toast(err.message||"Falha ao salvar o acesso.","error")}
   finally{btn.disabled=false}
 });

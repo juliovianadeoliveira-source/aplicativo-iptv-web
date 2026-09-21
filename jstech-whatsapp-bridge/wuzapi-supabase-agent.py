@@ -73,6 +73,9 @@ def presence(phone,state,token=None):
 def send_text(phone, body, token=None):
     return wuz("/chat/send/text",{"Phone":phone,"Body":body},token)
 
+def reject_call(call_from, call_id, token=None):
+    return wuz("/call/reject",{"call_from":call_from,"call_id":call_id},token)
+
 def ack(mid, ok, external_id=None, error=None):
     payload={"message_id":mid,"ok":bool(ok)}
     if external_id: payload["external_message_id"]=external_id
@@ -93,6 +96,12 @@ def host_ack_command(wid,cid,ok,result=None,error=None):
     try: cloud("host_ack_command",**p)
     except Exception: pass
 
+def ack_command(cid,ok,result=None,error=None):
+    p={"command_id":cid,"ok":bool(ok),"result":result or {}}
+    if error: p["error"]=str(error)[:1000]
+    try: cloud("ack_command",**p)
+    except Exception: pass
+
 def ensure_hosted_user(name,token,sig):
     rows=wuz_admin("/admin/users",method="GET")
     if isinstance(rows,dict): rows=rows.get("data") or rows.get("users") or []
@@ -101,7 +110,7 @@ def ensure_hosted_user(name,token,sig):
     if not found:
         wuz_admin("/admin/users",{"name":name,"token":token},"POST")
     hook="https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-wa-wuzapi-webhook?token="+sig
-    wuz("/webhook",{"webhookurl":hook,"events":["Message","Connected","Disconnected","KeepAliveRestored","KeepAliveTimeout","LoggedOut"]},token)
+    wuz("/webhook",{"webhookurl":hook,"events":["Message","CallOffer","Connected","Disconnected","KeepAliveRestored","KeepAliveTimeout","LoggedOut"]},token)
 
 def hosted_connect(token):
     try: wuz("/session/connect",{"Subscribe":["All"],"Immediate":True},token)
@@ -141,6 +150,13 @@ def process_host_command(cmd):
             try: wuz("/session/logout",{},token)
             except Exception: pass
             result={"connected":False,"ready":True,"status":"logged_out","qr_code":None,"qr_expires_at":None}
+        elif action=="reject_call":
+            p=cmd.get("payload") or {}
+            call_from=str(p.get("call_from","")).strip()
+            call_id=str(p.get("call_id","")).strip()
+            if not call_from or not call_id: raise RuntimeError("dados da ligação incompletos")
+            reject_call(call_from,call_id,token)
+            result={"rejected":True,"call_id":call_id}
         else:
             raise RuntimeError("ação desconhecida: "+action)
         host_ack_command(wid,cid,True,result=result)
@@ -161,6 +177,23 @@ def process_host_message(m):
     except Exception as e:
         presence(phone,"paused",token); host_ack_message(wid,mid,False,error=e)
 
+def process_local_command(cmd):
+    cid=str(cmd.get("id",""))
+    action=str(cmd.get("action",""))
+    try:
+        if action=="reject_call":
+            p=cmd.get("payload") or {}
+            call_from=str(p.get("call_from","")).strip()
+            call_id=str(p.get("call_id","")).strip()
+            if not call_from or not call_id:
+                raise RuntimeError("dados da ligação incompletos")
+            reject_call(call_from,call_id)
+            ack_command(cid,True,result={"rejected":True,"call_id":call_id})
+        else:
+            raise RuntimeError("ação desconhecida: "+action)
+    except Exception as e:
+        ack_command(cid,False,error=e)
+
 def main():
     try: cloud("recover")
     except Exception: pass
@@ -179,7 +212,10 @@ def main():
 
             data=cloud("pull")
             rows=data.get("messages",[])
-            if not rows and not host.get("messages") and not host.get("commands"):
+            local_commands=data.get("commands",[]) or []
+            for cmd in local_commands:
+                process_local_command(cmd)
+            if not rows and not local_commands and not host.get("messages") and not host.get("commands"):
                 time.sleep(1.0)
                 continue
             for m in rows:

@@ -121,8 +121,8 @@ spec=importlib.util.spec_from_file_location("a",p);m=importlib.util.module_from_
 print("admin-token:", "OK" if m.read_admin_token() else "NAO_ENCONTRADO")
 PY
 echo "=== WEBHOOK PRINCIPAL ==="
-curl -fsS -H "token: $TOKEN" http://127.0.0.1:8080/webhook
-echo
+curl -fsS -H "token: $TOKEN" http://127.0.0.1:8080/webhook | python3 -c 'import sys,json; d=json.load(sys.stdin); x=d.get("data",{}); print("eventos:", ",".join(x.get("subscribe",[]) or [])); print("CallOffer:", "OK" if "CallOffer" in (x.get("subscribe",[]) or []) else "NAO")'
 echo "=== WHATSAPP PRINCIPAL ==="
-curl -fsS -H "token: $TOKEN" http://127.0.0.1:8080/session/status
-echo
+curl -fsS -H "token: $TOKEN" http://127.0.0.1:8080/session/status | python3 -c 'import sys,json; d=json.load(sys.stdin); x=d.get("data",{}); print("connected:", x.get("connected")); print("loggedIn:", x.get("loggedIn")); print("name:", x.get("name","")); print("jid:", x.get("jid",""))'
+echo "=== BLOQUEIO DE LIGACOES ==="
+grep -q 'reject_call' /usr/local/bin/jstech-wuzapi-agent.py && echo "ativo no agente" || echo "agente antigo"

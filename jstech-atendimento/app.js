@@ -11,7 +11,7 @@ const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const state = {
   session:null, workspace:null, settings:null, contacts:[], conversations:[], messages:[],
   automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], activePanel:null, activeConversation:null, activeAutomation:null,
-  activeNode:null, editingKnowledge:null, channel:null, simNode:null, bridgeManagedLocally:false, bridgeHosted:false
+  activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false
 };
 
 function toast(msg, type="success"){
@@ -287,6 +287,7 @@ async function loadPanelConnectors(showToast=false){
     state.panels=data?.panels||[];
     state.panelApps=data?.apps||[];
     state.panelMappings=data?.mappings||[];
+    state.panelLoadError=null;
     if(state.activePanel){
       state.activePanel=state.panels.find(x=>x.id===state.activePanel.id)||null;
     }
@@ -294,7 +295,10 @@ async function loadPanelConnectors(showToast=false){
   }catch(err){
     console.error("panel admin",err);
     state.panels=[];
-    if(showToast)toast("Não foi possível carregar os painéis.","error");
+    state.panelApps=[];
+    state.panelMappings=[];
+    state.panelLoadError=err?.message||"Falha ao carregar os painéis";
+    if(showToast)toast("Não foi possível carregar os painéis: "+state.panelLoadError,"error");
   }
 }
 function panelStatusLabel(p){
@@ -308,7 +312,7 @@ function renderPanelConnectors(){
   const q=($("#panelSearch")?.value||"").toLowerCase().trim();
   const rows=state.panels.filter(p=>!q||(p.name||"").toLowerCase().includes(q)||(p.base_url||"").toLowerCase().includes(q));
   if(!rows.length){
-    list.innerHTML='<p class="muted">'+(state.panels.length?"Nenhum painel encontrado.":"Nenhum painel carregado.")+'</p>';
+    list.innerHTML='<p class="muted">'+(state.panels.length?"Nenhum painel encontrado.":state.panelLoadError?("Erro ao carregar: "+escapeHtml(state.panelLoadError)):"Nenhum painel carregado.")+'</p>';
     return;
   }
   list.innerHTML=rows.map(p=>{

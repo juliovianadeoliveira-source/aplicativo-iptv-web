@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07101d">
+  <title>JSTech — TV, IPTV e Receptores</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#07101d;color:#eef6ff;font-family:Inter,Arial,sans-serif}
+    .wrap{max-width:760px;margin:auto;padding:28px 18px 56px}
+    .card{background:#0d1929;border:1px solid #223247;border-radius:22px;padding:24px;box-shadow:0 18px 60px rgba(0,0,0,.28)}
+    h1{font-size:1.85rem;margin:0 0 12px}.lead{color:#a9bbcf;line-height:1.55}
+    .block{margin:22px 0;padding:18px;border-radius:16px;background:#0a1625;border:1px solid #223247}
+    .block h2{font-size:1.15rem;margin:0 0 12px}.item{margin:9px 0}
+    .price{font-size:1.25rem;font-weight:900;color:#6be3b2;margin:20px 0}
+    .actions{display:grid;gap:11px;margin-top:18px}
+    .btn{display:block;text-decoration:none;text-align:center;padding:14px 16px;border-radius:13px;font-weight:900;background:linear-gradient(135deg,#25c58c,#2da9cb);color:#031810}
+    .btn.alt{background:#142237;color:#eef6ff;border:1px solid #2b4058}
+    small{display:block;color:#8195ad;margin-top:18px;line-height:1.45}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>📺 JSTech — TV, IPTV e Receptores</h1>
+      <p class="lead">Quer deixar sua TV ou receptor funcionando do jeito certo? A JSTech pode ajudar.</p>
+
+      <div class="block">
+        <h2>📡 Receptor / Satélite / Cabo</h2>
+        <div class="item">✅ Configuração de receptores compatíveis</div>
+        <div class="item">✅ Suporte para instalação e ajustes</div>
+        <div class="item">✅ Planos de acesso autorizado</div>
+        <div class="item">✅ Atendimento para clientes e revendedores</div>
+      </div>
+
+      <div class="block">
+        <h2>📺 IPTV</h2>
+        <div class="item">✅ Canais ao vivo</div>
+        <div class="item">✅ Filmes e séries</div>
+        <div class="item">✅ Esportes e conteúdo infantil</div>
+        <div class="item">✅ Smart TV, TV Box, Android TV, Fire TV e celular</div>
+        <div class="item">✅ Suporte para instalação</div>
+      </div>
+
+      <div class="price">🔥 Planos a partir de R$ 10</div>
+      <p><b>Quer saber qual funciona no seu aparelho?</b></p>
+
+      <div class="actions">
+        <a class="btn" id="cs" href="#">1 — Receptor / Satélite / Cabo</a>
+        <a class="btn" id="iptv" href="#">2 — IPTV</a>
+        <a class="btn alt" id="revenda" href="#">3 — Revenda</a>
+      </div>
+
+      <small>Ao tocar em uma opção, o WhatsApp abre com a mensagem pronta. Você decide se quer enviar.</small>
+    </section>
+  </main>
+  <script>
+    const p=new URLSearchParams(location.search);
+    const raw=(p.get("src")||"organico").toLowerCase().replace(/[^a-z0-9_-]/g,"").slice(0,40)||"organico";
+    const phone="5527997314781";
+    function link(n){return "https://api.whatsapp.com/send?phone="+phone+"&text="+encodeURIComponent("QUERO "+n+" | origem="+raw)}
+    document.getElementById("cs").href=link("1");
+    document.getElementById("iptv").href=link("2");
+    document.getElementById("revenda").href=link("3");
+  </script>
+</body>
+</html>

@@ -38,6 +38,7 @@
         <button class="nav-item active" data-page="dashboard">▦ <span>Dashboard</span></button>
         <button class="nav-item" data-page="conversations">◉ <span>Conversas</span><b id="navUnread" class="badge hidden">0</b></button>
         <button class="nav-item" data-page="contacts">♙ <span>Clientes</span></button>
+        <button class="nav-item" data-page="campaigns">✉ <span>Campanhas</span></button>
         <button class="nav-item" id="resellerNav" data-page="resellers">◆ <span>Revendas</span></button>
         <button class="nav-item" data-page="automation">⌘ <span>Automação</span></button>
         <button class="nav-item" data-page="knowledge">✦ <span>Respostas / Conteúdo</span></button>
@@ -127,9 +128,50 @@
         <article class="panel">
           <div class="panel-head"><div><p class="eyebrow">CRM</p><h3>Clientes</h3></div><input id="contactSearch" class="inline-search" placeholder="Buscar cliente"></div>
           <div class="table-wrap">
-            <table><thead><tr><th>Cliente</th><th>Telefone</th><th>Status</th><th>Bot</th><th>Atualizado</th></tr></thead><tbody id="contactsTable"></tbody></table>
+            <table><thead><tr><th>Cliente</th><th>Telefone</th><th>Status</th><th>Bot</th><th>Ofertas</th><th>Atualizado</th></tr></thead><tbody id="contactsTable"></tbody></table>
           </div>
         </article>
+      </section>
+
+
+      <section id="page-campaigns" class="page">
+        <div class="settings-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">Marketing autorizado</p><h3>Campanha diária</h3></div>
+              <span id="campaignStatus" class="pill warning">Desativada</span>
+            </div>
+            <p class="muted">A campanha só envia para clientes marcados como <b>Autorizado</b> na aba Clientes. Cada revenda usa somente a própria base.</p>
+            <form id="campaignForm" class="stack">
+              <label>Nome da campanha<input id="campaignName"></label>
+              <label>Mensagem<textarea id="campaignMessage" rows="20"></textarea></label>
+              <label>Horário diário
+                <select id="campaignHour">
+                  <option value="8">08:00</option><option value="9">09:00</option><option value="10">10:00</option>
+                  <option value="11">11:00</option><option value="12">12:00</option><option value="13">13:00</option>
+                  <option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option>
+                  <option value="17">17:00</option><option value="18">18:00</option><option value="19">19:00</option>
+                </select>
+              </label>
+              <label class="toggle-line">
+                <span><b>Enviar 1 vez por dia</b><small>Somente para contatos autorizados.</small></span>
+                <input id="campaignEnabled" type="checkbox">
+              </label>
+              <button class="btn primary" type="submit">Salvar campanha</button>
+            </form>
+          </article>
+          <article class="panel">
+            <p class="eyebrow">Público</p><h3>Envio seguro</h3>
+            <div class="campaign-metric"><strong id="campaignEligible">0</strong><span>clientes autorizados</span></div>
+            <div class="check-list">
+              <div><b>✓</b><span>Somente contatos que aceitaram ofertas</span></div>
+              <div><b>✓</b><span>No máximo 1 campanha por dia por contato</span></div>
+              <div><b>✓</b><span>“SAIR” remove o cliente automaticamente</span></div>
+              <div><b>✓</b><span>Revendas ficam separadas por workspace</span></div>
+            </div>
+            <p class="muted">Último disparo: <b id="campaignLastSent">Ainda não enviada</b></p>
+          </article>
+        </div>
       </section>
 
       <section id="page-resellers" class="page">

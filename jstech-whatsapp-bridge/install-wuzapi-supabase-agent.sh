@@ -7,9 +7,102 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 CREDS="/root/wuzapi-credentials.txt"
-if [ ! -f "$CREDS" ]; then
-  echo "ERRO: $CREDS não encontrado."
-  exit 1
+
+read_env_value() {
+  local key="$1"; shift
+  local f v
+  for f in "$@"; do
+    [ -f "$f" ] || continue
+    v="$(grep -E "^\${key}=" "$f" 2>/dev/null | tail -1 | cut -d= -f2- | sed -e 's/^["'\\''"]//' -e 's/["'\\''"]$//' || true)"
+    [ -n "$v" ] && { printf '%s' "$v"; return 0; }
+  done
+  return 1
+}
+
+recover_wuzapi_credentials() {
+  local admin="" users_json="" recovered=""
+
+  admin="$(read_env_value WUZAPI_ADMIN_TOKEN /opt/wuzapi/.env /etc/wuzapi/.env /root/wuzapi/.env 2>/dev/null || true)"
+  if [ -z "$admin" ]; then
+    admin="$(systemctl show wuzapi -p Environment --value 2>/dev/null | tr ' ' '\n' | sed -n 's/^WUZAPI_ADMIN_TOKEN=//p' | tail -1 | sed -e 's/^["'\\''"]//' -e 's/["'\\''"]$//' || true)"
+  fi
+  if [ -z "$admin" ]; then
+    admin="$(systemctl cat wuzapi 2>/dev/null | sed -n 's/.*-admintoken[= ]\([^ ]*\).*/\1/p' | tail -1 | sed -e 's/^["'\\''"]//' -e 's/["'\\''"]$//' || true)"
+  fi
+  [ -n "$admin" ] || return 1
+
+  users_json="$(mktemp)"
+  chmod 600 "$users_json"
+  if ! curl -fsS --max-time 10 -H "Authorization: $admin" http://127.0.0.1:8080/admin/users >"$users_json"; then
+    rm -f "$users_json"
+    return 1
+  fi
+
+  recovered="$(python3 - "$users_json" <<'PY'
+import json,sys,urllib.request
+p=sys.argv[1]
+try:
+    d=json.load(open(p,encoding="utf-8"))
+except Exception:
+    raise SystemExit(1)
+rows=d
+if isinstance(d,dict):
+    rows=d.get("data") or d.get("users") or d.get("Users") or []
+if isinstance(rows,dict):
+    rows=list(rows.values())
+if not isinstance(rows,list):
+    rows=[]
+candidates=[]
+for x in rows:
+    if not isinstance(x,dict): continue
+    tok=str(x.get("token") or x.get("Token") or "").strip()
+    if not tok: continue
+    name=str(x.get("name") or x.get("Name") or "").strip().lower()
+    score=0
+    if name=="jstech": score+=100
+    elif "jstech" in name: score+=80
+    if name.startswith("rev-") or "revenda" in name: score-=20
+    candidates.append((score,name,tok))
+candidates.sort(reverse=True)
+for _,_,tok in candidates:
+    try:
+        req=urllib.request.Request("http://127.0.0.1:8080/session/status",headers={"token":tok})
+        with urllib.request.urlopen(req,timeout=4) as r:
+            obj=json.loads(r.read().decode("utf-8","replace") or "{}")
+        data=obj.get("data") or {}
+        if data.get("loggedIn") is True or data.get("connected") is True:
+            print(tok,end="")
+            raise SystemExit(0)
+    except Exception:
+        pass
+if candidates:
+    print(candidates[0][2],end="")
+    raise SystemExit(0)
+raise SystemExit(1)
+PY
+)" || true
+  rm -f "$users_json"
+
+  [ -n "$recovered" ] || return 1
+  umask 077
+  {
+    printf 'USER_TOKEN=%s\n' "$recovered"
+    printf 'WUZAPI_ADMIN_TOKEN=%s\n' "$admin"
+  } >"$CREDS"
+  chmod 600 "$CREDS"
+  return 0
+}
+
+if [ ! -f "$CREDS" ] || ! grep -q '^USER_TOKEN=' "$CREDS" 2>/dev/null; then
+  echo "Credenciais locais não encontradas. Tentando recuperar o acesso já configurado no WuzAPI..."
+  if recover_wuzapi_credentials; then
+    echo "Credenciais recuperadas com segurança."
+  else
+    echo "ERRO: não foi possível recuperar automaticamente as credenciais do WuzAPI nesta máquina."
+    echo "O WhatsApp existente não foi alterado."
+    echo "Verifique se o serviço WuzAPI e o arquivo /opt/wuzapi/.env pertencem a esta VPS."
+    exit 1
+  fi
 fi
 
 TOKEN="$(grep '^USER_TOKEN=' "$CREDS" | tail -1 | cut -d= -f2-)"

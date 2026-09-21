@@ -56,7 +56,7 @@ $("#loginForm").addEventListener("submit",async e=>{
 });
 $("#logoutBtn").addEventListener("click",()=>sb.auth.signOut());
 $("#mainNav").addEventListener("click",e=>{const b=e.target.closest("[data-page]");if(b)goPage(b.dataset.page)});
-$("[data-go]").forEach(b=>b.addEventListener("click",()=>goPage(b.dataset.go)));
+$$("[data-go]").forEach(b=>b.addEventListener("click",()=>goPage(b.dataset.go)));
 $("#refreshBtn").addEventListener("click",()=>loadAll(true));
 
 async function boot(){
@@ -318,7 +318,7 @@ function renderPanelConnectors(){
       +'<span class="pill '+(p.has_credentials?"success":"warning")+'">'+escapeHtml(status)+'</span></div>'
       +'<p>'+escapeHtml((p.capabilities||[]).join(" • ")||"teste • criar usuário • renovar")+'</p></div>';
   }).join("");
-  $("[data-panel-select]",list).forEach(el=>el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect)));
+  $$("[data-panel-select]",list).forEach(el=>el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect)));
   if(!state.activePanel && rows.length)selectPanelConnector(rows[0].id);
 }
 function selectPanelConnector(id){
@@ -516,7 +516,7 @@ resetSimulator();
 function renderKnowledge(){
   const list=$("#knowledgeList");if(!state.knowledge.length){list.innerHTML='<p class="muted">Nenhuma informação cadastrada.</p>';return}
   list.innerHTML=state.knowledge.map(k=>'<div class="knowledge-item"><div class="knowledge-item-head"><div><b>'+escapeHtml(k.title)+'</b><p>'+escapeHtml((k.keywords||[]).join(", "))+'</p></div><div class="knowledge-actions"><button data-ke="'+k.id+'">Editar</button><button data-kd="'+k.id+'">Excluir</button></div></div><p>'+escapeHtml(k.content.slice(0,150))+(k.content.length>150?"…":"")+'</p></div>').join("");
-  $("[data-ke]").forEach(b=>b.addEventListener("click",()=>editKnowledge(b.dataset.ke)));$("[data-kd]").forEach(b=>b.addEventListener("click",()=>deleteKnowledge(b.dataset.kd)));
+  $$("[data-ke]").forEach(b=>b.addEventListener("click",()=>editKnowledge(b.dataset.ke)));$$("[data-kd]").forEach(b=>b.addEventListener("click",()=>deleteKnowledge(b.dataset.kd)));
 }
 function editKnowledge(id){const k=state.knowledge.find(x=>x.id===id);state.editingKnowledge=id;$("#knowledgeFormTitle").textContent="Editar informação";$("#knowledgeTitle").value=k.title;$("#knowledgeKeywords").value=(k.keywords||[]).join(", ");$("#knowledgeContent").value=k.content}
 function clearKnowledge(){state.editingKnowledge=null;$("#knowledgeFormTitle").textContent="Nova informação";$("#knowledgeForm").reset()}

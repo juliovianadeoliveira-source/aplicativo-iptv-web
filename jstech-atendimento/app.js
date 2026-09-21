@@ -108,7 +108,9 @@ function renderDashboard(){
   $("#connectionDot").classList.toggle("on",connected);$("#connectionText").textContent=connected?"WhatsApp conectado":"WhatsApp não conectado";
   $("#dashMetaPill").className="pill "+(connected?"success":"warning");$("#dashMetaPill").textContent=connected?"Conectado":"Aguardando";
   $("#dashMetaLine").innerHTML=connected?"<b>✓</b><span>WhatsApp conectado por QR Code</span>":"<b>○</b><span>Conectar WhatsApp por QR Code</span>";
-  $("#dashAiLine").innerHTML="<b>✓</b><span>Atendimento automático por regras, sem IA</span>";
+  $("#dashAiLine").innerHTML=state.settings?.ai_enabled
+    ? "<b>✓</b><span>IA ativa + atendimento humano pelo painel</span>"
+    : "<b>✓</b><span>Automação + atendimento humano pelo painel</span>";
 }
 function convFilter(c,q){const ct=c.wa_contacts||{};return !q||(ct.name||"").toLowerCase().includes(q)||(ct.phone||"").includes(q);}
 function renderConversations(){
@@ -122,7 +124,7 @@ $("#conversationSearch").addEventListener("input",renderConversations);
 async function openConversation(id){
   const c=state.conversations.find(x=>x.id===id);if(!c)return;state.activeConversation=c;
   $(".chat-layout").classList.add("chat-open");$("#chatEmpty").classList.add("hidden");$("#chatActive").classList.remove("hidden");
-  const ct=c.wa_contacts||{};$("#chatName").textContent=ct.name||ct.phone||"Cliente";$("#chatPhone").textContent=ct.phone||"";$("#toggleBotBtn").textContent=ct.bot_enabled?"Bot ativo":"Bot pausado";
+  const ct=c.wa_contacts||{};$("#chatName").textContent=ct.name||ct.phone||"Cliente";$("#chatPhone").textContent=ct.phone||"";$("#toggleBotBtn").textContent=ct.bot_enabled?"🤖 IA ativa":"👤 Atendimento humano";
   $("#toggleBotBtn").classList.toggle("primary",ct.bot_enabled);
   renderContactDetails(ct,c);
   await sb.from("wa_conversations").update({unread_count:0}).eq("id",id);
@@ -133,22 +135,55 @@ async function loadMessages(conversationId){
   if(error){toast(error.message,"error");return}state.messages=data||[];renderMessages();
 }
 function renderMessages(){
-  const box=$("#messageList");box.innerHTML=state.messages.map(m=>'<div class="message '+(m.direction==="in"?"in":"out "+(m.sender_type==="ai"?"ai":""))+'">'+escapeHtml(m.content)+'<small>'+escapeHtml(m.sender_type==="human"?"Atendente":m.direction==="in"?"Cliente":"Automático")+' • '+fmtDate(m.created_at)+'</small></div>').join("");box.scrollTop=box.scrollHeight;
+  const box=$("#messageList");
+  box.innerHTML=state.messages.map(m=>{
+    const cls=m.direction==="in"?"in":"out "+(m.sender_type==="ai"?"ai":"");
+    const who=m.direction==="in"?"Cliente":m.sender_type==="human"?"Atendente":m.sender_type==="ai"?"IA":"Automático";
+    return '<div class="message '+cls+'">'+escapeHtml(m.content)+'<small>'+escapeHtml(who)+' • '+fmtDate(m.created_at)+'</small></div>';
+  }).join("");
+  box.scrollTop=box.scrollHeight;
 }
-function renderContactDetails(ct,c){$("#contactDetails").innerHTML='<div class="contact-card"><div class="contact-row"><span>Nome</span><b>'+escapeHtml(ct.name||"Não informado")+'</b></div><div class="contact-row"><span>Telefone</span><b>'+escapeHtml(ct.phone||"-")+'</b></div><div class="contact-row"><span>Status</span><b>'+escapeHtml(c.status||ct.status||"aberta")+'</b></div><div class="contact-row"><span>Automação</span><b>'+(ct.bot_enabled?"Ativa":"Pausada")+'</b></div></div>'}
+function renderContactDetails(ct,c){
+  const mode=ct.bot_enabled?"IA/automação ativa":"Atendimento humano";
+  $("#contactDetails").innerHTML='<div class="contact-card"><div class="contact-row"><span>Nome</span><b>'+escapeHtml(ct.name||"Não informado")+'</b></div><div class="contact-row"><span>Telefone</span><b>'+escapeHtml(ct.phone||"-")+'</b></div><div class="contact-row"><span>Status</span><b>'+escapeHtml(c.status||ct.status||"aberta")+'</b></div><div class="contact-row"><span>Modo atual</span><b>'+mode+'</b></div></div>';
+}
 $("#composerForm").addEventListener("submit",async e=>{
   e.preventDefault();const text=$("#composerText").value.trim();if(!text||!state.activeConversation)return;
-  const btn=e.submitter;btn.disabled=true;
+  const btn=e.submitter||$("#composerForm button[type='submit']");btn.disabled=true;
   try{
     const {data,error}=await sb.functions.invoke("jstech-wa-send",{body:{conversation_id:state.activeConversation.id,text}});
     if(error)throw error;if(data?.error)throw new Error(data.error==="whatsapp_not_connected"?"Conecte o número do WhatsApp primeiro.":data.error);
-    $("#composerText").value="";await loadMessages(state.activeConversation.id);toast("Mensagem enviada.");
+    $("#composerText").value="";
+    const ct=state.activeConversation?.wa_contacts;
+    if(ct){ct.bot_enabled=false;ct.bot_context={};}
+    state.activeConversation.status="atendimento_humano";
+    $("#toggleBotBtn").textContent="👤 Atendimento humano";
+    $("#toggleBotBtn").classList.remove("primary");
+    renderContactDetails(ct||{},state.activeConversation);
+    await loadMessages(state.activeConversation.id);
+    toast("Mensagem enviada. A IA ficou pausada nesta conversa.");
   }catch(err){toast(err.message||"Falha ao enviar.","error")}finally{btn.disabled=false}
+});
+$("#composerText").addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&!e.shiftKey){
+    e.preventDefault();
+    $("#composerForm").requestSubmit();
+  }
 });
 $("#toggleBotBtn").addEventListener("click",async()=>{
   const ct=state.activeConversation?.wa_contacts;if(!ct)return;const value=!ct.bot_enabled;
-  const {error}=await sb.from("wa_contacts").update({bot_enabled:value,bot_context:value?{}:{},updated_at:new Date().toISOString()}).eq("id",ct.id);
-  if(error){toast(error.message,"error");return}ct.bot_enabled=value;$("#toggleBotBtn").textContent=value?"Bot ativo":"Bot pausado";renderContactDetails(ct,state.activeConversation);renderContacts();toast(value?"Bot reativado.":"Bot pausado para atendimento humano.");
+  const now=new Date().toISOString();
+  const [{error},convUpdate]=await Promise.all([
+    sb.from("wa_contacts").update({bot_enabled:value,bot_context:{},updated_at:now}).eq("id",ct.id),
+    sb.from("wa_conversations").update({status:value?"aberta":"atendimento_humano"}).eq("id",state.activeConversation.id)
+  ]);
+  if(error){toast(error.message,"error");return}
+  ct.bot_enabled=value;
+  state.activeConversation.status=value?"aberta":"atendimento_humano";
+  $("#toggleBotBtn").textContent=value?"🤖 IA ativa":"👤 Atendimento humano";
+  $("#toggleBotBtn").classList.toggle("primary",value);
+  renderContactDetails(ct,state.activeConversation);renderContacts();
+  toast(value?"IA reativada nesta conversa.":"Você assumiu o atendimento. A IA foi pausada.");
 });
 
 function renderContacts(){

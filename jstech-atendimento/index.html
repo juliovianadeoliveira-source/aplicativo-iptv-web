@@ -242,6 +242,19 @@
                 <div><b>2</b><span>As credenciais ficam criptografadas e não voltam para o navegador.</span></div>
                 <div><b>3</b><span>Depois de validado, o painel pode ser liberado para o bot gerar teste, criar usuário e renovar.</span></div>
               </div>
+
+              <div class="subhead"><b>Aplicativos deste painel</b></div>
+              <p class="muted">Associe aqui cada aplicativo ao painel correto. O bot usa esse mapa para não gerar teste no painel errado.</p>
+              <div class="stack">
+                <label>Aplicativo
+                  <select id="panelAppSelect"></select>
+                </label>
+                <label>Código / produto dentro do painel
+                  <input id="panelAppCode" placeholder="Opcional agora; preencha quando o painel usar código específico">
+                </label>
+                <button id="savePanelAppBtn" class="btn ghost" type="button">Adicionar aplicativo a este painel</button>
+              </div>
+              <div id="panelAppMappings" class="knowledge-list"></div>
             </form>
           </article>
         </div>

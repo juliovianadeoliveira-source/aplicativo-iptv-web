@@ -337,7 +337,7 @@ function renderPanelConnectors(){
     const status=panelStatusLabel(p);
     return '<div class="knowledge-item panel-connector-item '+(state.activePanel?.id===p.id?"active":"")+'" data-panel-select="'+p.id+'">'
       +'<div class="knowledge-item-head"><div><b>'+escapeHtml(p.name)+'</b><p>'+escapeHtml(p.base_url||"Endereço ainda não identificado")+'</p></div>'
-      +'<span class="pill '+(p.has_credentials?"success":"warning")+'">'+escapeHtml(status)+'</span></div>'
+      +'<span class="pill '+(p.last_status==="driver_ready"?"success":"warning")+'">'+escapeHtml(status)+'</span></div>'
       +'<p>'+escapeHtml((p.capabilities||[]).join(" • ")||"teste • criar usuário • renovar")+'</p></div>';
   }).join("");
   $$("[data-panel-select]",list).forEach(el=>el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect)));
@@ -357,9 +357,10 @@ function selectPanelConnector(id){
   $("#panelCredentialForm").classList.remove("hidden");
   const botBtn=$("#togglePanelBotBtn");
   if(botBtn){
-    botBtn.textContent=p.enabled?"Desativar no bot":"Ativar no bot";
-    botBtn.classList.toggle("primary",!!p.enabled);
-    botBtn.disabled=!p.has_credentials;
+    const ready=p.last_status==="driver_ready"&&p.has_credentials;
+    botBtn.textContent=!ready?"Aguardando validação":(p.enabled?"Desativar no bot":"Ativar no bot");
+    botBtn.classList.toggle("primary",!!(ready&&p.enabled));
+    botBtn.disabled=!ready;
   }
   renderPanelAppMappings();
   const list=$("#panelConnectorList");

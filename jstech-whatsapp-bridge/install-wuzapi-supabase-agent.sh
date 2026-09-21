@@ -8,6 +8,143 @@ fi
 
 CREDS="/root/wuzapi-credentials.txt"
 
+bootstrap_wuzapi_if_missing() {
+  if curl -sS --max-time 2 http://127.0.0.1:8080/ >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "WuzAPI não encontrado nesta VPS. Fazendo instalação inicial..."
+
+  if command -v apt-get >/dev/null 2>&1; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -qq
+    apt-get install -y -qq ca-certificates curl git openssl >/dev/null
+  fi
+
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "Instalando Docker..."
+    curl -fsSL https://get.docker.com | sh
+  fi
+
+  systemctl enable --now docker >/dev/null 2>&1 || true
+  if ! docker compose version >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
+      apt-get install -y -qq docker-compose-plugin >/dev/null 2>&1 || true
+    fi
+  fi
+  docker compose version >/dev/null 2>&1 || {
+    echo "ERRO: Docker Compose não ficou disponível."
+    exit 1
+  }
+
+  mkdir -p /opt/wuzapi/data
+  chmod 700 /opt/wuzapi/data
+
+  WUZAPI_COMMIT="cba302749d3957316b0bdcaef7693193f50f0edb"
+  if [ ! -d /opt/wuzapi/source/.git ]; then
+    rm -rf /opt/wuzapi/source
+    git clone -q https://github.com/asternic/wuzapi.git /opt/wuzapi/source
+  fi
+  git -C /opt/wuzapi/source fetch -q --depth 1 origin "$WUZAPI_COMMIT"
+  git -C /opt/wuzapi/source checkout -q --detach "$WUZAPI_COMMIT"
+
+  local admin user enc hmac
+  admin="$(openssl rand -hex 16)"
+  user="$(openssl rand -hex 16)"
+  enc="$(openssl rand -hex 16)"
+  hmac="$(openssl rand -hex 24)"
+
+  umask 077
+  cat >/opt/wuzapi/.env <<EOF
+WUZAPI_ADMIN_TOKEN=$admin
+WUZAPI_GLOBAL_ENCRYPTION_KEY=$enc
+WUZAPI_GLOBAL_HMAC_KEY=$hmac
+TZ=America/Sao_Paulo
+WEBHOOK_FORMAT=json
+SESSION_DEVICE_NAME=JSTech
+WUZAPI_PORT=8080
+EOF
+
+  cat >/opt/wuzapi/docker-compose.yml <<'YAML'
+services:
+  wuzapi:
+    build:
+      context: ./source
+      dockerfile: Dockerfile
+    container_name: jstech_wuzapi
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/dbdata
+YAML
+
+  cat >/etc/systemd/system/wuzapi.service <<'EOF'
+[Unit]
+Description=JSTech WuzAPI
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/wuzapi
+ExecStart=/usr/bin/docker compose up -d
+ExecReload=/usr/bin/docker compose restart wuzapi
+ExecStop=/usr/bin/docker compose down
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  echo "Compilando e iniciando WuzAPI. Na primeira instalação isso pode demorar alguns minutos..."
+  (
+    cd /opt/wuzapi
+    docker compose build --pull
+    docker compose up -d
+  )
+
+  systemctl daemon-reload
+  systemctl enable wuzapi >/dev/null 2>&1 || true
+
+  local ready=""
+  for _ in $(seq 1 60); do
+    if curl -sS --max-time 2 http://127.0.0.1:8080/ >/dev/null 2>&1; then
+      ready="yes"
+      break
+    fi
+    sleep 2
+  done
+  if [ "$ready" != "yes" ]; then
+    echo "ERRO: WuzAPI foi instalado, mas não respondeu na porta 8080."
+    docker logs --tail 40 jstech_wuzapi 2>/dev/null || true
+    exit 1
+  fi
+
+  local users
+  users="$(curl -sS --max-time 10 -H "Authorization: $admin" http://127.0.0.1:8080/admin/users || true)"
+  if ! printf '%s' "$users" | grep -Fq ""token":"$user""; then
+    curl -fsS --max-time 15 -X POST \
+      -H "Authorization: $admin" \
+      -H "Content-Type: application/json" \
+      --data "$(printf '{"name":"JSTech","token":"%s"}' "$user")" \
+      http://127.0.0.1:8080/admin/users >/dev/null
+  fi
+
+  {
+    printf 'USER_TOKEN=%s\n' "$user"
+    printf 'WUZAPI_ADMIN_TOKEN=%s\n' "$admin"
+  } >"$CREDS"
+  chmod 600 "$CREDS"
+
+  echo "WuzAPI instalado e credenciais locais criadas com segurança."
+}
+
+bootstrap_wuzapi_if_missing
+
 read_env_value() {
   local key="$1"; shift
   local f v

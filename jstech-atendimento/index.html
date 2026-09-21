@@ -230,9 +230,9 @@
             <form id="panelCredentialForm" class="stack hidden">
               <input id="panelConnectorId" type="hidden">
               <label>Endereço do painel<input id="panelBaseUrl" type="url" placeholder="https://painel.exemplo.com/"></label>
-              <label>Usuário<input id="panelUsername" autocomplete="off" placeholder="Usuário deste painel"></label>
-              <label>Senha<input id="panelPassword" type="password" autocomplete="new-password" placeholder="Senha deste painel"></label>
-              <p class="muted">A senha é enviada direto para o cofre criptografado. Depois de salvar, ela não fica visível nesta tela.</p>
+              <label>Usuário<input id="panelUsername" autocomplete="username" placeholder="Usuário deste painel"></label>
+              <label>Senha<input id="panelPassword" type="password" autocomplete="current-password" placeholder="Senha deste painel"></label>
+              <p class="muted">Ao preencher usuário e senha, o acesso é salvo no cofre criptografado e a validação automática é iniciada. A senha não fica visível depois de salva.</p>
               <div class="row-actions">
                 <button class="btn primary" type="submit">Salvar acesso</button>
                 <button id="openPanelBtn" class="btn ghost" type="button">Abrir painel</button>
@@ -383,10 +383,10 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260921-12"></script>
-  <script type="module" src="./crm.js?v=20260921-12"></script>
-  <script type="module" src="./sync-sources.js?v=20260921-12"></script>
-  <script type="module" src="./resellers.js?v=20260921-12"></script>
-  <script type="module" src="./external-clients.js?v=20260921-12"></script>
+  <script type="module" src="./app.js?v=20260921-13"></script>
+  <script type="module" src="./crm.js?v=20260921-13"></script>
+  <script type="module" src="./sync-sources.js?v=20260921-13"></script>
+  <script type="module" src="./resellers.js?v=20260921-13"></script>
+  <script type="module" src="./external-clients.js?v=20260921-13"></script>
 </body>
 </html>

@@ -6,6 +6,23 @@ const BRIDGE_FUNCTION = "jstech-wa-bridge";
 const USERNAME_LOGIN_URL = SUPABASE_URL + "/functions/v1/jstech-username-login";
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+async function panelAdmin(body){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session?.access_token)throw new Error("Sessão expirada. Entre novamente no painel.");
+  const res=await fetch(SUPABASE_URL+"/functions/v1/jstech-panel-admin",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "apikey":SUPABASE_KEY,
+      "Authorization":"Bearer "+session.access_token
+    },
+    body:JSON.stringify(body)
+  });
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok||data?.error)throw new Error(data?.error||("HTTP "+res.status));
+  return data;
+}
+
 const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const state = {
@@ -281,9 +298,7 @@ $$("[data-copy-organic]").forEach(btn=>btn.addEventListener("click",async()=>{
 async function loadPanelConnectors(showToast=false){
   if(!state.workspace?.id)return;
   try{
-    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{action:"list",workspace_id:state.workspace.id}});
-    if(error)throw error;
-    if(data?.error)throw new Error(data.error);
+    const data=await panelAdmin({action:"list",workspace_id:state.workspace.id});
     state.panels=data?.panels||[];
     state.panelApps=data?.apps||[];
     state.panelMappings=data?.mappings||[];
@@ -382,14 +397,13 @@ $("#savePanelAppBtn")?.addEventListener("click",async()=>{
   if(!appId)return toast("Escolha um aplicativo.","error");
   const btn=$("#savePanelAppBtn");btn.disabled=true;
   try{
-    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{
+    await panelAdmin({
       action:"save_app_mapping",
       workspace_id:state.workspace.id,
       connector_id:p.id,
       app_catalog_id:appId,
       panel_app_code:$("#panelAppCode").value.trim()
-    }});
-    if(error)throw error;if(data?.error)throw new Error(data.error);
+    });
     $("#panelAppCode").value="";
     await loadPanelConnectors(false);
     state.activePanel=state.panels.find(x=>x.id===p.id)||null;
@@ -401,13 +415,12 @@ $("#savePanelAppBtn")?.addEventListener("click",async()=>{
 async function removePanelAppMapping(mappingId){
   const p=state.activePanel;if(!p)return;
   try{
-    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{
+    await panelAdmin({
       action:"delete_app_mapping",
       workspace_id:state.workspace.id,
       connector_id:p.id,
       mapping_id:mappingId
-    }});
-    if(error)throw error;if(data?.error)throw new Error(data.error);
+    });
     await loadPanelConnectors(false);
     state.activePanel=state.panels.find(x=>x.id===p.id)||null;
     renderPanelAppMappings();renderPanelConnectors();
@@ -426,11 +439,10 @@ $("#panelCredentialForm")?.addEventListener("submit",async e=>{
   if(!username||!password)return toast("Informe o usuário e a senha deste painel.","error");
   const btn=e.submitter||$("#panelCredentialForm button[type='submit']");btn.disabled=true;
   try{
-    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{
+    await panelAdmin({
       action:"save_credentials",workspace_id:state.workspace.id,connector_id:p.id,
       username,password,base_url
-    }});
-    if(error)throw error;if(data?.error)throw new Error(data.error);
+    });
     $("#panelUsername").value="";$("#panelPassword").value="";
     await loadPanelConnectors(false);
     state.activePanel=state.panels.find(x=>x.id===p.id)||null;
@@ -451,10 +463,9 @@ $("#togglePanelBotBtn")?.addEventListener("click",async()=>{
   const next=!p.enabled;
   const btn=$("#togglePanelBotBtn");btn.disabled=true;
   try{
-    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{
+    await panelAdmin({
       action:"update_panel",workspace_id:state.workspace.id,connector_id:p.id,enabled:next
-    }});
-    if(error)throw error;if(data?.error)throw new Error(data.error);
+    });
     await loadPanelConnectors(false);
     state.activePanel=state.panels.find(x=>x.id===p.id)||null;
     selectPanelConnector(p.id);
@@ -467,12 +478,11 @@ $("#testPanelBtn")?.addEventListener("click",async()=>{
   const base_url=$("#panelBaseUrl").value.trim();
   const btn=$("#testPanelBtn");btn.disabled=true;btn.textContent="Testando...";
   try{
-    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{
+    const data=await panelAdmin({
       action:"test_site",workspace_id:state.workspace.id,connector_id:p.id,base_url
-    }});
-    if(error)throw error;if(data?.error)throw new Error(data.error);
+    });
     await loadPanelConnectors(false);state.activePanel=state.panels.find(x=>x.id===p.id)||null;renderPanelConnectors();
-    toast(data?.ok?"Site do painel respondeu.":"O site do painel não respondeu.","error");
+    toast(data?.ok?"Site do painel respondeu.":"O site do painel não respondeu.",data?.ok?"success":"error");
   }catch(err){toast(err.message||"Falha ao testar o painel.","error")}
   finally{btn.disabled=false;btn.textContent="Testar site"}
 });
@@ -480,10 +490,9 @@ $("#clearPanelCredentialsBtn")?.addEventListener("click",async()=>{
   const p=state.activePanel;if(!p)return;
   if(!confirm("Remover o usuário e a senha salvos deste painel?"))return;
   try{
-    const {data,error}=await sb.functions.invoke("jstech-panel-admin",{body:{
+    await panelAdmin({
       action:"clear_credentials",workspace_id:state.workspace.id,connector_id:p.id
-    }});
-    if(error)throw error;if(data?.error)throw new Error(data.error);
+    });
     await loadPanelConnectors(false);state.activePanel=state.panels.find(x=>x.id===p.id)||null;selectPanelConnector(p.id);
     toast("Credenciais removidas deste painel.");
   }catch(err){toast(err.message||"Falha ao remover o acesso.","error")}

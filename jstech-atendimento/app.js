@@ -599,9 +599,11 @@ function renderBridgeUi(connected,configured=true){
     disconnect.classList.toggle("hidden",!connected);
     $("#bridgeAdvanced")?.classList.add("hidden");
   }else if(state.bridgeManagedLocally){
-    hint.textContent=connected?"Servidor JSTech conectado e mantendo a sessão automaticamente.":"Aguardando o agente do servidor JSTech.";
-    connect.textContent="Verificar conexão";
-    disconnect.classList.add("hidden");
+    hint.textContent=connected
+      ?"Servidor JSTech conectado e mantendo a sessão automaticamente."
+      :"Clique em Gerar QR Code e escaneie com o WhatsApp.";
+    connect.textContent=connected?"Verificar conexão":"Gerar QR Code";
+    disconnect.classList.toggle("hidden",!connected);
     $("#bridgeAdvanced")?.classList.add("hidden");
   }else{
     hint.textContent=connected?"Mensagens entrando e saindo pelo painel.":configured?"Clique abaixo para gerar o QR Code.":"Configure o servidor uma única vez para liberar o QR Code.";

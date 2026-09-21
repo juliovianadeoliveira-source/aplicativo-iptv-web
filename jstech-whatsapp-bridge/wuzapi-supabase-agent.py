@@ -26,6 +26,13 @@ def read_admin_token():
                         return v.strip().strip('"').strip("'")
         except Exception:
             pass
+    try:
+        env=subprocess.check_output(["systemctl","show","wuzapi","-p","Environment","--value"],text=True,timeout=5)
+        for part in env.split():
+            if part.startswith("WUZAPI_ADMIN_TOKEN="):
+                return part.split("=",1)[1].strip().strip('"').strip("'")
+    except Exception:
+        pass
     return ""
 
 def http_json(url, method="POST", body=None, headers=None, timeout=20):

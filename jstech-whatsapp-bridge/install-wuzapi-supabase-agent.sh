@@ -26,11 +26,46 @@ fi
 
 AGENT_TMP="/tmp/wuzapi-supabase-agent.py"
 rm -f "$AGENT_TMP"
-curl -fsSL --retry 3 "https://juliovianadeoliveira-source.github.io/aplicativo-iptv-web/jstech-whatsapp-bridge/wuzapi-supabase-agent.py?v=03277779" -o "$AGENT_TMP" \
-|| curl -fsSL --retry 3 "https://cdn.jsdelivr.net/gh/juliovianadeoliveira-source/aplicativo-iptv-web@03277779aa0e275072aae9f13c2f58280133879c/jstech-whatsapp-bridge/wuzapi-supabase-agent.py" -o "$AGENT_TMP"
+curl -fsSL --retry 3 "https://cdn.jsdelivr.net/gh/juliovianadeoliveira-source/aplicativo-iptv-web@b0faa33b71d22a7df23a0a0d3d2fc84a649a13b5/jstech-whatsapp-bridge/wuzapi-supabase-agent.py" -o "$AGENT_TMP" \
+|| curl -fsSL --retry 3 "https://raw.githubusercontent.com/juliovianadeoliveira-source/aplicativo-iptv-web/b0faa33b71d22a7df23a0a0d3d2fc84a649a13b5/jstech-whatsapp-bridge/wuzapi-supabase-agent.py" -o "$AGENT_TMP"
 install -m 0755 "$AGENT_TMP" /usr/local/bin/jstech-wuzapi-agent.py
 
-cat >/etc/systemd/system/jstech-wuzapi-agent.service <<'EOF'
+# Ambiente isolado para a automacao dos paineis. Se o navegador nao puder
+# ser instalado nesta maquina, o WhatsApp continua funcionando normalmente.
+PANEL_VENV="/opt/jstech-panel-agent"
+AGENT_PYTHON="/usr/bin/python3"
+PANEL_BROWSER="NAO"
+
+if command -v apt-get >/dev/null 2>&1; then
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq >/dev/null 2>&1 || true
+  apt-get install -y -qq python3-venv ca-certificates >/dev/null 2>&1 || true
+fi
+
+if /usr/bin/python3 -m venv "$PANEL_VENV" >/dev/null 2>&1; then
+  AGENT_PYTHON="$PANEL_VENV/bin/python"
+  "$PANEL_VENV/bin/pip" install --disable-pip-version-check --no-cache-dir -q "playwright>=1.45,<2" >/tmp/jstech-playwright-install.log 2>&1 || true
+
+  if "$PANEL_VENV/bin/python" -c 'import playwright' >/dev/null 2>&1; then
+    "$PANEL_VENV/bin/python" -m playwright install --with-deps chromium >>/tmp/jstech-playwright-install.log 2>&1 \
+      || "$PANEL_VENV/bin/python" -m playwright install chromium >>/tmp/jstech-playwright-install.log 2>&1 \
+      || true
+
+    if "$PANEL_VENV/bin/python" - <<'PY' >/dev/null 2>&1
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    b=p.chromium.launch(headless=True,args=["--no-sandbox","--disable-dev-shm-usage"])
+    page=b.new_page()
+    page.goto("about:blank")
+    b.close()
+PY
+    then
+      PANEL_BROWSER="OK"
+    fi
+  fi
+fi
+
+cat >/etc/systemd/system/jstech-wuzapi-agent.service <<EOF
 [Unit]
 Description=JSTech WhatsApp Supabase Agent
 After=network-online.target wuzapi.service
@@ -38,7 +73,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /usr/local/bin/jstech-wuzapi-agent.py
+ExecStart=$AGENT_PYTHON /usr/local/bin/jstech-wuzapi-agent.py
 Restart=always
 RestartSec=3
 User=root
@@ -126,3 +161,11 @@ echo "=== WHATSAPP PRINCIPAL ==="
 curl -fsS -H "token: $TOKEN" http://127.0.0.1:8080/session/status | python3 -c 'import sys,json; d=json.load(sys.stdin); x=d.get("data",{}); print("connected:", x.get("connected")); print("loggedIn:", x.get("loggedIn")); print("name:", x.get("name","")); print("jid:", x.get("jid",""))'
 echo "=== BLOQUEIO DE LIGACOES ==="
 grep -q 'reject_call' /usr/local/bin/jstech-wuzapi-agent.py && echo "ativo no agente" || echo "agente antigo"
+echo "=== AUTOMACAO DE PAINEIS ==="
+echo "Playwright: $PANEL_BROWSER"
+grep -q 'process_panel_job' /usr/local/bin/jstech-wuzapi-agent.py && echo "worker-paineis: OK" || echo "worker-paineis: NAO"
+if [ "$PANEL_BROWSER" = "OK" ]; then
+  echo "navegador-paineis: OK"
+else
+  echo "navegador-paineis: NAO"
+fi

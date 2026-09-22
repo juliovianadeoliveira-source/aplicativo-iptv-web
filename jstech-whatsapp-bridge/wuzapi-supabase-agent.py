@@ -75,6 +75,30 @@ def wuz(path, body, token=None):
 def wuz_get(path, token=None):
     return http_json(WUZ+path,"GET",None,{"token":token or TOKEN},25)
 
+def fetch_contacts(token=None):
+    r=wuz_get("/user/contacts",token)
+    data=r.get("data",{}) if isinstance(r,dict) else {}
+    rows=[]
+    if isinstance(data,dict):
+        for jid,info in data.items():
+            jid=str(jid or "")
+            if not jid.endswith("@s.whatsapp.net"):
+                continue
+            phone=jid.split("@",1)[0].split(":",1)[0]
+            phone=re.sub(r"\D+","",phone)
+            if len(phone)<10 or len(phone)>15:
+                continue
+            info=info or {}
+            name=(
+                str(info.get("BusinessName") or "").strip()
+                or str(info.get("FullName") or "").strip()
+                or str(info.get("FirstName") or "").strip()
+                or str(info.get("PushName") or "").strip()
+                or phone
+            )
+            rows.append({"phone":phone,"name":name})
+    return {"contacts":rows,"count":len(rows)}
+
 def ensure_local_webhook():
     sig=hashlib.sha256(TOKEN.encode("utf-8")).hexdigest()
     hook="https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-wa-wuzapi-webhook?token="+sig
@@ -208,6 +232,8 @@ def process_host_command(cmd):
             result={"rejected":True,"call_id":call_id}
         elif action=="download_media":
             result=download_media_and_reinject(cmd.get("payload") or {},token)
+        elif action=="sync_contacts":
+            result=fetch_contacts(token)
         else:
             raise RuntimeError("ação desconhecida: "+action)
         host_ack_command(wid,cid,True,result=result)
@@ -832,6 +858,9 @@ def process_local_command(cmd):
         elif action=="download_media":
             result=download_media_and_reinject(cmd.get("payload") or {},TOKEN)
             ack_command(cid,True,result={"downloaded":True,"webhook":result})
+        elif action=="sync_contacts":
+            result=fetch_contacts(TOKEN)
+            ack_command(cid,True,result=result)
         elif action=="typing":
             p=cmd.get("payload") or {}
             phone=str(p.get("phone") or "").strip()

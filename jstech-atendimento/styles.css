@@ -588,3 +588,45 @@ body.photo-modal-open{overflow:hidden}
     max-height:74vh!important;
   }
 }
+
+
+/* Aplicativo instalável: iOS e Android */
+.install-app-btn{
+  align-items:center;
+  justify-content:center;
+}
+#installAppBtnLogin{
+  width:100%;
+  margin-top:10px;
+}
+@supports(padding:max(0px)){
+  body{
+    padding-left:env(safe-area-inset-left);
+    padding-right:env(safe-area-inset-right);
+  }
+}
+@media(max-width:850px){
+  .sidebar{
+    height:calc(68px + env(safe-area-inset-bottom));
+    padding-bottom:calc(7px + env(safe-area-inset-bottom));
+  }
+  .main{
+    padding-bottom:calc(84px + env(safe-area-inset-bottom));
+  }
+  .topbar{
+    padding-top:env(safe-area-inset-top);
+    height:calc(76px + env(safe-area-inset-top));
+  }
+}
+@media(max-width:560px){
+  #installAppBtnTop{
+    display:inline-flex!important;
+    padding:8px 10px;
+  }
+}
+@media(display-mode:standalone){
+  .install-app-btn{display:none!important}
+  html,body{overscroll-behavior:none}
+  body{-webkit-user-select:none;user-select:none}
+  input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:text}
+}

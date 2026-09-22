@@ -324,3 +324,48 @@ body.photo-modal-open{overflow:hidden}
     border-radius:6px;
   }
 }
+
+
+/* Rolagem visível na lista de conversas */
+.conversation-list-panel{
+  min-height:0!important;
+  height:100%!important;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+.conversation-list-panel .search-row{
+  flex:0 0 auto;
+}
+
+.conversation-list{
+  flex:1 1 auto!important;
+  height:auto!important;
+  min-height:0!important;
+  overflow-y:scroll!important;
+  overflow-x:hidden!important;
+  scrollbar-gutter:stable;
+  scrollbar-width:auto;
+  scrollbar-color:#5f7896 #0b1726;
+}
+
+.conversation-list::-webkit-scrollbar{
+  width:12px;
+}
+
+.conversation-list::-webkit-scrollbar-track{
+  background:#0b1726;
+  border-left:1px solid #1e3044;
+}
+
+.conversation-list::-webkit-scrollbar-thumb{
+  background:#5f7896;
+  border:2px solid #0b1726;
+  border-radius:10px;
+  min-height:40px;
+}
+
+.conversation-list::-webkit-scrollbar-thumb:hover{
+  background:#7e9aba;
+}

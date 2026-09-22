@@ -159,10 +159,14 @@
                 </select>
               </label>
               <div class="stack">
-                <b>DDDs do disparo</b>
-                <label class="toggle-line"><span><b>DDD 27</b><small>Espírito Santo</small></span><input id="campaignDdd27" type="checkbox" checked></label>
-                <label class="toggle-line"><span><b>DDD 28</b><small>Espírito Santo</small></span><input id="campaignDdd28" type="checkbox" checked></label>
+                <b>Público do disparo</b>
+                <div class="toggle-line"><span><b>Brasil inteiro</b><small>Todos os clientes autorizados, independentemente do estado.</small></span><span class="pill success">Nacional</span></div>
               </div>
+              <label>Imagem do catálogo
+                <input id="campaignImage" type="file" accept="image/jpeg,image/png,image/webp">
+                <small>Envie JPG, PNG ou WebP. A imagem será enviada junto com a mensagem da campanha.</small>
+              </label>
+              <div id="campaignImagePreviewWrap" class="hidden"><img id="campaignImagePreview" alt="Prévia do catálogo" style="max-width:100%;border-radius:14px"></div>
               <label class="toggle-line">
                 <span><b>Enviar 1 vez por dia</b><small>Somente para contatos autorizados.</small></span>
                 <input id="campaignEnabled" type="checkbox">
@@ -172,10 +176,10 @@
           </article>
           <article class="panel">
             <p class="eyebrow">Público</p><h3>Envio seguro</h3>
-            <div class="campaign-metric"><strong id="campaignEligible">0</strong><span>clientes autorizados em <b id="campaignAudience">DDD 27 e 28</b></span></div>
+            <div class="campaign-metric"><strong id="campaignEligible">0</strong><span>clientes autorizados em <b id="campaignAudience">todo o Brasil</b></span></div>
             <div class="check-list">
               <div><b>✓</b><span>Somente contatos que aceitaram ofertas</span></div>
-              <div><b>✓</b><span>Filtro de disparo por DDD 27 e 28</span></div>
+              <div><b>✓</b><span>Alcance nacional para clientes autorizados</span></div>
               <div><b>✓</b><span>No máximo 1 campanha por dia por contato</span></div>
               <div><b>✓</b><span>“SAIR” remove o cliente automaticamente</span></div>
               <div><b>✓</b><span>Revendas ficam separadas por workspace</span></div>
@@ -389,7 +393,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260921-bot2"></script>
+  <script type="module" src="./app.js?v=20260921-brasil1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260921-13"></script>

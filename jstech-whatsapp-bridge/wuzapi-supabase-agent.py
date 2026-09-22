@@ -75,14 +75,17 @@ def wuz(path, body, token=None):
 def wuz_get(path, token=None):
     return http_json(WUZ+path,"GET",None,{"token":token or TOKEN},25)
 
+def wuz_get_body(path, body, token=None):
+    return http_json(WUZ+path,"GET",body,{"token":token or TOKEN},25)
+
 def contact_avatar(phone, token=None):
     try:
-        r=wuz("/user/avatar",{"Phone":phone,"Preview":True},token)
+        r=wuz_get_body("/user/avatar",{"Phone":phone,"Preview":True},token)
         data=r.get("data",r) if isinstance(r,dict) else {}
         if isinstance(data,dict):
             return str(data.get("URL") or data.get("Url") or data.get("url") or "").strip()
-    except Exception:
-        pass
+    except Exception as e:
+        print("Avatar error",phone,str(e)[:180],flush=True)
     return ""
 
 def fetch_contacts(token=None):

@@ -70,3 +70,152 @@
 .wa-contact-meta{grid-column:3;grid-row:1/3;align-self:center;justify-content:flex-end}
 .wa-contact-check{position:static;grid-column:3;grid-row:1/3;justify-self:end;width:22px;height:22px}
 .compact-grid .wa-contact-card{grid-template-columns:auto minmax(0,1fr) auto}
+
+
+/* Lista de contatos no estilo WhatsApp: uma linha por contato */
+#contactsGrid,
+#transmissionContactsGrid{
+  display:block!important;
+  width:100%;
+  margin-top:12px;
+  background:#091423;
+  border:1px solid var(--line);
+  border-radius:14px;
+  overflow:hidden;
+}
+
+#contactsGrid .wa-contact-card,
+#transmissionContactsGrid .wa-contact-card{
+  width:100%!important;
+  min-height:66px;
+  margin:0!important;
+  padding:9px 12px!important;
+  display:grid!important;
+  grid-template-columns:52px minmax(0,1fr) auto!important;
+  grid-template-rows:auto auto!important;
+  column-gap:11px!important;
+  row-gap:1px!important;
+  align-items:center!important;
+  justify-items:stretch!important;
+  text-align:left!important;
+  border:0!important;
+  border-bottom:1px solid rgba(34,50,71,.6)!important;
+  border-radius:0!important;
+  background:#091423!important;
+  box-shadow:none!important;
+  transform:none!important;
+}
+
+#contactsGrid .wa-contact-card:last-child,
+#transmissionContactsGrid .wa-contact-card:last-child{
+  border-bottom:0!important;
+}
+
+#contactsGrid .wa-contact-card:hover,
+#transmissionContactsGrid .wa-contact-card:hover{
+  background:#102033!important;
+  transform:none!important;
+}
+
+#contactsGrid .wa-contact-card.selected,
+#transmissionContactsGrid .wa-contact-card.selected{
+  background:#0c1c27!important;
+  box-shadow:none!important;
+  border-left:3px solid #25c58c!important;
+  padding-left:9px!important;
+}
+
+#contactsGrid .wa-contact-photo,
+#contactsGrid .wa-contact-photo-fallback,
+#transmissionContactsGrid .wa-contact-photo,
+#transmissionContactsGrid .wa-contact-photo-fallback{
+  width:48px!important;
+  height:48px!important;
+  min-width:48px!important;
+  border-radius:50%!important;
+  grid-column:1!important;
+  grid-row:1/3!important;
+  align-self:center!important;
+  box-shadow:none!important;
+  border:1px solid #2a4058!important;
+}
+
+#contactsGrid .wa-contact-name,
+#transmissionContactsGrid .wa-contact-name{
+  grid-column:2!important;
+  grid-row:1!important;
+  align-self:end!important;
+  width:100%!important;
+  font-size:.88rem!important;
+  line-height:1.2!important;
+  font-weight:750!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+
+#contactsGrid .wa-contact-phone,
+#transmissionContactsGrid .wa-contact-phone{
+  grid-column:2!important;
+  grid-row:2!important;
+  align-self:start!important;
+  width:100%!important;
+  font-size:.72rem!important;
+  line-height:1.2!important;
+  color:#8fa2ba!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+
+#contactsGrid .wa-contact-check,
+#transmissionContactsGrid .wa-contact-check{
+  position:static!important;
+  grid-column:3!important;
+  grid-row:1/3!important;
+  align-self:center!important;
+  justify-self:end!important;
+  width:20px!important;
+  height:20px!important;
+  margin:0!important;
+  accent-color:#25c58c!important;
+  cursor:pointer!important;
+}
+
+#contactsGrid .wa-contact-meta{
+  grid-column:3!important;
+  grid-row:1/3!important;
+  align-self:center!important;
+  justify-self:end!important;
+  margin-right:30px!important;
+}
+
+#contactsGrid .wa-contact-bot{
+  font-size:.64rem!important;
+  padding:4px 7px!important;
+  white-space:nowrap!important;
+}
+
+#transmissionContactsGrid{
+  max-height:520px;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+}
+
+@media(max-width:560px){
+  #contactsGrid .wa-contact-card,
+  #transmissionContactsGrid .wa-contact-card{
+    grid-template-columns:48px minmax(0,1fr) auto!important;
+    min-height:62px;
+    padding:8px 10px!important;
+  }
+  #contactsGrid .wa-contact-photo,
+  #contactsGrid .wa-contact-photo-fallback,
+  #transmissionContactsGrid .wa-contact-photo,
+  #transmissionContactsGrid .wa-contact-photo-fallback{
+    width:44px!important;
+    height:44px!important;
+    min-width:44px!important;
+  }
+  #contactsGrid .wa-contact-meta{display:none!important}
+}

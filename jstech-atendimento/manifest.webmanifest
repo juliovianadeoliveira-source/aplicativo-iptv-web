@@ -1,0 +1,39 @@
+{
+  "name": "JSTech Atendimento",
+  "short_name": "JSTech",
+  "description": "Central de atendimento, WhatsApp, clientes, revendas, automação e suporte.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#08111f",
+  "theme_color": "#08111f",
+  "categories": ["business", "productivity", "social"],
+  "icons": [
+    {
+      "src": "./app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Conversas",
+      "short_name": "Conversas",
+      "url": "./?page=conversations"
+    },
+    {
+      "name": "Clientes",
+      "short_name": "Clientes",
+      "url": "./?page=contacts"
+    },
+    {
+      "name": "Transmissão",
+      "short_name": "Transmissão",
+      "url": "./?page=campaigns"
+    }
+  ]
+}

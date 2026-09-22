@@ -823,6 +823,13 @@ def process_local_command(cmd):
         elif action=="download_media":
             result=download_media_and_reinject(cmd.get("payload") or {},TOKEN)
             ack_command(cid,True,result={"downloaded":True,"webhook":result})
+        elif action=="typing":
+            p=cmd.get("payload") or {}
+            phone=str(p.get("phone") or "").strip()
+            if not phone:
+                raise RuntimeError("telefone ausente para digitando")
+            presence(phone,"composing")
+            ack_command(cid,True,result={"typing":True,"phone":phone})
         elif action=="connect":
             result=local_status_snapshot(True)
             ack_command(cid,True,result=result)

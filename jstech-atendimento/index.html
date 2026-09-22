@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260922-foto-modal1">
+  <link rel="stylesheet" href="./styles.css?v=20260922-foto-viewer2">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -428,17 +428,21 @@
   <div id="contactPhotoModal" class="contact-photo-modal hidden" role="dialog" aria-modal="true" aria-label="Foto do contato">
     <div class="contact-photo-backdrop" data-close-contact-photo></div>
     <div class="contact-photo-dialog">
-      <button id="closeContactPhotoBtn" class="contact-photo-close" type="button" aria-label="Fechar">×</button>
-      <img id="contactPhotoLarge" class="contact-photo-large" alt="Foto do contato">
-      <div class="contact-photo-info">
-        <strong id="contactPhotoName">Contato</strong>
-        <span id="contactPhotoPhone"></span>
+      <div class="contact-photo-header">
+        <div class="contact-photo-info">
+          <strong id="contactPhotoName">Contato</strong>
+          <span id="contactPhotoPhone"></span>
+        </div>
+        <button id="closeContactPhotoBtn" class="contact-photo-close" type="button" aria-label="Fechar">×</button>
+      </div>
+      <div class="contact-photo-stage">
+        <img id="contactPhotoLarge" class="contact-photo-large" alt="Foto do contato">
       </div>
     </div>
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260922-fix-dollar1"></script>
+  <script type="module" src="./app.js?v=20260922-foto-viewer2"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260921-contactos2"></script>

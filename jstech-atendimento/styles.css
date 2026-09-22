@@ -633,3 +633,12 @@ body.photo-modal-open{overflow:hidden}
   body{-webkit-user-select:none;user-select:none}
   input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:text}
 }
+
+
+/* Se o WhatsApp ainda entregar somente a miniatura 96x96, não estica para evitar borrão */
+.contact-photo-large.low-resolution{
+  width:auto!important;
+  height:auto!important;
+  max-width:220px!important;
+  max-height:220px!important;
+}

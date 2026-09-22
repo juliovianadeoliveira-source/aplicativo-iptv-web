@@ -772,8 +772,10 @@ def local_status_snapshot(ensure_connect=False):
         }
         jid=str(d.get("jid") or d.get("JID") or "").strip()
         name=str(d.get("name") or d.get("Name") or "").strip()
+        external_user_id=str(d.get("id") or d.get("ID") or "").strip()
         if jid: result["jid"]=jid
         if name: result["name"]=name
+        if external_user_id: result["external_user_id"]=external_user_id
 
         if connected:
             return result

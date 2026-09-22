@@ -923,6 +923,52 @@ async function deleteKnowledge(id){if(!confirm("Excluir esta informação?"))ret
 
 let bridgePoll=null;
 
+function connectionForSlot(slot=state.activeWhatsAppSlot){
+  return (state.whatsappConnections||[]).find(x=>Number(x.slot)===Number(slot))||null;
+}
+
+async function refreshBridgeConnections(){
+  if(!state.workspace)return [];
+  try{
+    const data=await bridgeInvoke("list_connections",{slot:state.activeWhatsAppSlot});
+    state.whatsappConnections=Array.isArray(data?.connections)?data.connections:[];
+    renderDashboard();
+    renderWhatsAppSlotTabs();
+    return state.whatsappConnections;
+  }catch{
+    return state.whatsappConnections||[];
+  }
+}
+
+function renderWhatsAppSlotTabs(){
+  $$("[data-wa-slot]").forEach(btn=>{
+    const slot=Number(btn.dataset.waSlot||1);
+    const row=connectionForSlot(slot);
+    const connected=!!row?.connected;
+    btn.classList.toggle("active",slot===state.activeWhatsAppSlot);
+    btn.classList.toggle("connected",connected);
+    btn.innerHTML="WhatsApp "+slot+(connected?"<small>Conectado</small>":"<small>Conectar</small>");
+  });
+}
+
+async function selectWhatsAppSlot(slot,openSettings=false){
+  const n=Math.max(1,Math.min(4,Number(slot||1)));
+  if(bridgePoll){clearInterval(bridgePoll);bridgePoll=null}
+  state.activeWhatsAppSlot=n;
+  if(openSettings)goPage("settings");
+  renderWhatsAppSlotTabs();
+  await refreshBridgeStatus(n);
+}
+
+$("#dashboardWhatsappSlots")?.addEventListener("click",e=>{
+  const btn=e.target.closest("[data-dashboard-wa-slot]");
+  if(btn)selectWhatsAppSlot(Number(btn.dataset.dashboardWaSlot||1),true);
+});
+$(".whatsapp-slot-tabs")?.addEventListener("click",e=>{
+  const btn=e.target.closest("[data-wa-slot]");
+  if(btn)selectWhatsAppSlot(Number(btn.dataset.waSlot||1),false);
+});
+
 function renderSettings(){
   const s=state.settings||{};
   if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=s.company_name||"JSTech";
@@ -930,14 +976,17 @@ function renderSettings(){
   if($("#virtualAgentName"))$("#virtualAgentName").value=s.virtual_agent_name||"Ana";
   $("#welcomeMessage").value=s.welcome_message||"";
   $("#fallbackMessage").value=s.fallback_message||"";
-  renderBridgeUi(!!s.bridge_connected);
-  refreshBridgeStatus().catch(()=>{});
+  renderWhatsAppSlotTabs();
+  const row=connectionForSlot(state.activeWhatsAppSlot);
+  renderBridgeUi(!!row?.connected,row?.configured!==false);
+  refreshBridgeStatus(state.activeWhatsAppSlot).catch(()=>{});
 }
 
 $("#settingsForm").addEventListener("submit",async e=>{e.preventDefault();const patch={company_name:$("#companyName").value.trim()||"JSTech",virtual_agent_name:$("#virtualAgentName")?.value.trim()||"Ana",welcome_message:$("#welcomeMessage").value.trim(),ai_enabled:state.settings?.ai_enabled!==false,fallback_message:$("#fallbackMessage").value.trim(),updated_at:new Date().toISOString()};const {data,error}=await sb.from("wa_settings").update(patch).eq("workspace_id",state.workspace.id).select().single();if(error)return toast(error.message,"error");state.settings=data;if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=data.company_name||"JSTech";renderDashboard();toast("Configurações salvas.")});
 
 async function bridgeInvoke(action,extra={}){
-  const {data,error}=await sb.functions.invoke(BRIDGE_FUNCTION,{body:{workspace_id:state.workspace.id,action,...extra}});
+  const slot=Number(extra?.slot||state.activeWhatsAppSlot||1);
+  const {data,error}=await sb.functions.invoke(BRIDGE_FUNCTION,{body:{workspace_id:state.workspace.id,action,slot,...extra}});
   if(error)throw error;
   if(data?.error)throw new Error(data.message||data.error);
   return data||{};
@@ -950,21 +999,33 @@ function renderBridgeUi(connected,configured=true){
   const connect=$("#connectWhatsAppBtn");
   const disconnect=$("#disconnectWhatsAppBtn");
   if(!pill)return;
+
+  const slot=state.activeWhatsAppSlot||1;
+  const extraSlot=slot>1;
   pill.className="pill "+(connected?"success":"warning");
   pill.textContent=connected?"Conectado":"Não conectado";
-  title.textContent=connected?"WhatsApp conectado":"WhatsApp ainda não conectado";
+  title.textContent=connected?"WhatsApp "+slot+" conectado":"WhatsApp "+slot+" ainda não conectado";
 
-  if(state.bridgeHosted){
+  if(extraSlot){
+    state.bridgeHosted=true;
+    state.bridgeManagedLocally=true;
     hint.textContent=connected
-      ?"Este número pertence somente a esta revenda. As conversas ficam separadas do administrador."
-      :"Escaneie o QR Code com o WhatsApp da sua revenda. O administrador não vê seus clientes.";
+      ?"Este WhatsApp está ligado ao mesmo atendimento desta conta."
+      :"Clique em Gerar QR Code e escaneie com o WhatsApp comum ou Business que deseja usar nesta conexão.";
+    connect.textContent=connected?"Verificar conexão":"Gerar QR Code";
+    disconnect.classList.toggle("hidden",!connected);
+    $("#bridgeAdvanced")?.classList.add("hidden");
+  }else if(state.bridgeHosted){
+    hint.textContent=connected
+      ?"Este número está conectado e as conversas ficam separadas nesta conta."
+      :"Escaneie o QR Code com o WhatsApp comum ou Business desta conta.";
     connect.textContent=connected?"Verificar conexão":"Gerar QR Code";
     disconnect.classList.toggle("hidden",!connected);
     $("#bridgeAdvanced")?.classList.add("hidden");
   }else if(state.bridgeManagedLocally){
     hint.textContent=connected
       ?"Servidor JSTech conectado e mantendo a sessão automaticamente."
-      :"Clique em Gerar QR Code e escaneie com o WhatsApp.";
+      :"Clique em Gerar QR Code e escaneie com o WhatsApp comum ou Business.";
     connect.textContent=connected?"Verificar conexão":"Gerar QR Code";
     disconnect.classList.toggle("hidden",!connected);
     $("#bridgeAdvanced")?.classList.add("hidden");
@@ -972,118 +1033,140 @@ function renderBridgeUi(connected,configured=true){
     hint.textContent=connected?"Mensagens entrando e saindo pelo painel.":configured?"Clique abaixo para gerar o QR Code.":"Configure o servidor uma única vez para liberar o QR Code.";
     connect.textContent=connected?"Verificar conexão":"Conectar WhatsApp";
     disconnect.classList.toggle("hidden",!connected);
-    $("#bridgeAdvanced")?.classList.remove("hidden");
+    $("#bridgeAdvanced")?.classList.toggle("hidden",slot>1);
   }
   if(connected)$("#qrPanel").classList.add("hidden");
 }
 
-async function refreshBridgeStatus(){
+async function refreshBridgeStatus(slot=state.activeWhatsAppSlot){
   if(!state.workspace)return;
+  const targetSlot=Math.max(1,Math.min(4,Number(slot||1)));
   try{
-    const data=await bridgeInvoke("status");
+    const data=await bridgeInvoke("status",{slot:targetSlot});
     const connected=!!data.connected;
-    state.bridgeManagedLocally=!!data.managed_locally;
-    state.bridgeHosted=!!data.hosted;
-    state.settings.bridge_connected=connected;
-    renderBridgeUi(connected,data.configured!==false);
-    if(data.qr&&!connected){
-      if($("#qrImage").getAttribute("src")!==data.qr)$("#qrImage").src=data.qr;
-      $("#qrPanel").classList.remove("hidden");
-      $("#qrConnectionTitle").textContent="Escaneie o QR Code";
-      $("#qrConnectionHint").textContent=state.bridgeHosted
-        ?"QR renovado automaticamente. Abra o WhatsApp da revenda → Aparelhos conectados → Conectar um aparelho."
-        :"QR renovado automaticamente. Aguardando leitura pelo WhatsApp...";
-    }else if(!connected){
-      $("#qrImage").removeAttribute("src");
-      $("#qrPanel").classList.add("hidden");
+
+    if(targetSlot===state.activeWhatsAppSlot){
+      state.bridgeManagedLocally=targetSlot>1?true:!!data.managed_locally;
+      state.bridgeHosted=targetSlot>1?true:!!data.hosted;
+      if(targetSlot===1)state.settings.bridge_connected=connected;
+      renderBridgeUi(connected,data.configured!==false);
+
+      if(data.qr&&!connected){
+        if($("#qrImage").getAttribute("src")!==data.qr)$("#qrImage").src=data.qr;
+        $("#qrPanel").classList.remove("hidden");
+        $("#qrConnectionTitle").textContent="Escaneie o QR Code do WhatsApp "+targetSlot;
+        $("#qrConnectionHint").textContent="Abra o WhatsApp comum ou Business → Aparelhos conectados → Conectar um aparelho.";
+      }else if(!connected){
+        $("#qrImage").removeAttribute("src");
+        $("#qrPanel").classList.add("hidden");
+      }
+      if(data.error&&!connected)toast(String(data.error),"error");
+      if(targetSlot===1){
+        if(data.base_url&&!$("#bridgeUrl").value)$("#bridgeUrl").value=data.base_url;
+        if(data.instance_name)$("#bridgeInstance").value=data.instance_name;
+        if(data.setup_required&&!$("#bridgeAdvanced")?.classList.contains("hidden"))$("#bridgeAdvanced").open=true;
+      }
     }
-    if(data.error&&!connected)toast(String(data.error),"error");
+
+    const idx=(state.whatsappConnections||[]).findIndex(x=>Number(x.slot)===targetSlot);
+    const row={slot:targetSlot,connected,configured:data.configured!==false,state:data.state|| (connected?"connected":"disconnected"),provider:data.provider||null,instance_name:data.instance_name||null,error:data.error||null};
+    if(idx>=0)state.whatsappConnections[idx]={...state.whatsappConnections[idx],...row};
+    else state.whatsappConnections=[...(state.whatsappConnections||[]),row];
+
     renderDashboard();
-    if(data.base_url&&!$("#bridgeUrl").value)$("#bridgeUrl").value=data.base_url;
-    if(data.instance_name)$("#bridgeInstance").value=data.instance_name;
-    if(data.setup_required)$("#bridgeAdvanced").open=true;
+    renderWhatsAppSlotTabs();
     return data;
   }catch(err){
-    renderBridgeUi(false,true);
+    if(targetSlot===state.activeWhatsAppSlot)renderBridgeUi(false,true);
     return null;
   }
 }
 
 async function startBridgeConnect(){
+  const targetSlot=state.activeWhatsAppSlot||1;
   const btn=$("#connectWhatsAppBtn");
   btn.disabled=true;btn.textContent="Preparando QR Code...";
   try{
-    const data=await bridgeInvoke("connect");
-    state.bridgeHosted=!!data.hosted||state.bridgeHosted;
-    state.bridgeManagedLocally=!!data.managed_locally||state.bridgeManagedLocally;
+    const data=await bridgeInvoke("connect",{slot:targetSlot});
+    state.bridgeHosted=targetSlot>1?true:(!!data.hosted||state.bridgeHosted);
+    state.bridgeManagedLocally=targetSlot>1?true:(!!data.managed_locally||state.bridgeManagedLocally);
+
     if(data.connected){
-      state.settings.bridge_connected=true;
-      renderBridgeUi(true,true);renderDashboard();toast("WhatsApp conectado.");
+      if(targetSlot===1)state.settings.bridge_connected=true;
+      await refreshBridgeConnections();
+      renderBridgeUi(true,true);
+      toast("WhatsApp "+targetSlot+" conectado.");
       return;
     }
 
-    clearInterval(bridgePoll);
-    let tries=0;
+    if(bridgePoll){clearInterval(bridgePoll);bridgePoll=null}
     const poll=async()=>{
-      tries++;
-      const s=await refreshBridgeStatus();
+      if(state.activeWhatsAppSlot!==targetSlot){
+        if(bridgePoll){clearInterval(bridgePoll);bridgePoll=null}
+        return;
+      }
+      const s=await refreshBridgeStatus(targetSlot);
       if(s?.connected){
-        clearInterval(bridgePoll);bridgePoll=null;
+        if(bridgePoll){clearInterval(bridgePoll);bridgePoll=null}
         $("#qrPanel").classList.add("hidden");
-        toast("WhatsApp conectado com sucesso.");
+        await refreshBridgeConnections();
+        toast("WhatsApp "+targetSlot+" conectado com sucesso.");
         return;
       }
       if(s?.qr){
         if($("#qrImage").getAttribute("src")!==s.qr)$("#qrImage").src=s.qr;
         $("#qrPanel").classList.remove("hidden");
-        $("#qrConnectionTitle").textContent="Escaneie o QR Code";
-        $("#qrConnectionHint").textContent=state.bridgeHosted
-          ?"QR renovado automaticamente. Use o WhatsApp da revenda para escanear."
-          :"QR renovado automaticamente. Aguardando leitura pelo WhatsApp...";
-      }else if(!s?.connected){
-        $("#qrImage").removeAttribute("src");
-        $("#qrPanel").classList.add("hidden");
+        $("#qrConnectionTitle").textContent="Escaneie o QR Code do WhatsApp "+targetSlot;
+        $("#qrConnectionHint").textContent="Abra o WhatsApp comum ou Business → Aparelhos conectados → Conectar um aparelho.";
       }
     };
+
     await poll();
-    if(!state.settings?.bridge_connected){
-      bridgePoll=setInterval(poll,10000);
-      toast(data.qr?"QR Code gerado.":"Preparando seu QR Code...");
+    const current=connectionForSlot(targetSlot);
+    if(!current?.connected){
+      bridgePoll=setInterval(poll,7000);
+      toast(data.qr?"QR Code gerado.":"Preparando o QR Code do WhatsApp "+targetSlot+"...");
     }
   }catch(err){
-    if(String(err.message).includes("Servidor do WhatsApp")||String(err.message).includes("setup")){
+    if(targetSlot===1&&(String(err.message).includes("Servidor do WhatsApp")||String(err.message).includes("setup"))){
+      $("#bridgeAdvanced").classList.remove("hidden");
       $("#bridgeAdvanced").open=true;
     }
     toast(err.message||"Não foi possível gerar o QR Code.","error");
   }finally{
     btn.disabled=false;
-    if(!state.settings?.bridge_connected)btn.textContent=state.bridgeHosted?"Gerar QR Code":"Conectar WhatsApp";
+    const current=connectionForSlot(targetSlot);
+    btn.textContent=current?.connected?"Verificar conexão":"Gerar QR Code";
   }
 }
 
 $("#connectWhatsAppBtn").addEventListener("click",startBridgeConnect);
 
 $("#disconnectWhatsAppBtn").addEventListener("click",async()=>{
-  if(!confirm("Desconectar este WhatsApp do painel?"))return;
+  const slot=state.activeWhatsAppSlot||1;
+  if(!confirm("Desconectar o WhatsApp "+slot+" do painel?"))return;
   try{
-    await bridgeInvoke("disconnect");
-    state.settings.bridge_connected=false;
-    renderBridgeUi(false,true);renderDashboard();toast("WhatsApp desconectado.");
+    await bridgeInvoke("disconnect",{slot});
+    if(slot===1)state.settings.bridge_connected=false;
+    await refreshBridgeConnections();
+    renderBridgeUi(false,true);
+    toast("WhatsApp "+slot+" desconectado.");
   }catch(err){toast(err.message||"Falha ao desconectar.","error")}
 });
 
 $("#saveBridgeBtn").addEventListener("click",async()=>{
+  if(state.activeWhatsAppSlot!==1)return toast("A configuração manual do servidor é usada somente no WhatsApp 1.","error");
   const base_url=$("#bridgeUrl").value.trim();
   const api_key=$("#bridgeApiKey").value.trim();
   const instance_name=$("#bridgeInstance").value.trim()||"jstech";
   if(!base_url||!api_key)return toast("Informe o endereço e a chave do servidor.","error");
   const btn=$("#saveBridgeBtn");btn.disabled=true;
   try{
-    await bridgeInvoke("configure",{base_url,api_key,instance_name});
+    await bridgeInvoke("configure",{slot:1,base_url,api_key,instance_name});
     $("#bridgeApiKey").value="";
     $("#bridgeAdvanced").open=false;
     toast("Servidor salvo. Agora clique em Conectar WhatsApp.");
-    await refreshBridgeStatus();
+    await refreshBridgeStatus(1);
   }catch(err){toast(err.message||"Não foi possível salvar o servidor.","error")}
   finally{btn.disabled=false}
 });

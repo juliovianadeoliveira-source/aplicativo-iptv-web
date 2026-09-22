@@ -41,7 +41,7 @@
         <button class="nav-item active" data-page="dashboard">▦ <span>Dashboard</span></button>
         <button class="nav-item" data-page="conversations">◉ <span>Conversas</span><b id="navUnread" class="badge hidden">0</b></button>
         <button class="nav-item" data-page="contacts">♙ <span>Clientes</span></button>
-        <button class="nav-item" data-page="campaigns">✉ <span>Campanhas</span></button>
+        <button class="nav-item" data-page="campaigns">✉ <span>Transmissão</span></button>
         <button class="nav-item" data-page="organic">◎ <span>Divulgação grátis</span></button>
         <button class="nav-item" data-page="panels">▣ <span>Painéis automáticos</span></button>
         <button class="nav-item" id="resellerNav" data-page="resellers">◆ <span>Revendas</span></button>
@@ -143,14 +143,14 @@
         <div class="settings-grid">
           <article class="panel">
             <div class="panel-head">
-              <div><p class="eyebrow">Marketing autorizado</p><h3>Campanha diária</h3></div>
+              <div><p class="eyebrow">Lista de transmissão</p><h3>Transmissão automática</h3></div>
               <span id="campaignStatus" class="pill warning">Desativada</span>
             </div>
-            <p class="muted">A campanha só envia para clientes marcados como <b>Autorizado</b> na aba Clientes. Cada revenda usa somente a própria base.</p>
+            <p class="muted">Use o WhatsApp conectado ao painel para enviar sua transmissão. Administrador e revendas usam bases separadas. O envio comercial é feito somente para contatos marcados como <b>Autorizado</b>.</p>
             <form id="campaignForm" class="stack">
-              <label>Nome da campanha<input id="campaignName"></label>
-              <label>Mensagem<textarea id="campaignMessage" rows="20"></textarea></label>
-              <label>Horário diário
+              <label>Nome da transmissão<input id="campaignName" placeholder="Ex.: Ofertas da semana"></label>
+              <label>Mensagem<textarea id="campaignMessage" rows="16" placeholder="Escreva a mensagem que será enviada"></textarea></label>
+              <label>Horário da transmissão automática
                 <select id="campaignHour">
                   <option value="8">08:00</option><option value="9">09:00</option><option value="10">10:00</option>
                   <option value="11">11:00</option><option value="12">12:00</option><option value="13">13:00</option>
@@ -159,36 +159,51 @@
                 </select>
               </label>
               <div class="stack">
-                <b>Público do disparo</b>
-                <div class="toggle-line"><span><b>Brasil inteiro</b><small>Todos os clientes autorizados, independentemente do estado.</small></span><span class="pill success">Nacional</span></div>
+                <b>Público da transmissão</b>
+                <div class="toggle-line"><span><b>Brasil inteiro</b><small>Todos os contatos autorizados desta conta.</small></span><span class="pill success">Nacional</span></div>
               </div>
-              <label>Imagem do catálogo
+              <label>Imagem / catálogo
                 <input id="campaignImage" type="file" accept="image/jpeg,image/png,image/webp">
-                <small>Envie JPG, PNG ou WebP. A imagem será enviada junto com a mensagem da campanha.</small>
+                <small>Opcional. A imagem vai junto com a mensagem.</small>
               </label>
               <div id="campaignImagePreviewWrap" class="hidden"><img id="campaignImagePreview" alt="Prévia do catálogo" style="max-width:100%;border-radius:14px"></div>
               <label class="toggle-line">
-                <span><b>Enviar 1 vez por dia</b><small>Somente para contatos autorizados.</small></span>
+                <span><b>Transmissão automática diária</b><small>Envia uma vez por dia no horário escolhido.</small></span>
                 <input id="campaignEnabled" type="checkbox">
               </label>
-              <button class="btn primary" type="submit">Salvar campanha</button>
+              <div class="top-actions" style="justify-content:flex-start;flex-wrap:wrap">
+                <button class="btn primary" type="submit">Salvar transmissão</button>
+                <button id="sendTransmissionNowBtn" class="btn ghost" type="button">Enviar agora</button>
+              </div>
             </form>
           </article>
+
           <article class="panel">
-            <p class="eyebrow">Público</p><h3>Envio seguro</h3>
-            <div class="campaign-metric"><strong id="campaignEligible">0</strong><span>clientes autorizados em <b id="campaignAudience">todo o Brasil</b></span></div>
-            <div class="check-list">
-              <div><b>✓</b><span>Somente contatos que aceitaram ofertas</span></div>
-              <div><b>✓</b><span>Alcance nacional para clientes autorizados</span></div>
-              <div><b>✓</b><span>No máximo 1 campanha por dia por contato</span></div>
-              <div><b>✓</b><span>“SAIR” remove o cliente automaticamente</span></div>
-              <div><b>✓</b><span>Revendas ficam separadas por workspace</span></div>
+            <div class="panel-head">
+              <div><p class="eyebrow">Contatos do WhatsApp</p><h3>Sincronização automática</h3></div>
+              <span id="contactSyncStatus" class="pill success">Ativa</span>
             </div>
-            <p class="muted">Último disparo: <b id="campaignLastSent">Ainda não enviada</b></p>
+            <p class="muted">O painel sincroniza os contatos do WhatsApp conectado automaticamente a cada 6 horas. Você também pode atualizar agora.</p>
+
+            <div class="stats-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin:18px 0">
+              <article class="stat"><span>Contatos no painel</span><strong id="transmissionContactsTotal">0</strong><small>Base desta conta</small></article>
+              <article class="stat"><span>Autorizados</span><strong id="campaignEligible">0</strong><small>Podem receber transmissão</small></article>
+            </div>
+
+            <button id="syncContactsBtn" class="btn primary" type="button">Sincronizar contatos agora</button>
+            <p class="muted" style="margin-top:12px">Última sincronização: <b id="lastContactSync">Ainda não sincronizado</b></p>
+            <p class="muted">Última transmissão: <b id="campaignLastSent">Ainda não enviada</b></p>
+
+            <div class="check-list">
+              <div><b>✓</b><span>Administrador usa somente os próprios contatos</span></div>
+              <div><b>✓</b><span>Cada revenda sincroniza somente o próprio WhatsApp</span></div>
+              <div><b>✓</b><span>Contatos novos entram na aba Clientes</span></div>
+              <div><b>✓</b><span>Sincronizar não autoriza propaganda automaticamente</span></div>
+              <div><b>✓</b><span>“SAIR” desativa futuras transmissões para o contato</span></div>
+            </div>
           </article>
         </div>
       </section>
-
 
       <section id="page-organic" class="page">
         <div class="settings-grid">
@@ -393,7 +408,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260921-brasil1"></script>
+  <script type="module" src="./app.js?v=20260921-transmissao1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260921-13"></script>

@@ -228,7 +228,7 @@ async function loadAll(showToast=false){
     const [settings,contacts,convs,autos,knowledge,campaigns]=await Promise.all([
       sb.from("wa_settings").select("*").eq("workspace_id",id).single(),
       sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),
-      sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url)").eq("workspace_id",id).order("last_message_at",{ascending:false}),
+      sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url,bot_context,memory_context)").eq("workspace_id",id).order("last_message_at",{ascending:false}),
       sb.from("wa_automations").select("*").eq("workspace_id",id).order("created_at"),
       sb.from("wa_knowledge").select("*").eq("workspace_id",id).order("title"),
       sb.from("wa_campaigns").select("*").eq("workspace_id",id).order("created_at",{ascending:true})
@@ -363,7 +363,8 @@ $("#composerText").addEventListener("keydown",e=>{
 $("#toggleBotBtn").addEventListener("click",async()=>{
   const ct=state.activeConversation?.wa_contacts;if(!ct)return;const value=!ct.bot_enabled;
   const now=new Date().toISOString();
-  const nextContext=value?{}:{...(ct.bot_context||{}),manual_pause:true,human_takeover_until:null};
+  const durableContext={...(ct.memory_context||{}),...(ct.bot_context||{})};
+  const nextContext=value?{...durableContext,manual_pause:false,human_takeover_until:null}:{...durableContext,manual_pause:true,human_takeover_until:null};
   const [{error},convUpdate]=await Promise.all([
     sb.from("wa_contacts").update({bot_enabled:value,bot_context:nextContext,updated_at:now}).eq("id",ct.id),
     sb.from("wa_conversations").update({status:value?"aberta":"atendimento_humano"}).eq("id",state.activeConversation.id)
@@ -411,7 +412,7 @@ function renderContacts(){
   }));
 }
 $("#contactSearch").addEventListener("input",renderContacts);
-async function toggleContactBot(id){const c=state.contacts.find(x=>x.id===id);if(!c)return;const value=!c.bot_enabled;const ctx=value?{}:{...(c.bot_context||{}),manual_pause:true,human_takeover_until:null};const {error}=await sb.from("wa_contacts").update({bot_enabled:value,bot_context:ctx,updated_at:new Date().toISOString()}).eq("id",id);if(error)return toast(error.message,"error");c.bot_enabled=value;c.bot_context=ctx;renderContacts();renderDashboard()}
+async function toggleContactBot(id){const c=state.contacts.find(x=>x.id===id);if(!c)return;const value=!c.bot_enabled;const durable={...(c.memory_context||{}),...(c.bot_context||{})};const ctx=value?{...durable,manual_pause:false,human_takeover_until:null}:{...durable,manual_pause:true,human_takeover_until:null};const {error}=await sb.from("wa_contacts").update({bot_enabled:value,bot_context:ctx,updated_at:new Date().toISOString()}).eq("id",id);if(error)return toast(error.message,"error");c.bot_enabled=value;c.bot_context=ctx;renderContacts();renderDashboard()}
 async function setTransmissionContact(id,value){
   const c=state.contacts.find(x=>x.id===id);if(!c)return false;
   const active=!!(c.marketing_opt_in&&!c.marketing_opt_out_at);
@@ -1365,7 +1366,7 @@ function subscribeRealtime(){
     .on("postgres_changes",{event:"*",schema:"public",table:"wa_contacts",filter:"workspace_id=eq."+state.workspace.id},refreshConversationData)
     .subscribe();
 }
-let refreshTimer=null;function refreshConversationData(){clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{const id=state.workspace.id;const [contacts,convs]=await Promise.all([sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url)").eq("workspace_id",id).order("last_message_at",{ascending:false})]);if(!contacts.error)state.contacts=contacts.data||[];if(!convs.error)state.conversations=convs.data||[];if(state.activeConversation){const fresh=state.conversations.find(x=>x.id===state.activeConversation.id);if(fresh)state.activeConversation=fresh}renderDashboard();renderContacts();renderConversations()},250)}
+let refreshTimer=null;function refreshConversationData(){clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{const id=state.workspace.id;const [contacts,convs]=await Promise.all([sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url,bot_context,memory_context)").eq("workspace_id",id).order("last_message_at",{ascending:false})]);if(!contacts.error)state.contacts=contacts.data||[];if(!convs.error)state.conversations=convs.data||[];if(state.activeConversation){const fresh=state.conversations.find(x=>x.id===state.activeConversation.id);if(fresh)state.activeConversation=fresh}renderDashboard();renderContacts();renderConversations()},250)}
 boot();
 $("#campaignDdd27")?.addEventListener("change",renderCampaigns);
 $("#campaignDdd28")?.addEventListener("change",renderCampaigns);

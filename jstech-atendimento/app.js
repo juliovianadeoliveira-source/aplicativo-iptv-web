@@ -37,6 +37,54 @@ function toast(msg, type="success"){
   const el=$("#toast"); el.textContent=msg; el.className="toast "+type;
   clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.add("hidden"),3200);
 }
+let deferredInstallPrompt=null;
+function isStandaloneApp(){
+  return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone===true;
+}
+function updateInstallButtons(){
+  const installed=isStandaloneApp();
+  $(".install-app-btn").forEach(btn=>btn.classList.toggle("hidden",installed));
+}
+async function requestAppInstall(){
+  if(isStandaloneApp()){
+    toast("O aplicativo JSTech já está instalado.");
+    return;
+  }
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    const choice=await deferredInstallPrompt.userChoice.catch(()=>null);
+    if(choice?.outcome==="accepted")toast("Instalação iniciada.");
+    deferredInstallPrompt=null;
+    updateInstallButtons();
+    return;
+  }
+  const ua=navigator.userAgent||"";
+  const ios=/iPad|iPhone|iPod/.test(ua) || (navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  if(ios){
+    alert("No iPhone ou iPad: abra este painel no Safari, toque em Compartilhar e escolha Adicionar à Tela de Início.");
+  }else{
+    alert("No Android: abra este painel no Chrome, toque no menu do navegador e escolha Instalar aplicativo ou Adicionar à tela inicial.");
+  }
+}
+window.addEventListener("beforeinstallprompt",event=>{
+  event.preventDefault();
+  deferredInstallPrompt=event;
+  updateInstallButtons();
+});
+window.addEventListener("appinstalled",()=>{
+  deferredInstallPrompt=null;
+  updateInstallButtons();
+  toast("JSTech instalado no aparelho.");
+});
+$("#installAppBtnLogin")?.addEventListener("click",requestAppInstall);
+$("#installAppBtnTop")?.addEventListener("click",requestAppInstall);
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./service-worker.js",{scope:"./"}).catch(err=>console.warn("SW",err));
+    updateInstallButtons();
+  });
+}
+
 function fmtDate(v){ if(!v)return "-"; return new Intl.DateTimeFormat("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date(v)); }
 function escapeHtml(v=""){return String(v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
 function initials(name, phone){const s=(name||phone||"J").trim();return s.split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase();}
@@ -111,10 +159,21 @@ function pageMeta(page){
   })[page];
 }
 function goPage(page){
-  $$(".page").forEach(x=>x.classList.remove("active"));
+  const meta=pageMeta(page);
+  if(!meta)return;
+  $(".page").forEach(x=>x.classList.remove("active"));
   $("#page-"+page)?.classList.add("active");
-  $$(".nav-item[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
-  const [e,t]=pageMeta(page); $("#pageEyebrow").textContent=e; $("#pageTitle").textContent=t;
+  $(".nav-item[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
+  const [e,t]=meta; $("#pageEyebrow").textContent=e; $("#pageTitle").textContent=t;
+  try{
+    const url=new URL(location.href);
+    if(page==="dashboard")url.searchParams.delete("page"); else url.searchParams.set("page",page);
+    history.replaceState(null,"",url);
+  }catch{}
+}
+function openRequestedAppPage(){
+  const page=new URLSearchParams(location.search).get("page");
+  if(page&&pageMeta(page))goPage(page);
 }
 
 async function login(username,password){
@@ -143,12 +202,13 @@ async function boot(){
   state.session=session; showApp();
   const label=session.user.user_metadata?.username||session.user.user_metadata?.display_name||"J"; $("#userAvatar").textContent=String(label)[0].toUpperCase();
   await loadAll();
+  openRequestedAppPage();
   subscribeRealtime();
 }
 sb.auth.onAuthStateChange(async(_event,session)=>{
   state.session=session;
   if(!session){state.channel?.unsubscribe();showLogin();return}
-  showApp(); await loadAll(); subscribeRealtime();
+  showApp(); await loadAll(); openRequestedAppPage(); subscribeRealtime();
 });
 
 async function ensureWorkspace(){

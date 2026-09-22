@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260922-multiwa2">
+  <link rel="stylesheet" href="./styles.css?v=20260922-contactsync1">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -196,14 +196,20 @@
               <div><p class="eyebrow">Contatos do WhatsApp</p><h3>Sincronização automática</h3></div>
               <span id="contactSyncStatus" class="pill success">Ativa</span>
             </div>
-            <p class="muted">O painel sincroniza os contatos do WhatsApp conectado automaticamente a cada 6 horas. Você também pode atualizar agora.</p>
+            <p class="muted">Atualize os contatos pelo WhatsApp ou importe a agenda sincronizada no Google, Outlook ou celular. Cada conta mantém sua própria base.</p>
+
+            <div class="contact-sync-actions">
+              <button id="syncContactsBtn" class="btn primary" type="button">Sincronizar WhatsApp</button>
+              <button id="importEmailContactsBtn" class="btn ghost" type="button">Importar agenda do e-mail</button>
+              <input id="emailContactsFile" class="hidden" type="file" accept=".csv,.vcf,text/csv,text/vcard,text/x-vcard">
+            </div>
+            <small class="muted">Aceita CSV do Google/Outlook e VCF da agenda do celular. Contatos sem telefone são ignorados porque não podem receber WhatsApp.</small>
 
             <div class="stats-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin:18px 0">
               <article class="stat"><span>Contatos no painel</span><strong id="transmissionContactsTotal">0</strong><small>Base desta conta</small></article>
               <article class="stat"><span>Autorizados</span><strong id="campaignEligible">0</strong><small>Podem receber transmissão</small></article>
             </div>
 
-            <button id="syncContactsBtn" class="btn primary" type="button">Sincronizar contatos agora</button>
             <p class="muted" style="margin-top:12px">Última sincronização: <b id="lastContactSync">Ainda não sincronizado</b></p>
             <p class="muted">Última transmissão: <b id="campaignLastSent">Ainda não enviada</b></p>
 
@@ -212,15 +218,15 @@
                 <div><p class="eyebrow">Escolha quem recebe</p><h3>Contatos da transmissão</h3></div>
                 <span class="pill success"><b id="transmissionSelectedCount">0</b> selecionados</span>
               </div>
-              <input id="transmissionContactSearch" class="inline-search" style="width:100%;margin-bottom:10px" placeholder="Buscar por nome ou telefone">
+              <input id="transmissionContactSearch" class="inline-search" style="width:100%;margin-bottom:10px" placeholder="Buscar por nome, telefone ou e-mail">
               <div id="transmissionContactsGrid" class="wa-contact-grid compact-grid" style="max-height:520px;overflow:auto"></div>
               <p class="muted" style="margin-top:8px">Marque somente os contatos que podem receber sua transmissão. Desmarque para remover da lista sem apagar o contato do painel.</p>
             </div>
 
             <div class="check-list">
-              <div><b>✓</b><span>Administrador usa somente os próprios contatos</span></div>
-              <div><b>✓</b><span>Cada revenda sincroniza somente o próprio WhatsApp</span></div>
-              <div><b>✓</b><span>Contatos novos entram na aba Clientes</span></div>
+              <div><b>✓</b><span>Administrador, revendas e sub-revendas usam bases separadas</span></div>
+              <div><b>✓</b><span>WhatsApp e agenda do e-mail entram na mesma lista desta conta</span></div>
+              <div><b>✓</b><span>Nome, telefone, e-mail e foto ficam disponíveis quando existirem</span></div>
               <div><b>✓</b><span>Sincronizar não autoriza propaganda automaticamente</span></div>
               <div><b>✓</b><span>“SAIR” desativa futuras transmissões para o contato</span></div>
             </div>
@@ -462,7 +468,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260922-multiwa2"></script>
+  <script type="module" src="./app.js?v=20260922-contactsync1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260921-contactos2"></script>

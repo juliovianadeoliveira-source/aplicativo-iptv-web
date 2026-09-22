@@ -194,6 +194,21 @@
             <p class="muted" style="margin-top:12px">Última sincronização: <b id="lastContactSync">Ainda não sincronizado</b></p>
             <p class="muted">Última transmissão: <b id="campaignLastSent">Ainda não enviada</b></p>
 
+            <div style="margin-top:18px">
+              <div class="panel-head" style="margin-bottom:10px">
+                <div><p class="eyebrow">Escolha quem recebe</p><h3>Contatos da transmissão</h3></div>
+                <span class="pill success"><b id="transmissionSelectedCount">0</b> selecionados</span>
+              </div>
+              <input id="transmissionContactSearch" class="inline-search" style="width:100%;margin-bottom:10px" placeholder="Buscar por nome ou telefone">
+              <div class="table-wrap" style="max-height:420px;overflow:auto">
+                <table>
+                  <thead><tr><th style="width:70px">Enviar</th><th>Nome</th><th>Telefone</th></tr></thead>
+                  <tbody id="transmissionContactsTable"></tbody>
+                </table>
+              </div>
+              <p class="muted" style="margin-top:8px">Marque somente os contatos que podem receber sua transmissão. Desmarque para remover da lista sem apagar o contato do painel.</p>
+            </div>
+
             <div class="check-list">
               <div><b>✓</b><span>Administrador usa somente os próprios contatos</span></div>
               <div><b>✓</b><span>Cada revenda sincroniza somente o próprio WhatsApp</span></div>
@@ -408,7 +423,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260921-transmissao2"></script>
+  <script type="module" src="./app.js?v=20260921-transmissao3"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260921-13"></script>

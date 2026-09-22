@@ -717,3 +717,39 @@ img,video,canvas,svg{max-width:100%}
   #contactsGrid .wa-contact-card,#transmissionContactsGrid .wa-contact-card{grid-template-columns:46px minmax(0,1fr) auto!important}
 }
 @media(min-width:851px){.mobile-chat-back{display:none!important}}
+
+
+/* Correção do menu móvel: 10 opções fixas em duas linhas */
+@media(max-width:850px){
+  .sidebar{
+    height:calc(118px + env(safe-area-inset-bottom))!important;
+    padding:5px 4px calc(5px + env(safe-area-inset-bottom))!important;
+  }
+  .sidebar nav{
+    display:grid!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    grid-template-rows:repeat(2,1fr)!important;
+    gap:2px!important;
+    width:100%!important;
+    overflow:hidden!important;
+  }
+  .sidebar .nav-item{
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    height:52px!important;
+    flex:none!important;
+    padding:4px 2px!important;
+  }
+  .sidebar .nav-item span{
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    font-size:.54rem!important;
+    text-align:center!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  .main{padding-bottom:calc(134px + env(safe-area-inset-bottom))!important}
+}

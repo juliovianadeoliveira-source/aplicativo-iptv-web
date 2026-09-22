@@ -364,7 +364,7 @@ function renderCampaigns(){
   if($("#campaignEligible"))$("#campaignEligible").textContent=eligible;
   if($("#transmissionContactsTotal"))$("#transmissionContactsTotal").textContent=state.contacts.length;
   if($("#lastContactSync"))$("#lastContactSync").textContent=state.settings?.last_contact_sync_at
-    ? fmtDate(state.settings.last_contact_sync_at)+" • "+Number(state.settings?.last_contact_sync_count||0)+" contatos"
+    ? fmtDate(state.settings.last_contact_sync_at)+" • "+Number(state.settings?.last_contact_sync_count||0)+" contatos • "+Number(state.settings?.last_contact_photo_count||0)+" fotos"
     : "Ainda não sincronizado";
   if($("#contactSyncStatus")){
     $("#contactSyncStatus").className="pill "+(state.settings?.bridge_connected?"success":"warning");

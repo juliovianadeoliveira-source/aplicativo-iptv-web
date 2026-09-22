@@ -98,6 +98,13 @@ def presence(phone,state,token=None):
 def send_text(phone, body, token=None):
     return wuz("/chat/send/text",{"Phone":phone,"Body":body},token)
 
+def send_image(phone, caption, image_data_uri, token=None):
+    return wuz("/chat/send/image",{
+        "Phone":phone,
+        "Caption":caption or "",
+        "Image":image_data_uri,
+    },token)
+
 def reject_call(call_from, call_id, token=None):
     return wuz("/call/reject",{"call_from":call_from,"call_id":call_id},token)
 
@@ -902,14 +909,15 @@ def main():
                 mid=str(m.get("id",""))
                 phone=str(m.get("phone","")).strip()
                 body=str(m.get("body",""))
+                image_data_uri=str(m.get("image_data_uri") or "").strip()
                 delay=max(400,min(int(m.get("delay_ms") or 1200),5000))
-                if not mid or not phone or not body:
+                if not mid or not phone or (not body and not image_data_uri):
                     ack(mid,False,error="payload inválido")
                     continue
                 try:
                     presence(phone,"composing")
                     time.sleep(delay/1000.0)
-                    result=send_text(phone,body)
+                    result=send_image(phone,body,image_data_uri) if image_data_uri else send_text(phone,body)
                     presence(phone,"paused")
                     ok=bool(result.get("success",False))
                     ext=(result.get("data") or {}).get("Id") or (result.get("data") or {}).get("id")

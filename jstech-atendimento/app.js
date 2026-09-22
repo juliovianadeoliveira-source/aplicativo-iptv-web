@@ -890,13 +890,14 @@ function renderSettings(){
   const s=state.settings||{};
   if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=s.company_name||"JSTech";
   $("#companyName").value=s.company_name||"JSTech";
+  if($("#virtualAgentName"))$("#virtualAgentName").value=s.virtual_agent_name||"Ana";
   $("#welcomeMessage").value=s.welcome_message||"";
   $("#fallbackMessage").value=s.fallback_message||"";
   renderBridgeUi(!!s.bridge_connected);
   refreshBridgeStatus().catch(()=>{});
 }
 
-$("#settingsForm").addEventListener("submit",async e=>{e.preventDefault();const patch={company_name:$("#companyName").value.trim()||"JSTech",welcome_message:$("#welcomeMessage").value.trim(),ai_enabled:state.settings?.ai_enabled!==false,fallback_message:$("#fallbackMessage").value.trim(),updated_at:new Date().toISOString()};const {data,error}=await sb.from("wa_settings").update(patch).eq("workspace_id",state.workspace.id).select().single();if(error)return toast(error.message,"error");state.settings=data;if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=data.company_name||"JSTech";renderDashboard();toast("Configurações salvas.")});
+$("#settingsForm").addEventListener("submit",async e=>{e.preventDefault();const patch={company_name:$("#companyName").value.trim()||"JSTech",virtual_agent_name:$("#virtualAgentName")?.value.trim()||"Ana",welcome_message:$("#welcomeMessage").value.trim(),ai_enabled:state.settings?.ai_enabled!==false,fallback_message:$("#fallbackMessage").value.trim(),updated_at:new Date().toISOString()};const {data,error}=await sb.from("wa_settings").update(patch).eq("workspace_id",state.workspace.id).select().single();if(error)return toast(error.message,"error");state.settings=data;if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=data.company_name||"JSTech";renderDashboard();toast("Configurações salvas.")});
 
 async function bridgeInvoke(action,extra={}){
   const {data,error}=await sb.functions.invoke(BRIDGE_FUNCTION,{body:{workspace_id:state.workspace.id,action,...extra}});

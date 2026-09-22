@@ -93,9 +93,9 @@ function pageMeta(page){
   })[page];
 }
 function goPage(page){
-  $$$(".page").forEach(x=>x.classList.remove("active"));
+  $(".page").forEach(x=>x.classList.remove("active"));
   $("#page-"+page)?.classList.add("active");
-  $$$(".nav-item[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
+  $(".nav-item[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
   const [e,t]=pageMeta(page); $("#pageEyebrow").textContent=e; $("#pageTitle").textContent=t;
 }
 
@@ -116,7 +116,7 @@ $("#loginForm").addEventListener("submit",async e=>{
 });
 $("#logoutBtn").addEventListener("click",()=>sb.auth.signOut());
 $("#mainNav").addEventListener("click",e=>{const b=e.target.closest("[data-page]");if(b)goPage(b.dataset.page)});
-$$$("[data-go]").forEach(b=>b.addEventListener("click",()=>goPage(b.dataset.go)));
+$("[data-go]").forEach(b=>b.addEventListener("click",()=>goPage(b.dataset.go)));
 $("#refreshBtn").addEventListener("click",()=>loadAll(true));
 
 async function boot(){
@@ -191,7 +191,7 @@ function renderConversations(){
   if(!rows.length){list.className="conversation-list empty-box";list.textContent="Nenhuma conversa ainda.";return}
   list.className="conversation-list"; list.innerHTML=rows.map(c=>{const ct=c.wa_contacts||{};return '<div class="conversation-item '+(state.activeConversation?.id===c.id?"active":"")+'" data-id="'+c.id+'">'+contactAvatarHtml(ct,true)+'<div class="conversation-info"><b>'+escapeHtml(ct.name||ct.phone||"Cliente")+'</b><span>'+escapeHtml(ct.phone||"")+'</span></div><div class="conversation-time">'+fmtDate(c.last_message_at)+(c.unread_count?'<span class="unread-dot">'+c.unread_count+'</span>':"")+"</div></div>"}).join("");
   wireAvatarFallback(list);
-  $$$("[data-id]",list).forEach(el=>el.addEventListener("click",()=>openConversation(el.dataset.id)));
+  $("[data-id]",list).forEach(el=>el.addEventListener("click",()=>openConversation(el.dataset.id)));
 }
 $("#conversationSearch").addEventListener("input",renderConversations);
 async function openConversation(id){
@@ -601,14 +601,14 @@ $("#syncContactsBtn")?.addEventListener("click",async()=>{
 const ORGANIC_BASE="https://juliovianadeoliveira-source.github.io/aplicativo-iptv-web/jstech-oferta/";
 function organicLink(src){return ORGANIC_BASE+"?src="+encodeURIComponent(src)}
 function renderOrganicLinks(){
-  $$$("[data-organic-link]").forEach(el=>{
+  $("[data-organic-link]").forEach(el=>{
     const src=el.dataset.organicLink;
     const url=organicLink(src);
     el.textContent=url;
     el.href=url;
   });
 }
-$$$("[data-copy-organic]").forEach(btn=>btn.addEventListener("click",async()=>{
+$("[data-copy-organic]").forEach(btn=>btn.addEventListener("click",async()=>{
   const src=btn.dataset.copyOrganic;
   try{
     await navigator.clipboard.writeText(organicLink(src));
@@ -876,7 +876,7 @@ resetSimulator();
 function renderKnowledge(){
   const list=$("#knowledgeList");if(!state.knowledge.length){list.innerHTML='<p class="muted">Nenhuma informação cadastrada.</p>';return}
   list.innerHTML=state.knowledge.map(k=>'<div class="knowledge-item"><div class="knowledge-item-head"><div><b>'+escapeHtml(k.title)+'</b><p>'+escapeHtml((k.keywords||[]).join(", "))+'</p></div><div class="knowledge-actions"><button data-ke="'+k.id+'">Editar</button><button data-kd="'+k.id+'">Excluir</button></div></div><p>'+escapeHtml(k.content.slice(0,150))+(k.content.length>150?"…":"")+'</p></div>').join("");
-  $$$("[data-ke]").forEach(b=>b.addEventListener("click",()=>editKnowledge(b.dataset.ke)));$$$("[data-kd]").forEach(b=>b.addEventListener("click",()=>deleteKnowledge(b.dataset.kd)));
+  $("[data-ke]").forEach(b=>b.addEventListener("click",()=>editKnowledge(b.dataset.ke)));$("[data-kd]").forEach(b=>b.addEventListener("click",()=>deleteKnowledge(b.dataset.kd)));
 }
 function editKnowledge(id){const k=state.knowledge.find(x=>x.id===id);state.editingKnowledge=id;$("#knowledgeFormTitle").textContent="Editar informação";$("#knowledgeTitle").value=k.title;$("#knowledgeKeywords").value=(k.keywords||[]).join(", ");$("#knowledgeContent").value=k.content}
 function clearKnowledge(){state.editingKnowledge=null;$("#knowledgeFormTitle").textContent="Nova informação";$("#knowledgeForm").reset()}

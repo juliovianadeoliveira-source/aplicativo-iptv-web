@@ -28,7 +28,8 @@ const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const state = {
   session:null, workspace:null, settings:null, contacts:[], conversations:[], messages:[],
   automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], activePanel:null, activeConversation:null, activeAutomation:null,
-  activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false, userRole:null
+  activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false, userRole:null,
+  activeCampaignId:null, campaignFormCampaignId:null
 };
 
 function toast(msg, type="success"){
@@ -114,6 +115,10 @@ async function loadAll(showToast=false){
     ]);
     if(settings.error)throw settings.error;if(contacts.error)throw contacts.error;if(convs.error)throw convs.error;if(autos.error)throw autos.error;if(knowledge.error)throw knowledge.error;if(campaigns.error)throw campaigns.error;
     state.settings=settings.data;state.contacts=contacts.data||[];state.conversations=convs.data||[];state.automations=autos.data||[];state.knowledge=knowledge.data||[];state.campaigns=campaigns.data||[];
+    if(!state.activeCampaignId || (state.activeCampaignId!=="__new__" && !state.campaigns.some(x=>x.id===state.activeCampaignId))){
+      state.activeCampaignId=state.campaigns[0]?.id||"__new__";
+      state.campaignFormCampaignId=null;
+    }
     const {data:alias}=await sb.from("wa_login_aliases").select("role").eq("auth_user_id",state.session.user.id).eq("workspace_id",id).maybeSingle();
     state.userRole=alias?.role||"owner";
     if(state.userRole==="reseller")state.bridgeHosted=true;
@@ -283,9 +288,28 @@ function renderTransmissionContacts(){
 
 $("#transmissionContactSearch")?.addEventListener("input",renderTransmissionContacts);
 
+function currentCampaign(){
+  return state.campaigns.find(x=>x.id===state.activeCampaignId)||null;
+}
+
+function renderCampaignSelector(){
+  const sel=$("#campaignSelector");
+  if(!sel)return;
+  const isNew=state.activeCampaignId==="__new__";
+  const opts=[];
+  if(isNew||!state.campaigns.length)opts.push('<option value="__new__">Nova transmissão</option>');
+  for(const x of state.campaigns){
+    opts.push('<option value="'+x.id+'">'+escapeHtml(x.name||"Transmissão sem nome")+'</option>');
+  }
+  sel.innerHTML=opts.join("");
+  sel.value=isNew?"__new__":(currentCampaign()?.id||state.campaigns[0]?.id||"__new__");
+}
+
 function renderCampaigns(){
   renderTransmissionContacts();
-  const camp=state.campaigns[0];
+  renderCampaignSelector();
+  const camp=currentCampaign();
+  const formKey=camp?.id||"__new__";
   const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at).length;
   if($("#campaignEligible"))$("#campaignEligible").textContent=eligible;
   if($("#transmissionContactsTotal"))$("#transmissionContactsTotal").textContent=state.contacts.length;
@@ -296,31 +320,49 @@ function renderCampaigns(){
     $("#contactSyncStatus").className="pill "+(state.settings?.bridge_connected?"success":"warning");
     $("#contactSyncStatus").textContent=state.settings?.bridge_connected?"Ativa":"WhatsApp desconectado";
   }
-  if(!camp){
-    if($("#campaignStatus"))$("#campaignStatus").textContent="Desativada";
-    if($("#campaignLastSent"))$("#campaignLastSent").textContent="Ainda não enviada";
-    return;
-  }
-  if($("#campaignName"))$("#campaignName").value=camp.name||"";
-  if($("#campaignMessage"))$("#campaignMessage").value=camp.message||"";
-  if($("#campaignHour"))$("#campaignHour").value=String(camp.daily_hour??12);
-  if($("#campaignEnabled"))$("#campaignEnabled").checked=!!camp.enabled;
-  if($("#campaignStatus"))$("#campaignStatus").textContent=camp.enabled
-    ? "Automática • diária • "+String(camp.daily_hour??12).padStart(2,"0")+":00"
-    : "Manual";
-  if($("#campaignLastSent"))$("#campaignLastSent").textContent=camp.last_sent_at?fmtDate(camp.last_sent_at):"Ainda não enviada";
-  if(camp.image_data_uri){
-    $("#campaignImagePreview").src=camp.image_data_uri;
-    $("#campaignImagePreviewWrap")?.classList.remove("hidden");
-  }else{
-    $("#campaignImagePreview")?.removeAttribute("src");
-    $("#campaignImagePreviewWrap")?.classList.add("hidden");
-  }
-}
 
+  if(state.campaignFormCampaignId!==formKey){
+    if(camp){
+      if($("#campaignName"))$("#campaignName").value=camp.name||"";
+      if($("#campaignMessage"))$("#campaignMessage").value=camp.message||"";
+      if($("#campaignHour"))$("#campaignHour").value=String(camp.daily_hour??12);
+      if($("#campaignEnabled"))$("#campaignEnabled").checked=!!camp.enabled;
+      if(camp.image_data_uri){
+        $("#campaignImagePreview").src=camp.image_data_uri;
+        $("#campaignImagePreviewWrap")?.classList.remove("hidden");
+      }else{
+        $("#campaignImagePreview")?.removeAttribute("src");
+        $("#campaignImagePreviewWrap")?.classList.add("hidden");
+      }
+    }else{
+      if($("#campaignName"))$("#campaignName").value="";
+      if($("#campaignMessage"))$("#campaignMessage").value="";
+      if($("#campaignHour"))$("#campaignHour").value="12";
+      if($("#campaignEnabled"))$("#campaignEnabled").checked=false;
+      if($("#campaignImage"))$("#campaignImage").value="";
+      $("#campaignImagePreview")?.removeAttribute("src");
+      $("#campaignImagePreviewWrap")?.classList.add("hidden");
+    }
+    if($("#campaignImage"))$("#campaignImage").value="";
+    state.campaignFormCampaignId=formKey;
+  }
+
+  if($("#campaignStatus")){
+    if(!camp){
+      $("#campaignStatus").className="pill warning";
+      $("#campaignStatus").textContent="Nova";
+    }else{
+      $("#campaignStatus").className="pill "+(camp.enabled?"success":"warning");
+      $("#campaignStatus").textContent=camp.enabled
+        ? "Automática • diária • "+String(camp.daily_hour??12).padStart(2,"0")+":00"
+        : "Manual";
+    }
+  }
+  if($("#campaignLastSent"))$("#campaignLastSent").textContent=camp?.last_sent_at?fmtDate(camp.last_sent_at):"Ainda não enviada";
+}
 function readCampaignImage(){
   const file=$("#campaignImage")?.files?.[0];
-  if(!file)return Promise.resolve(state.campaigns[0]?.image_data_uri||null);
+  if(!file)return Promise.resolve(currentCampaign()?.image_data_uri||null);
   if(file.size>3*1024*1024)return Promise.reject(new Error("A imagem deve ter no máximo 3 MB."));
   return new Promise((resolve,reject)=>{
     const fr=new FileReader();
@@ -339,8 +381,24 @@ $("#campaignImage")?.addEventListener("change",async()=>{
   }catch(err){toast(err.message||"Falha ao carregar imagem.","error")}
 });
 
+$("#campaignSelector")?.addEventListener("change",()=>{
+  const value=$("#campaignSelector").value;
+  if(!value)return;
+  state.activeCampaignId=value;
+  state.campaignFormCampaignId=null;
+  renderCampaigns();
+});
+
+$("#newTransmissionBtn")?.addEventListener("click",()=>{
+  state.activeCampaignId="__new__";
+  state.campaignFormCampaignId=null;
+  renderCampaigns();
+  $("#campaignName")?.focus();
+  toast("Nova transmissão aberta. Preencha e clique em Salvar transmissão.");
+});
+
 async function saveTransmission(){
-  let camp=state.campaigns[0];
+  let camp=currentCampaign();
   let imageData=null;
   try{imageData=await readCampaignImage()}catch(err){throw new Error(err.message||"Imagem inválida.")}
   const payload={
@@ -368,7 +426,13 @@ async function saveTransmission(){
     result=await sb.from("wa_campaigns").insert(payload).select().single();
   }
   if(result.error)throw result.error;
-  state.campaigns=[result.data];
+  if(camp){
+    state.campaigns=state.campaigns.map(x=>x.id===result.data.id?result.data:x);
+  }else{
+    state.campaigns=[...state.campaigns,result.data];
+  }
+  state.activeCampaignId=result.data.id;
+  state.campaignFormCampaignId=result.data.id;
   renderCampaigns();
   return result.data;
 }

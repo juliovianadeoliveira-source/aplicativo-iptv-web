@@ -43,7 +43,7 @@ function isStandaloneApp(){
 }
 function updateInstallButtons(){
   const installed=isStandaloneApp();
-  $(".install-app-btn").forEach(btn=>btn.classList.toggle("hidden",installed));
+  $$(".install-app-btn").forEach(btn=>btn.classList.toggle("hidden",installed));
 }
 async function requestAppInstall(){
   if(isStandaloneApp()){
@@ -161,9 +161,9 @@ function pageMeta(page){
 function goPage(page){
   const meta=pageMeta(page);
   if(!meta)return;
-  $(".page").forEach(x=>x.classList.remove("active"));
+  $$(".page").forEach(x=>x.classList.remove("active"));
   $("#page-"+page)?.classList.add("active");
-  $(".nav-item[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
+  $$(".nav-item[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
   const [e,t]=meta; $("#pageEyebrow").textContent=e; $("#pageTitle").textContent=t;
   try{
     const url=new URL(location.href);

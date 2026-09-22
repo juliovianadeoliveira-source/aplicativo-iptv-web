@@ -44,7 +44,23 @@ function contactAvatarHtml(c,small=false){
   const fallbackCls=small?"conversation-avatar":"wa-contact-photo-fallback";
   const fallback='<div class="'+fallbackCls+'">'+escapeHtml(initials(c?.name,c?.phone))+'</div>';
   if(!c?.profile_photo_url)return fallback;
-  return '<img class="'+cls+'" src="'+escapeHtml(c.profile_photo_url)+'" alt="" loading="lazy" referrerpolicy="no-referrer" data-contact-avatar><div class="'+fallbackCls+' hidden">'+escapeHtml(initials(c?.name,c?.phone))+'</div>';
+  return '<img class="'+cls+'" src="'+escapeHtml(c.profile_photo_url)+'" alt="" loading="lazy" referrerpolicy="no-referrer" data-contact-avatar data-photo-name="'+escapeHtml(c?.name||"Contato")+'" data-photo-phone="'+escapeHtml(c?.phone||"")+'"><div class="'+fallbackCls+' hidden">'+escapeHtml(initials(c?.name,c?.phone))+'</div>';
+}
+function openContactPhoto(img){
+  const modal=$("#contactPhotoModal");
+  if(!modal||!img?.src)return;
+  $("#contactPhotoLarge").src=img.src;
+  $("#contactPhotoName").textContent=img.dataset.photoName||"Contato";
+  $("#contactPhotoPhone").textContent=img.dataset.photoPhone||"";
+  modal.classList.remove("hidden");
+  document.body.classList.add("photo-modal-open");
+}
+function closeContactPhoto(){
+  const modal=$("#contactPhotoModal");
+  if(!modal)return;
+  modal.classList.add("hidden");
+  $("#contactPhotoLarge").removeAttribute("src");
+  document.body.classList.remove("photo-modal-open");
 }
 function wireAvatarFallback(root=document){
   root.querySelectorAll?.("[data-contact-avatar]").forEach(img=>{
@@ -52,8 +68,19 @@ function wireAvatarFallback(root=document){
       img.classList.add("hidden");
       img.nextElementSibling?.classList.remove("hidden");
     },{once:true});
+    img.addEventListener("click",e=>{
+      e.stopPropagation();
+      openContactPhoto(img);
+    });
   });
 }
+$("#closeContactPhotoBtn")?.addEventListener("click",closeContactPhoto);
+$("#contactPhotoModal")?.addEventListener("click",e=>{
+  if(e.target.closest("[data-close-contact-photo]"))closeContactPhoto();
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&!$("#contactPhotoModal")?.classList.contains("hidden"))closeContactPhoto();
+});
 function showLogin(msg=""){ $("#loginView").classList.remove("hidden"); $("#appView").classList.add("hidden"); $("#loginMsg").textContent=msg; }
 function showApp(){ $("#loginView").classList.add("hidden"); $("#appView").classList.remove("hidden"); }
 function pageMeta(page){

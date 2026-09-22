@@ -544,3 +544,47 @@ body.photo-modal-open{overflow:hidden}
 @media(max-width:700px){
   .dashboard-wa-slots,.whatsapp-slot-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* Foto instantânea: mantém a resolução real sem esticar */
+.contact-photo-dialog{
+  width:min(760px,96vw)!important;
+}
+.contact-photo-stage{
+  min-height:120px;
+  max-height:78vh;
+}
+.contact-photo-large{
+  width:auto!important;
+  height:auto!important;
+  max-width:min(720px,92vw)!important;
+  max-height:78vh!important;
+  object-fit:contain!important;
+  image-rendering:auto;
+  border-radius:8px;
+  background:#050505;
+}
+.wa-contact-email{
+  display:block;
+  margin-top:2px;
+  font-size:.66rem;
+  color:#7f93aa;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.contact-sync-actions{
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+  margin:14px 0 8px;
+}
+.contact-sync-actions .btn{min-width:180px}
+@media(max-width:560px){
+  .contact-sync-actions{display:grid;grid-template-columns:1fr}
+  .contact-sync-actions .btn{width:100%;min-width:0}
+  .contact-photo-large{
+    max-width:94vw!important;
+    max-height:74vh!important;
+  }
+}

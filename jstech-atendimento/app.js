@@ -233,7 +233,7 @@ async function toggleMarketing(id){
   const {error}=await sb.from("wa_contacts").update(patch).eq("id",id);
   if(error)return toast(error.message,"error");
   Object.assign(c,patch);renderContacts();renderCampaigns();
-  toast(value?"Cliente autorizado para ofertas.":"Ofertas desativadas para este cliente.");
+  toast(value?"Cliente autorizado para transmissão.":"Transmissão desativada para este cliente.");
 }
 
 function renderCampaigns(){

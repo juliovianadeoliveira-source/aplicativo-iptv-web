@@ -223,20 +223,68 @@ function renderContacts(){
 }
 $("#contactSearch").addEventListener("input",renderContacts);
 async function toggleContactBot(id){const c=state.contacts.find(x=>x.id===id);if(!c)return;const value=!c.bot_enabled;const ctx=value?{}:{...(c.bot_context||{}),manual_pause:true,human_takeover_until:null};const {error}=await sb.from("wa_contacts").update({bot_enabled:value,bot_context:ctx,updated_at:new Date().toISOString()}).eq("id",id);if(error)return toast(error.message,"error");c.bot_enabled=value;c.bot_context=ctx;renderContacts();renderDashboard()}
+async function setTransmissionContact(id,value){
+  const c=state.contacts.find(x=>x.id===id);if(!c)return false;
+  const active=!!(c.marketing_opt_in&&!c.marketing_opt_out_at);
+  if(active===value)return true;
+  if(value&&!confirm("Adicionar este contato à transmissão? Confirme somente se ele autorizou receber mensagens pelo WhatsApp.")){
+    renderTransmissionContacts();
+    return false;
+  }
+  const now=new Date().toISOString();
+  const patch=value
+    ? {marketing_opt_in:true,marketing_opt_in_at:now,marketing_opt_out_at:null,marketing_source:"selecionado_na_transmissao",updated_at:now}
+    : {marketing_opt_in:false,marketing_opt_out_at:now,updated_at:now};
+  const {error}=await sb.from("wa_contacts").update(patch).eq("id",id);
+  if(error){
+    toast(error.message,"error");
+    renderTransmissionContacts();
+    return false;
+  }
+  Object.assign(c,patch);
+  renderContacts();
+  renderCampaigns();
+  toast(value?"Contato adicionado à transmissão.":"Contato removido da transmissão.");
+  return true;
+}
+
 async function toggleMarketing(id){
   const c=state.contacts.find(x=>x.id===id);if(!c)return;
   const value=!(c.marketing_opt_in&&!c.marketing_opt_out_at);
-  if(value&&!confirm("Confirme somente se este cliente autorizou receber ofertas pelo WhatsApp."))return;
-  const patch=value
-    ? {marketing_opt_in:true,marketing_opt_in_at:new Date().toISOString(),marketing_opt_out_at:null,marketing_source:"autorizado_no_painel",updated_at:new Date().toISOString()}
-    : {marketing_opt_in:false,marketing_opt_out_at:new Date().toISOString(),updated_at:new Date().toISOString()};
-  const {error}=await sb.from("wa_contacts").update(patch).eq("id",id);
-  if(error)return toast(error.message,"error");
-  Object.assign(c,patch);renderContacts();renderCampaigns();
-  toast(value?"Cliente autorizado para transmissão.":"Transmissão desativada para este cliente.");
+  await setTransmissionContact(id,value);
 }
 
+function renderTransmissionContacts(){
+  const table=$("#transmissionContactsTable");
+  if(!table)return;
+  const q=($("#transmissionContactSearch")?.value||"").toLowerCase().trim();
+  const selected=c=>!!(c.marketing_opt_in&&!c.marketing_opt_out_at);
+  const rows=state.contacts
+    .filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q))
+    .slice()
+    .sort((a,b)=>Number(selected(b))-Number(selected(a))||String(a.name||a.phone||"").localeCompare(String(b.name||b.phone||""),"pt-BR"));
+
+  if($("#transmissionSelectedCount")){
+    $("#transmissionSelectedCount").textContent=state.contacts.filter(selected).length;
+  }
+  if(!rows.length){
+    table.innerHTML='<tr><td colspan="3" class="muted">Nenhum contato encontrado.</td></tr>';
+    return;
+  }
+  table.innerHTML=rows.map(c=>{
+    const checked=selected(c)?" checked":"";
+    return '<tr><td><input type="checkbox" data-transmission-contact="'+c.id+'"'+checked+' style="width:20px;height:20px;cursor:pointer" aria-label="Incluir '+escapeHtml(c.name||c.phone||"contato")+' na transmissão"></td><td><b>'+escapeHtml(c.name||"Sem nome")+'</b></td><td>'+escapeHtml(c.phone||"")+'</td></tr>';
+  }).join("");
+  $("[data-transmission-contact]",table).forEach(box=>box.addEventListener("change",async()=>{
+    box.disabled=true;
+    await setTransmissionContact(box.dataset.transmissionContact,box.checked);
+  }));
+}
+
+$("#transmissionContactSearch")?.addEventListener("input",renderTransmissionContacts);
+
 function renderCampaigns(){
+  renderTransmissionContacts();
   const camp=state.campaigns[0];
   const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at).length;
   if($("#campaignEligible"))$("#campaignEligible").textContent=eligible;
@@ -311,7 +359,7 @@ async function saveTransmission(){
   if(payload.enabled&&eligible===0){
     $("#campaignEnabled").checked=false;
     payload.enabled=false;
-    throw new Error("Nenhum contato está autorizado para transmissão. Marque os autorizados na aba Clientes.");
+    throw new Error("Nenhum contato está selecionado para transmissão. Marque os contatos na lista ao lado.");
   }
   let result;
   if(camp){

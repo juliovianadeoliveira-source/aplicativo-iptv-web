@@ -80,7 +80,7 @@ def wuz_get_body(path, body, token=None):
 
 def contact_avatar(phone, token=None):
     try:
-        r=wuz_get_body("/user/avatar",{"Phone":phone,"Preview":True},token)
+        r=wuz_get_body("/user/avatar",{"Phone":phone,"Preview":False},token)
         data=r.get("data",r) if isinstance(r,dict) else {}
         if isinstance(data,dict):
             return str(data.get("URL") or data.get("Url") or data.get("url") or "").strip()

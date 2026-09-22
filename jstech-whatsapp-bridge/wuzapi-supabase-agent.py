@@ -75,6 +75,16 @@ def wuz(path, body, token=None):
 def wuz_get(path, token=None):
     return http_json(WUZ+path,"GET",None,{"token":token or TOKEN},25)
 
+def contact_avatar(phone, token=None):
+    try:
+        r=wuz("/user/avatar",{"Phone":phone,"Preview":True},token)
+        data=r.get("data",r) if isinstance(r,dict) else {}
+        if isinstance(data,dict):
+            return str(data.get("URL") or data.get("Url") or data.get("url") or "").strip()
+    except Exception:
+        pass
+    return ""
+
 def fetch_contacts(token=None):
     r=wuz_get("/user/contacts",token)
     data=r.get("data",{}) if isinstance(r,dict) else {}
@@ -96,8 +106,24 @@ def fetch_contacts(token=None):
                 or str(info.get("PushName") or "").strip()
                 or phone
             )
-            rows.append({"phone":phone,"name":name})
-    return {"contacts":rows,"count":len(rows)}
+            rows.append({"phone":phone,"name":name,"profile_photo_url":""})
+
+    if rows:
+        def fill_avatar(row):
+            row["profile_photo_url"]=contact_avatar(row["phone"],token)
+            return row
+        try:
+            workers=min(12,max(1,len(rows)))
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                rows=list(pool.map(fill_avatar,rows))
+        except Exception:
+            pass
+
+    return {
+        "contacts":rows,
+        "count":len(rows),
+        "photos_count":sum(1 for x in rows if x.get("profile_photo_url"))
+    }
 
 def ensure_local_webhook():
     sig=hashlib.sha256(TOKEN.encode("utf-8")).hexdigest()

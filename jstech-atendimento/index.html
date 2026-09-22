@@ -148,6 +148,12 @@
             </div>
             <p class="muted">Use o WhatsApp conectado ao painel para enviar sua transmissão. Administrador e revendas usam bases separadas. O envio comercial é feito somente para contatos marcados como <b>Autorizado</b>.</p>
             <form id="campaignForm" class="stack">
+              <div class="top-actions" style="align-items:end;justify-content:flex-start;flex-wrap:wrap">
+                <label style="flex:1;min-width:220px">Transmissões salvas
+                  <select id="campaignSelector"></select>
+                </label>
+                <button id="newTransmissionBtn" class="btn ghost" type="button">Nova transmissão</button>
+              </div>
               <label>Nome da transmissão<input id="campaignName" placeholder="Ex.: Ofertas da semana"></label>
               <label>Mensagem<textarea id="campaignMessage" rows="16" placeholder="Escreva a mensagem que será enviada"></textarea></label>
               <label>Horário da transmissão automática
@@ -423,7 +429,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260921-transmissao4"></script>
+  <script type="module" src="./app.js?v=20260921-transmissao5"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260921-13"></script>

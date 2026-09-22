@@ -51,3 +51,14 @@
 }
 
 .conversation-avatar-photo{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#1a3048;border:1px solid #2a4058}
+
+/* Mantém todos os recursos acessíveis também no celular */
+@media(max-width:850px){
+  .sidebar nav{display:flex;overflow-x:auto;overflow-y:hidden;gap:4px;scrollbar-width:none}
+  .sidebar nav::-webkit-scrollbar{display:none}
+  .nav-item{min-width:58px;flex:0 0 58px}
+}
+@media(max-width:560px){
+  .top-actions .btn{display:inline-flex}
+  .topbar .top-actions .btn{display:none}
+}

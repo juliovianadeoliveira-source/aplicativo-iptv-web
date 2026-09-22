@@ -23,11 +23,8 @@ async function detectRole(){
   const {data:a}=await db.from("wa_login_aliases").select("role,username,workspace_id").eq("auth_user_id",s.user.id).maybeSingle();
   role=a?.role||"reseller";
   workspace=a?.workspace_id?{id:a.workspace_id}:null;
-  if(role!=="owner"){
-    $("#resellerNav")?.classList.add("hidden");
-    $("#page-resellers")?.classList.add("hidden");
-    return;
-  }
+  $("#resellerNav")?.classList.remove("hidden");
+  $("#page-resellers")?.classList.remove("hidden");
   if(!workspace){
     const {data:w}=await db.from("wa_workspaces").select("id").eq("owner_id",s.user.id).limit(1);
     workspace=w?.[0]||null;
@@ -35,7 +32,7 @@ async function detectRole(){
   await load();
 }
 async function load(){
-  if(role!=="owner"||!workspace)return;
+  if(!workspace)return;
   try{
     const d=await call({action:"list",workspace_id:workspace.id});
     const host=$("#resellerList");if(!host)return;

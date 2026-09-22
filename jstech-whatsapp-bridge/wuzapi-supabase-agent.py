@@ -78,9 +78,9 @@ def wuz_get(path, token=None):
 def wuz_get_body(path, body, token=None):
     return http_json(WUZ+path,"GET",body,{"token":token or TOKEN},25)
 
-def contact_avatar(phone, token=None):
+def contact_avatar(phone, token=None, preview=False):
     try:
-        r=wuz_get_body("/user/avatar",{"Phone":phone,"Preview":False},token)
+        r=wuz_get_body("/user/avatar",{"Phone":phone,"Preview":bool(preview)},token)
         data=r.get("data",r) if isinstance(r,dict) else {}
         if isinstance(data,dict):
             return str(data.get("URL") or data.get("Url") or data.get("url") or "").strip()
@@ -113,7 +113,11 @@ def fetch_contacts(token=None):
 
     if rows:
         def fill_avatar(row):
-            row["profile_photo_url"]=contact_avatar(row["phone"],token)
+            preview=contact_avatar(row["phone"],token,True)
+            full=contact_avatar(row["phone"],token,False)
+            row["profile_photo_preview_url"]=preview
+            row["profile_photo_hd_url"]=full
+            row["profile_photo_url"]=full or preview
             return row
         try:
             workers=min(12,max(1,len(rows)))
@@ -125,7 +129,8 @@ def fetch_contacts(token=None):
     return {
         "contacts":rows,
         "count":len(rows),
-        "photos_count":sum(1 for x in rows if x.get("profile_photo_url"))
+        "photos_count":sum(1 for x in rows if x.get("profile_photo_url")),
+        "photos_hd_count":sum(1 for x in rows if x.get("profile_photo_hd_url"))
     }
 
 def ensure_local_webhook():

@@ -92,8 +92,12 @@ function contactAvatarHtml(c,small=false){
   const cls=small?"conversation-avatar-photo":"wa-contact-photo";
   const fallbackCls=small?"conversation-avatar":"wa-contact-photo-fallback";
   const fallback='<div class="'+fallbackCls+'">'+escapeHtml(initials(c?.name,c?.phone))+'</div>';
-  if(!c?.profile_photo_url)return fallback;
-  return '<img class="'+cls+'" src="'+escapeHtml(c.profile_photo_url)+'" alt="" loading="lazy" referrerpolicy="no-referrer" data-contact-avatar data-photo-name="'+escapeHtml(c?.name||"Contato")+'" data-photo-phone="'+escapeHtml(c?.phone||"")+'"><div class="'+fallbackCls+' hidden">'+escapeHtml(initials(c?.name,c?.phone))+'</div>';
+  const raw=String(c?.profile_photo_url||"").trim();
+  const preview=String(c?.profile_photo_preview_url||"").trim()||(raw&&/s96x96/i.test(raw)?raw:"");
+  const full=String(c?.profile_photo_hd_url||"").trim()||(raw&&!/s96x96/i.test(raw)?raw:"");
+  const listPhoto=preview||full||raw;
+  if(!listPhoto)return fallback;
+  return '<img class="'+cls+'" src="'+escapeHtml(listPhoto)+'" alt="" loading="lazy" referrerpolicy="no-referrer" data-contact-avatar data-photo-full="'+escapeHtml(full)+'" data-photo-preview="'+escapeHtml(preview||listPhoto)+'" data-photo-name="'+escapeHtml(c?.name||"Contato")+'" data-photo-phone="'+escapeHtml(c?.phone||"")+'"><div class="'+fallbackCls+' hidden">'+escapeHtml(initials(c?.name,c?.phone))+'</div>';
 }
 const photoPreloadCache=new Map();
 function preloadContactPhoto(url){
@@ -107,8 +111,11 @@ function preloadContactPhoto(url){
 function openContactPhoto(img){
   const modal=$("#contactPhotoModal");
   if(!modal||!img?.src)return;
-  const url=img.currentSrc||img.src;
+  const full=String(img.dataset.photoFull||"").trim();
+  const preview=String(img.dataset.photoPreview||img.currentSrc||img.src).trim();
+  const url=full||preview;
   const large=$("#contactPhotoLarge");
+  large.classList.toggle("low-resolution",!full);
   large.src=url;
   large.decoding="async";
   large.referrerPolicy="no-referrer";
@@ -116,7 +123,7 @@ function openContactPhoto(img){
   $("#contactPhotoPhone").textContent=img.dataset.photoPhone||"";
   modal.classList.remove("hidden");
   document.body.classList.add("photo-modal-open");
-  preloadContactPhoto(url);
+  preloadContactPhoto(full||preview);
 }
 function closeContactPhoto(){
   const modal=$("#contactPhotoModal");
@@ -131,7 +138,7 @@ function wireAvatarFallback(root=document){
       img.classList.add("hidden");
       img.nextElementSibling?.classList.remove("hidden");
     },{once:true});
-    const warm=()=>preloadContactPhoto(img.currentSrc||img.src);
+    const warm=()=>preloadContactPhoto(img.dataset.photoFull||img.currentSrc||img.src);
     img.addEventListener("mouseenter",warm,{once:true});
     img.addEventListener("touchstart",warm,{once:true,passive:true});
     img.addEventListener("click",e=>{
@@ -228,7 +235,7 @@ async function loadAll(showToast=false){
     const [settings,contacts,convs,autos,knowledge,campaigns]=await Promise.all([
       sb.from("wa_settings").select("*").eq("workspace_id",id).single(),
       sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),
-      sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url,bot_context,memory_context)").eq("workspace_id",id).order("last_message_at",{ascending:false}),
+      sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url,profile_photo_preview_url,profile_photo_hd_url,bot_context,memory_context)").eq("workspace_id",id).order("last_message_at",{ascending:false}),
       sb.from("wa_automations").select("*").eq("workspace_id",id).order("created_at"),
       sb.from("wa_knowledge").select("*").eq("workspace_id",id).order("title"),
       sb.from("wa_campaigns").select("*").eq("workspace_id",id).order("created_at",{ascending:true})
@@ -1366,7 +1373,7 @@ function subscribeRealtime(){
     .on("postgres_changes",{event:"*",schema:"public",table:"wa_contacts",filter:"workspace_id=eq."+state.workspace.id},refreshConversationData)
     .subscribe();
 }
-let refreshTimer=null;function refreshConversationData(){clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{const id=state.workspace.id;const [contacts,convs]=await Promise.all([sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url,bot_context,memory_context)").eq("workspace_id",id).order("last_message_at",{ascending:false})]);if(!contacts.error)state.contacts=contacts.data||[];if(!convs.error)state.conversations=convs.data||[];if(state.activeConversation){const fresh=state.conversations.find(x=>x.id===state.activeConversation.id);if(fresh)state.activeConversation=fresh}renderDashboard();renderContacts();renderConversations()},250)}
+let refreshTimer=null;function refreshConversationData(){clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{const id=state.workspace.id;const [contacts,convs]=await Promise.all([sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url,profile_photo_preview_url,profile_photo_hd_url,bot_context,memory_context)").eq("workspace_id",id).order("last_message_at",{ascending:false})]);if(!contacts.error)state.contacts=contacts.data||[];if(!convs.error)state.conversations=convs.data||[];if(state.activeConversation){const fresh=state.conversations.find(x=>x.id===state.activeConversation.id);if(fresh)state.activeConversation=fresh}renderDashboard();renderContacts();renderConversations()},250)}
 boot();
 $("#campaignDdd27")?.addEventListener("change",renderCampaigns);
 $("#campaignDdd28")?.addEventListener("change",renderCampaigns);

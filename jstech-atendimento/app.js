@@ -315,6 +315,9 @@ function renderConversations(){
   $$("[data-id]",list).forEach(el=>el.addEventListener("click",()=>openConversation(el.dataset.id)));
 }
 $("#conversationSearch").addEventListener("input",renderConversations);
+$("#mobileChatBack")?.addEventListener("click",()=>{
+  $(".chat-layout")?.classList.remove("chat-open");
+});
 async function openConversation(id){
   const c=state.conversations.find(x=>x.id===id);if(!c)return;state.activeConversation=c;
   $(".chat-layout").classList.add("chat-open");$("#chatEmpty").classList.add("hidden");$("#chatActive").classList.remove("hidden");

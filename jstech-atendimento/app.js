@@ -47,14 +47,28 @@ function contactAvatarHtml(c,small=false){
   if(!c?.profile_photo_url)return fallback;
   return '<img class="'+cls+'" src="'+escapeHtml(c.profile_photo_url)+'" alt="" loading="lazy" referrerpolicy="no-referrer" data-contact-avatar data-photo-name="'+escapeHtml(c?.name||"Contato")+'" data-photo-phone="'+escapeHtml(c?.phone||"")+'"><div class="'+fallbackCls+' hidden">'+escapeHtml(initials(c?.name,c?.phone))+'</div>';
 }
+const photoPreloadCache=new Map();
+function preloadContactPhoto(url){
+  if(!url||photoPreloadCache.has(url))return;
+  const im=new Image();
+  im.decoding="async";
+  im.referrerPolicy="no-referrer";
+  im.src=url;
+  photoPreloadCache.set(url,im);
+}
 function openContactPhoto(img){
   const modal=$("#contactPhotoModal");
   if(!modal||!img?.src)return;
-  $("#contactPhotoLarge").src=img.src;
+  const url=img.currentSrc||img.src;
+  const large=$("#contactPhotoLarge");
+  large.src=url;
+  large.decoding="async";
+  large.referrerPolicy="no-referrer";
   $("#contactPhotoName").textContent=img.dataset.photoName||"Contato";
   $("#contactPhotoPhone").textContent=img.dataset.photoPhone||"";
   modal.classList.remove("hidden");
   document.body.classList.add("photo-modal-open");
+  preloadContactPhoto(url);
 }
 function closeContactPhoto(){
   const modal=$("#contactPhotoModal");
@@ -69,6 +83,9 @@ function wireAvatarFallback(root=document){
       img.classList.add("hidden");
       img.nextElementSibling?.classList.remove("hidden");
     },{once:true});
+    const warm=()=>preloadContactPhoto(img.currentSrc||img.src);
+    img.addEventListener("mouseenter",warm,{once:true});
+    img.addEventListener("touchstart",warm,{once:true,passive:true});
     img.addEventListener("click",e=>{
       e.stopPropagation();
       openContactPhoto(img);
@@ -151,7 +168,7 @@ async function loadAll(showToast=false){
     const [settings,contacts,convs,autos,knowledge,campaigns]=await Promise.all([
       sb.from("wa_settings").select("*").eq("workspace_id",id).single(),
       sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),
-      sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,status,bot_enabled,notes,profile_photo_url)").eq("workspace_id",id).order("last_message_at",{ascending:false}),
+      sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url)").eq("workspace_id",id).order("last_message_at",{ascending:false}),
       sb.from("wa_automations").select("*").eq("workspace_id",id).order("created_at"),
       sb.from("wa_knowledge").select("*").eq("workspace_id",id).order("title"),
       sb.from("wa_campaigns").select("*").eq("workspace_id",id).order("created_at",{ascending:true})
@@ -221,7 +238,7 @@ function renderDashboard(){
     }).join("");
   }
 }
-function convFilter(c,q){const ct=c.wa_contacts||{};return !q||(ct.name||"").toLowerCase().includes(q)||(ct.phone||"").includes(q);}
+function convFilter(c,q){const ct=c.wa_contacts||{};return !q||(ct.name||"").toLowerCase().includes(q)||(ct.phone||"").includes(q)||(ct.email||"").toLowerCase().includes(q);}
 function renderConversations(){
   const q=($("#conversationSearch")?.value||"").toLowerCase().trim(), list=$("#conversationList");
   const rows=state.conversations.filter(c=>convFilter(c,q));
@@ -255,7 +272,7 @@ function renderMessages(){
 }
 function renderContactDetails(ct,c){
   const mode=ct.bot_enabled?"IA/automação ativa":"Atendimento humano";
-  $("#contactDetails").innerHTML='<div class="contact-card"><div class="contact-row"><span>Nome</span><b>'+escapeHtml(ct.name||"Não informado")+'</b></div><div class="contact-row"><span>Telefone</span><b>'+escapeHtml(ct.phone||"-")+'</b></div><div class="contact-row"><span>Status</span><b>'+escapeHtml(c.status||ct.status||"aberta")+'</b></div><div class="contact-row"><span>Modo atual</span><b>'+mode+'</b></div></div>';
+  $("#contactDetails").innerHTML='<div class="contact-card"><div class="contact-row"><span>Nome</span><b>'+escapeHtml(ct.name||"Não informado")+'</b></div><div class="contact-row"><span>Telefone</span><b>'+escapeHtml(ct.phone||"-")+'</b></div>'+(ct.email?'<div class="contact-row"><span>E-mail</span><b>'+escapeHtml(ct.email)+'</b></div>':'')+'<div class="contact-row"><span>Status</span><b>'+escapeHtml(c.status||ct.status||"aberta")+'</b></div><div class="contact-row"><span>Modo atual</span><b>'+mode+'</b></div></div>';
 }
 $("#composerForm").addEventListener("submit",async e=>{
   e.preventDefault();const text=$("#composerText").value.trim();if(!text||!state.activeConversation)return;
@@ -306,7 +323,7 @@ function renderContacts(){
   const grid=$("#contactsGrid");
   if(!grid)return;
   const rows=state.contacts
-    .filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q))
+    .filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q)||(c.email||"").toLowerCase().includes(q))
     .slice()
     .sort((a,b)=>String(a.name||a.phone||"").localeCompare(String(b.name||b.phone||""),"pt-BR"));
 
@@ -321,7 +338,7 @@ function renderContacts(){
       +'<input class="wa-contact-check" type="checkbox" data-marketing="'+c.id+'" '+(selected?"checked":"")+' title="Adicionar ou remover da transmissão">'
       +contactAvatarHtml(c)
       +'<b class="wa-contact-name">'+escapeHtml(c.name||"Sem nome")+'</b>'
-      +'<span class="wa-contact-phone">'+escapeHtml(c.phone||"")+'</span>'
+      +'<span class="wa-contact-phone">'+escapeHtml(c.phone||"")+(c.email?'<small class="wa-contact-email">'+escapeHtml(c.email)+'</small>':'')+'</span>'
       +'<div class="wa-contact-meta"><button class="wa-contact-bot '+(c.bot_enabled?"on":"")+'" data-contact-bot="'+c.id+'">'+(c.bot_enabled?"IA ativa":"IA pausada")+'</button></div>'
       +'</article>';
   }).join("");
@@ -372,7 +389,7 @@ function renderTransmissionContacts(){
   const q=($("#transmissionContactSearch")?.value||"").toLowerCase().trim();
   const selected=c=>!!(c.marketing_opt_in&&!c.marketing_opt_out_at);
   const rows=state.contacts
-    .filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q))
+    .filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q)||(c.email||"").toLowerCase().includes(q))
     .slice()
     .sort((a,b)=>Number(selected(b))-Number(selected(a))||String(a.name||a.phone||"").localeCompare(String(b.name||b.phone||""),"pt-BR"));
 
@@ -390,7 +407,7 @@ function renderTransmissionContacts(){
       +'<input class="wa-contact-check" type="checkbox" data-transmission-contact="'+c.id+'" '+(checked?"checked":"")+' title="Adicionar ou remover da transmissão">'
       +contactAvatarHtml(c)
       +'<b class="wa-contact-name">'+escapeHtml(c.name||"Sem nome")+'</b>'
-      +'<span class="wa-contact-phone">'+escapeHtml(c.phone||"")+'</span>'
+      +'<span class="wa-contact-phone">'+escapeHtml(c.phone||"")+(c.email?'<small class="wa-contact-email">'+escapeHtml(c.email)+'</small>':'')+'</span>'
       +'</article>';
   }).join("");
 
@@ -431,8 +448,9 @@ function renderCampaigns(){
     ? fmtDate(state.settings.last_contact_sync_at)+" • "+Number(state.settings?.last_contact_sync_count||0)+" contatos • "+Number(state.settings?.last_contact_photo_count||0)+" fotos"
     : "Ainda não sincronizado";
   if($("#contactSyncStatus")){
-    $("#contactSyncStatus").className="pill "+(state.settings?.bridge_connected?"success":"warning");
-    $("#contactSyncStatus").textContent=state.settings?.bridge_connected?"Ativa":"WhatsApp desconectado";
+    const anyConnected=(state.whatsappConnections||[]).some(x=>x.connected)||!!state.settings?.bridge_connected;
+    $("#contactSyncStatus").className="pill "+(anyConnected?"success":"warning");
+    $("#contactSyncStatus").textContent=anyConnected?"WhatsApp + E-mail":"E-mail disponível";
   }
 
   if(state.campaignFormCampaignId!==formKey){
@@ -611,28 +629,128 @@ $("#syncContactsBtn")?.addEventListener("click",async()=>{
   btn.disabled=true;
   btn.textContent="Sincronizando...";
   try{
-    if(!state.settings?.bridge_connected)throw new Error("Conecte o WhatsApp antes de sincronizar os contatos.");
-    await bridgeInvoke("sync_contacts");
-    let done=false;
-    for(let i=0;i<18;i++){
-      await new Promise(r=>setTimeout(r,1000));
-      const st=await bridgeInvoke("sync_contacts_status");
-      if(st.status==="done"){
-        await refreshSyncedContacts();
-        const n=Number(st.result?.imported_count??st.result?.count??0);
-        toast(n+" contato"+(n===1?"":"s")+" sincronizado"+(n===1?"":"s")+" com o painel.");
-        done=true;break;
+    await refreshBridgeConnections().catch(()=>{});
+    let slots=(state.whatsappConnections||[]).filter(x=>x.connected).map(x=>Number(x.slot)).filter(Boolean);
+    if(!slots.length && state.settings?.bridge_connected)slots=[1];
+    if(!slots.length)throw new Error("Conecte pelo menos um WhatsApp antes de sincronizar os contatos.");
+
+    let total=0;
+    for(const slot of slots){
+      await bridgeInvoke("sync_contacts",{slot});
+      for(let i=0;i<20;i++){
+        await new Promise(r=>setTimeout(r,900));
+        const st=await bridgeInvoke("sync_contacts_status",{slot});
+        if(st.status==="done"){
+          total+=Number(st.result?.imported_count??st.result?.count??0);
+          break;
+        }
+        if(st.status==="failed")throw new Error(st.error||("A sincronização do WhatsApp "+slot+" falhou."));
       }
-      if(st.status==="failed")throw new Error(st.error||"A sincronização falhou.");
     }
-    if(!done)toast("A sincronização continua em segundo plano. Atualize o painel em alguns segundos.");
+    await refreshSyncedContacts();
+    toast(total+" contato"+(total===1?"":"s")+" sincronizado"+(total===1?"":"s")+" dos WhatsApps conectados.");
   }catch(err){
     toast(err.message||"Não foi possível sincronizar os contatos.","error");
   }finally{
     btn.disabled=false;
-    btn.textContent="Sincronizar contatos agora";
+    btn.textContent="Sincronizar WhatsApp";
   }
 });
+
+function splitCsvLine(line,delimiter){
+  const out=[];let cur="",quoted=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){
+      if(quoted&&line[i+1]==='"'){cur+='"';i++}
+      else quoted=!quoted;
+    }else if(ch===delimiter&&!quoted){out.push(cur);cur=""}
+    else cur+=ch;
+  }
+  out.push(cur);
+  return out;
+}
+function normalizeImportedPhone(v){
+  let d=String(v||"").replace(/\D/g,"");
+  if(!d)return "";
+  if((d.length===10||d.length===11)&&!d.startsWith("55"))d="55"+d;
+  return d.length>=10&&d.length<=15?d:"";
+}
+function parseVcardContacts(text){
+  return String(text||"").split(/END:VCARD/i).map(block=>{
+    const lines=block.replace(/\r/g,"").split("\n");
+    let name="",email="",phone="";
+    for(const line of lines){
+      if(/^FN[;:]/i.test(line))name=(line.split(":").slice(1).join(":")||"").trim();
+      else if(/^EMAIL[;:]/i.test(line)&&!email)email=(line.split(":").slice(1).join(":")||"").trim();
+      else if(/^TEL[;:]/i.test(line)&&!phone)phone=normalizeImportedPhone(line.split(":").slice(1).join(":"));
+    }
+    return {name,email,phone};
+  }).filter(x=>x.phone);
+}
+function parseCsvContacts(text){
+  const lines=String(text||"").replace(/^\uFEFF/,"").replace(/\r/g,"").split("\n").filter(x=>x.trim());
+  if(lines.length<2)return [];
+  const first=lines[0];
+  const delimiter=(first.match(/;/g)||[]).length>(first.match(/,/g)||[]).length?";":((first.match(/\t/g)||[]).length? "\t":",");
+  const headers=splitCsvLine(first,delimiter).map(x=>x.trim().toLowerCase());
+  const find=(names)=>headers.findIndex(h=>names.some(n=>h===n||h.includes(n)));
+  const nameIdx=find(["name","nome","full name","display name"]);
+  const firstIdx=find(["given name","first name","primeiro nome"]);
+  const lastIdx=find(["family name","last name","sobrenome"]);
+  const emailIdx=find(["e-mail 1 - value","email address","e-mail address","email","e-mail"]);
+  const phoneCandidates=headers.map((h,i)=>({h,i})).filter(x=>/phone|telefone|celular|mobile/.test(x.h)).map(x=>x.i);
+  const rows=[];
+  for(const line of lines.slice(1)){
+    const cols=splitCsvLine(line,delimiter);
+    let name=nameIdx>=0?String(cols[nameIdx]||"").trim():"";
+    if(!name)name=[firstIdx>=0?cols[firstIdx]:"",lastIdx>=0?cols[lastIdx]:""].filter(Boolean).join(" ").trim();
+    const email=emailIdx>=0?String(cols[emailIdx]||"").trim():"";
+    let phone="";
+    for(const i of phoneCandidates){phone=normalizeImportedPhone(cols[i]);if(phone)break}
+    if(phone)rows.push({name:name||phone,email,phone});
+  }
+  return rows;
+}
+async function importEmailContactsFile(file){
+  const text=await file.text();
+  const ext=(file.name.split(".").pop()||"").toLowerCase();
+  const rows=ext==="vcf"||/BEGIN:VCARD/i.test(text)?parseVcardContacts(text):parseCsvContacts(text);
+  if(!rows.length)throw new Error("Não encontrei contatos com telefone nesse arquivo.");
+  const now=new Date().toISOString();
+  const unique=[...new Map(rows.map(x=>[x.phone,x])).values()];
+  const payload=unique.map(x=>({
+    workspace_id:state.workspace.id,
+    phone:x.phone,
+    name:x.name||x.phone,
+    email:x.email||null,
+    contact_source:"email_import",
+    email_synced_at:now,
+    updated_at:now
+  }));
+  for(let i=0;i<payload.length;i+=250){
+    const {error}=await sb.from("wa_contacts").upsert(payload.slice(i,i+250),{onConflict:"workspace_id,phone",ignoreDuplicates:false});
+    if(error)throw error;
+  }
+  await refreshSyncedContacts();
+  return payload.length;
+}
+$("#importEmailContactsBtn")?.addEventListener("click",()=>$("#emailContactsFile")?.click());
+$("#emailContactsFile")?.addEventListener("change",async e=>{
+  const file=e.target.files?.[0];
+  if(!file)return;
+  const btn=$("#importEmailContactsBtn");
+  btn.disabled=true;btn.textContent="Importando...";
+  try{
+    const n=await importEmailContactsFile(file);
+    toast(n+" contato"+(n===1?"":"s")+" importado"+(n===1?"":"s")+" da agenda do e-mail.");
+  }catch(err){
+    toast(err.message||"Não foi possível importar a agenda.","error");
+  }finally{
+    btn.disabled=false;btn.textContent="Importar agenda do e-mail";e.target.value="";
+  }
+});
+
 
 
 const ORGANIC_BASE="https://juliovianadeoliveira-source.github.io/aplicativo-iptv-web/jstech-oferta/";
@@ -1179,7 +1297,7 @@ function subscribeRealtime(){
     .on("postgres_changes",{event:"*",schema:"public",table:"wa_contacts",filter:"workspace_id=eq."+state.workspace.id},refreshConversationData)
     .subscribe();
 }
-let refreshTimer=null;function refreshConversationData(){clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{const id=state.workspace.id;const [contacts,convs]=await Promise.all([sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,status,bot_enabled,notes)").eq("workspace_id",id).order("last_message_at",{ascending:false})]);if(!contacts.error)state.contacts=contacts.data||[];if(!convs.error)state.conversations=convs.data||[];if(state.activeConversation){const fresh=state.conversations.find(x=>x.id===state.activeConversation.id);if(fresh)state.activeConversation=fresh}renderDashboard();renderContacts();renderConversations()},250)}
+let refreshTimer=null;function refreshConversationData(){clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{const id=state.workspace.id;const [contacts,convs]=await Promise.all([sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url)").eq("workspace_id",id).order("last_message_at",{ascending:false})]);if(!contacts.error)state.contacts=contacts.data||[];if(!convs.error)state.conversations=convs.data||[];if(state.activeConversation){const fresh=state.conversations.find(x=>x.id===state.activeConversation.id);if(fresh)state.activeConversation=fresh}renderDashboard();renderContacts();renderConversations()},250)}
 boot();
 $("#campaignDdd27")?.addEventListener("change",renderCampaigns);
 $("#campaignDdd28")?.addEventListener("change",renderCampaigns);

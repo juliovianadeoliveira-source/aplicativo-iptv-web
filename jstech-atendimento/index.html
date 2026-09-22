@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260922-linked5">
+  <link rel="stylesheet" href="./styles.css?v=20260922-multiwa1">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -88,6 +88,12 @@
           </article>
           <article class="panel">
             <div class="panel-head"><div><p class="eyebrow">Integração</p><h3>Status do WhatsApp</h3></div><span id="dashMetaPill" class="pill warning">Aguardando</span></div>
+            <div id="dashboardWhatsappSlots" class="dashboard-wa-slots">
+              <button class="dashboard-wa-slot active" type="button" data-dashboard-wa-slot="1"><b>WhatsApp 1</b><span>Aguardando</span></button>
+              <button class="dashboard-wa-slot" type="button" data-dashboard-wa-slot="2"><b>WhatsApp 2</b><span>Conectar</span></button>
+              <button class="dashboard-wa-slot" type="button" data-dashboard-wa-slot="3"><b>WhatsApp 3</b><span>Conectar</span></button>
+              <button class="dashboard-wa-slot" type="button" data-dashboard-wa-slot="4"><b>WhatsApp 4</b><span>Conectar</span></button>
+            </div>
             <div class="check-list">
               <div><b>✓</b><span>Webhook publicado</span></div>
               <div><b>✓</b><span>Envio manual publicado</span></div>
@@ -388,21 +394,17 @@
             </div>
             <p class="muted">Conecte o número uma única vez ao painel. Funciona tanto com WhatsApp comum quanto com WhatsApp Business. O mesmo número continua funcionando no celular e pode permanecer vinculado também no WhatsApp Web/Desktop.</p>
 
-            <div class="linked-devices-box">
-              <div class="linked-devices-head">
-                <div>
-                  <b>WhatsApp comum ou Business em vários aparelhos</b>
-                  <span>O painel usa uma das vagas de aparelho vinculado. As demais continuam sendo gerenciadas no próprio WhatsApp.</span>
-                </div>
-                <span class="pill success">Até 4 aparelhos vinculados</span>
+            <div class="whatsapp-slot-selector">
+              <div class="whatsapp-slot-selector-head">
+                <b>Escolha a conexão</b>
+                <span>Até 4 WhatsApps nesta conta</span>
               </div>
-              <div class="linked-device-slots">
-                <div class="linked-device-slot primary-slot"><b>1</b><span>Painel JSTech</span><small>Conecta pelo QR abaixo</small></div>
-                <div class="linked-device-slot"><b>2</b><span>WhatsApp Web/Desktop</span><small>Opcional</small></div>
-                <div class="linked-device-slot"><b>3</b><span>Outro aparelho</span><small>Opcional</small></div>
-                <div class="linked-device-slot"><b>4</b><span>Outro aparelho</span><small>Opcional</small></div>
+              <div class="whatsapp-slot-tabs">
+                <button class="whatsapp-slot-tab active" type="button" data-wa-slot="1">WhatsApp 1</button>
+                <button class="whatsapp-slot-tab" type="button" data-wa-slot="2">WhatsApp 2</button>
+                <button class="whatsapp-slot-tab" type="button" data-wa-slot="3">WhatsApp 3</button>
+                <button class="whatsapp-slot-tab" type="button" data-wa-slot="4">WhatsApp 4</button>
               </div>
-              <p class="linked-devices-note">Funciona com WhatsApp comum e WhatsApp Business. Cada aparelho é autorizado em Aparelhos conectados. O QR abaixo conecta somente o painel e não desconecta o celular.</p>
             </div>
 
             <div class="qr-connect-box">
@@ -460,7 +462,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260922-linked4"></script>
+  <script type="module" src="./app.js?v=20260922-multiwa1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260921-contactos2"></script>

@@ -39,6 +39,21 @@ function toast(msg, type="success"){
 function fmtDate(v){ if(!v)return "-"; return new Intl.DateTimeFormat("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date(v)); }
 function escapeHtml(v=""){return String(v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
 function initials(name, phone){const s=(name||phone||"J").trim();return s.split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase();}
+function contactAvatarHtml(c,small=false){
+  const cls=small?"conversation-avatar-photo":"wa-contact-photo";
+  const fallbackCls=small?"conversation-avatar":"wa-contact-photo-fallback";
+  const fallback='<div class="'+fallbackCls+'">'+escapeHtml(initials(c?.name,c?.phone))+'</div>';
+  if(!c?.profile_photo_url)return fallback;
+  return '<img class="'+cls+'" src="'+escapeHtml(c.profile_photo_url)+'" alt="" loading="lazy" referrerpolicy="no-referrer" data-contact-avatar><div class="'+fallbackCls+' hidden">'+escapeHtml(initials(c?.name,c?.phone))+'</div>';
+}
+function wireAvatarFallback(root=document){
+  root.querySelectorAll?.("[data-contact-avatar]").forEach(img=>{
+    img.addEventListener("error",()=>{
+      img.classList.add("hidden");
+      img.nextElementSibling?.classList.remove("hidden");
+    },{once:true});
+  });
+}
 function showLogin(msg=""){ $("#loginView").classList.remove("hidden"); $("#appView").classList.add("hidden"); $("#loginMsg").textContent=msg; }
 function showApp(){ $("#loginView").classList.add("hidden"); $("#appView").classList.remove("hidden"); }
 function pageMeta(page){
@@ -108,13 +123,14 @@ async function loadAll(showToast=false){
     const [settings,contacts,convs,autos,knowledge,campaigns]=await Promise.all([
       sb.from("wa_settings").select("*").eq("workspace_id",id).single(),
       sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),
-      sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,status,bot_enabled,notes)").eq("workspace_id",id).order("last_message_at",{ascending:false}),
+      sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,status,bot_enabled,notes,profile_photo_url)").eq("workspace_id",id).order("last_message_at",{ascending:false}),
       sb.from("wa_automations").select("*").eq("workspace_id",id).order("created_at"),
       sb.from("wa_knowledge").select("*").eq("workspace_id",id).order("title"),
       sb.from("wa_campaigns").select("*").eq("workspace_id",id).order("created_at",{ascending:true})
     ]);
     if(settings.error)throw settings.error;if(contacts.error)throw contacts.error;if(convs.error)throw convs.error;if(autos.error)throw autos.error;if(knowledge.error)throw knowledge.error;if(campaigns.error)throw campaigns.error;
     state.settings=settings.data;state.contacts=contacts.data||[];state.conversations=convs.data||[];state.automations=autos.data||[];state.knowledge=knowledge.data||[];state.campaigns=campaigns.data||[];
+    if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=state.settings?.company_name||"JSTech";
     if(!state.activeCampaignId || (state.activeCampaignId!=="__new__" && !state.campaigns.some(x=>x.id===state.activeCampaignId))){
       state.activeCampaignId=state.campaigns[0]?.id||"__new__";
       state.campaignFormCampaignId=null;
@@ -146,8 +162,9 @@ function renderConversations(){
   const q=($("#conversationSearch")?.value||"").toLowerCase().trim(), list=$("#conversationList");
   const rows=state.conversations.filter(c=>convFilter(c,q));
   if(!rows.length){list.className="conversation-list empty-box";list.textContent="Nenhuma conversa ainda.";return}
-  list.className="conversation-list"; list.innerHTML=rows.map(c=>{const ct=c.wa_contacts||{};return '<div class="conversation-item '+(state.activeConversation?.id===c.id?"active":"")+'" data-id="'+c.id+'"><div class="conversation-avatar">'+escapeHtml(initials(ct.name,ct.phone))+'</div><div class="conversation-info"><b>'+escapeHtml(ct.name||ct.phone||"Cliente")+'</b><span>'+escapeHtml(ct.phone||"")+'</span></div><div class="conversation-time">'+fmtDate(c.last_message_at)+(c.unread_count?'<span class="unread-dot">'+c.unread_count+'</span>':"")+"</div></div>"}).join("");
-  $$("[data-id]",list).forEach(el=>el.addEventListener("click",()=>openConversation(el.dataset.id)));
+  list.className="conversation-list"; list.innerHTML=rows.map(c=>{const ct=c.wa_contacts||{};return '<div class="conversation-item '+(state.activeConversation?.id===c.id?"active":"")+'" data-id="'+c.id+'">'+contactAvatarHtml(ct,true)+'<div class="conversation-info"><b>'+escapeHtml(ct.name||ct.phone||"Cliente")+'</b><span>'+escapeHtml(ct.phone||"")+'</span></div><div class="conversation-time">'+fmtDate(c.last_message_at)+(c.unread_count?'<span class="unread-dot">'+c.unread_count+'</span>':"")+"</div></div>"}).join("");
+  wireAvatarFallback(list);
+  $("[data-id]",list).forEach(el=>el.addEventListener("click",()=>openConversation(el.dataset.id)));
 }
 $("#conversationSearch").addEventListener("input",renderConversations);
 async function openConversation(id){
@@ -222,9 +239,35 @@ $("#toggleBotBtn").addEventListener("click",async()=>{
 
 function renderContacts(){
   const q=($("#contactSearch")?.value||"").toLowerCase().trim();
-  $("#contactsTable").innerHTML=state.contacts.filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q)).map(c=>'<tr><td><b>'+escapeHtml(c.name||"Sem nome")+'</b></td><td>'+escapeHtml(c.phone)+'</td><td>'+escapeHtml(c.status||"novo")+'</td><td><button class="toggle-chip '+(c.bot_enabled?"on":"")+'" data-contact-bot="'+c.id+'">'+(c.bot_enabled?"Ativo":"Pausado")+'</button></td><td><button class="toggle-chip '+(c.marketing_opt_in&&!c.marketing_opt_out_at?"on":"")+'" data-marketing="'+c.id+'">'+(c.marketing_opt_in&&!c.marketing_opt_out_at?"Autorizado":"Não autorizado")+'</button></td><td>'+fmtDate(c.updated_at)+'</td></tr>').join("");
-  $$("[data-contact-bot]").forEach(b=>b.addEventListener("click",()=>toggleContactBot(b.dataset.contactBot)));
-  $$("[data-marketing]").forEach(b=>b.addEventListener("click",()=>toggleMarketing(b.dataset.marketing)));
+  const grid=$("#contactsGrid");
+  if(!grid)return;
+  const rows=state.contacts
+    .filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q))
+    .slice()
+    .sort((a,b)=>String(a.name||a.phone||"").localeCompare(String(b.name||b.phone||""),"pt-BR"));
+
+  if(!rows.length){
+    grid.innerHTML='<p class="muted">Nenhum contato encontrado.</p>';
+    return;
+  }
+
+  grid.innerHTML=rows.map(c=>{
+    const selected=!!(c.marketing_opt_in&&!c.marketing_opt_out_at);
+    return '<article class="wa-contact-card '+(selected?"selected":"")+'">'
+      +'<input class="wa-contact-check" type="checkbox" data-marketing="'+c.id+'" '+(selected?"checked":"")+' title="Adicionar ou remover da transmissão">'
+      +contactAvatarHtml(c)
+      +'<b class="wa-contact-name">'+escapeHtml(c.name||"Sem nome")+'</b>'
+      +'<span class="wa-contact-phone">'+escapeHtml(c.phone||"")+'</span>'
+      +'<div class="wa-contact-meta"><button class="wa-contact-bot '+(c.bot_enabled?"on":"")+'" data-contact-bot="'+c.id+'">'+(c.bot_enabled?"IA ativa":"IA pausada")+'</button></div>'
+      +'</article>';
+  }).join("");
+
+  wireAvatarFallback(grid);
+  grid.querySelectorAll("[data-contact-bot]").forEach(b=>b.addEventListener("click",()=>toggleContactBot(b.dataset.contactBot)));
+  grid.querySelectorAll("[data-marketing]").forEach(box=>box.addEventListener("change",async()=>{
+    box.disabled=true;
+    await setTransmissionContact(box.dataset.marketing,box.checked);
+  }));
 }
 $("#contactSearch").addEventListener("input",renderContacts);
 async function toggleContactBot(id){const c=state.contacts.find(x=>x.id===id);if(!c)return;const value=!c.bot_enabled;const ctx=value?{}:{...(c.bot_context||{}),manual_pause:true,human_takeover_until:null};const {error}=await sb.from("wa_contacts").update({bot_enabled:value,bot_context:ctx,updated_at:new Date().toISOString()}).eq("id",id);if(error)return toast(error.message,"error");c.bot_enabled=value;c.bot_context=ctx;renderContacts();renderDashboard()}
@@ -260,8 +303,8 @@ async function toggleMarketing(id){
 }
 
 function renderTransmissionContacts(){
-  const table=$("#transmissionContactsTable");
-  if(!table)return;
+  const grid=$("#transmissionContactsGrid");
+  if(!grid)return;
   const q=($("#transmissionContactSearch")?.value||"").toLowerCase().trim();
   const selected=c=>!!(c.marketing_opt_in&&!c.marketing_opt_out_at);
   const rows=state.contacts
@@ -273,19 +316,26 @@ function renderTransmissionContacts(){
     $("#transmissionSelectedCount").textContent=state.contacts.filter(selected).length;
   }
   if(!rows.length){
-    table.innerHTML='<tr><td colspan="3" class="muted">Nenhum contato encontrado.</td></tr>';
+    grid.innerHTML='<p class="muted">Nenhum contato encontrado.</p>';
     return;
   }
-  table.innerHTML=rows.map(c=>{
-    const checked=selected(c)?" checked":"";
-    return '<tr><td><input type="checkbox" data-transmission-contact="'+c.id+'"'+checked+' style="width:20px;height:20px;cursor:pointer" aria-label="Incluir '+escapeHtml(c.name||c.phone||"contato")+' na transmissão"></td><td><b>'+escapeHtml(c.name||"Sem nome")+'</b></td><td>'+escapeHtml(c.phone||"")+'</td></tr>';
+
+  grid.innerHTML=rows.map(c=>{
+    const checked=selected(c);
+    return '<article class="wa-contact-card '+(checked?"selected":"")+'">'
+      +'<input class="wa-contact-check" type="checkbox" data-transmission-contact="'+c.id+'" '+(checked?"checked":"")+' title="Adicionar ou remover da transmissão">'
+      +contactAvatarHtml(c)
+      +'<b class="wa-contact-name">'+escapeHtml(c.name||"Sem nome")+'</b>'
+      +'<span class="wa-contact-phone">'+escapeHtml(c.phone||"")+'</span>'
+      +'</article>';
   }).join("");
-  table.querySelectorAll("[data-transmission-contact]").forEach(box=>box.addEventListener("change",async()=>{
+
+  wireAvatarFallback(grid);
+  grid.querySelectorAll("[data-transmission-contact]").forEach(box=>box.addEventListener("change",async()=>{
     box.disabled=true;
     await setTransmissionContact(box.dataset.transmissionContact,box.checked);
   }));
 }
-
 $("#transmissionContactSearch")?.addEventListener("input",renderTransmissionContacts);
 
 function currentCampaign(){
@@ -811,6 +861,7 @@ let bridgePoll=null;
 
 function renderSettings(){
   const s=state.settings||{};
+  if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=s.company_name||"JSTech";
   $("#companyName").value=s.company_name||"JSTech";
   $("#welcomeMessage").value=s.welcome_message||"";
   $("#fallbackMessage").value=s.fallback_message||"";
@@ -818,7 +869,7 @@ function renderSettings(){
   refreshBridgeStatus().catch(()=>{});
 }
 
-$("#settingsForm").addEventListener("submit",async e=>{e.preventDefault();const patch={company_name:$("#companyName").value.trim()||"JSTech",welcome_message:$("#welcomeMessage").value.trim(),ai_enabled:state.settings?.ai_enabled!==false,fallback_message:$("#fallbackMessage").value.trim(),updated_at:new Date().toISOString()};const {data,error}=await sb.from("wa_settings").update(patch).eq("workspace_id",state.workspace.id).select().single();if(error)return toast(error.message,"error");state.settings=data;renderDashboard();toast("Configurações salvas.")});
+$("#settingsForm").addEventListener("submit",async e=>{e.preventDefault();const patch={company_name:$("#companyName").value.trim()||"JSTech",welcome_message:$("#welcomeMessage").value.trim(),ai_enabled:state.settings?.ai_enabled!==false,fallback_message:$("#fallbackMessage").value.trim(),updated_at:new Date().toISOString()};const {data,error}=await sb.from("wa_settings").update(patch).eq("workspace_id",state.workspace.id).select().single();if(error)return toast(error.message,"error");state.settings=data;if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=data.company_name||"JSTech";renderDashboard();toast("Configurações salvas.")});
 
 async function bridgeInvoke(action,extra={}){
   const {data,error}=await sb.functions.invoke(BRIDGE_FUNCTION,{body:{workspace_id:state.workspace.id,action,...extra}});

@@ -444,9 +444,12 @@ function renderCampaigns(){
   const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at).length;
   if($("#campaignEligible"))$("#campaignEligible").textContent=eligible;
   if($("#transmissionContactsTotal"))$("#transmissionContactsTotal").textContent=state.contacts.length;
-  if($("#lastContactSync"))$("#lastContactSync").textContent=state.settings?.last_contact_sync_at
-    ? fmtDate(state.settings.last_contact_sync_at)+" • "+Number(state.settings?.last_contact_sync_count||0)+" contatos • "+Number(state.settings?.last_contact_photo_count||0)+" fotos"
-    : "Ainda não sincronizado";
+  if($("#lastContactSync")){
+    const parts=[];
+    if(state.settings?.last_contact_sync_at)parts.push("WhatsApp "+fmtDate(state.settings.last_contact_sync_at)+" • "+Number(state.settings?.last_contact_sync_count||0)+" contatos • "+Number(state.settings?.last_contact_photo_count||0)+" fotos");
+    if(state.settings?.last_email_contact_sync_at)parts.push("E-mail "+fmtDate(state.settings.last_email_contact_sync_at)+" • "+Number(state.settings?.last_email_contact_sync_count||0)+" contatos");
+    $("#lastContactSync").textContent=parts.length?parts.join(" | "):"Ainda não sincronizado";
+  }
   if($("#contactSyncStatus")){
     const anyConnected=(state.whatsappConnections||[]).some(x=>x.connected)||!!state.settings?.bridge_connected;
     $("#contactSyncStatus").className="pill "+(anyConnected?"success":"warning");
@@ -732,6 +735,11 @@ async function importEmailContactsFile(file){
     const {error}=await sb.from("wa_contacts").upsert(payload.slice(i,i+250),{onConflict:"workspace_id,phone",ignoreDuplicates:false});
     if(error)throw error;
   }
+  await sb.from("wa_settings").update({
+    last_email_contact_sync_at:now,
+    last_email_contact_sync_count:payload.length,
+    updated_at:now
+  }).eq("workspace_id",state.workspace.id);
   await refreshSyncedContacts();
   return payload.length;
 }

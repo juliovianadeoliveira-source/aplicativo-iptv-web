@@ -93,9 +93,9 @@ function pageMeta(page){
   })[page];
 }
 function goPage(page){
-  $$(".page").forEach(x=>x.classList.remove("active"));
+  $$$(".page").forEach(x=>x.classList.remove("active"));
   $("#page-"+page)?.classList.add("active");
-  $$(".nav-item[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
+  $$$(".nav-item[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
   const [e,t]=pageMeta(page); $("#pageEyebrow").textContent=e; $("#pageTitle").textContent=t;
 }
 
@@ -116,7 +116,7 @@ $("#loginForm").addEventListener("submit",async e=>{
 });
 $("#logoutBtn").addEventListener("click",()=>sb.auth.signOut());
 $("#mainNav").addEventListener("click",e=>{const b=e.target.closest("[data-page]");if(b)goPage(b.dataset.page)});
-$$("[data-go]").forEach(b=>b.addEventListener("click",()=>goPage(b.dataset.go)));
+$$$("[data-go]").forEach(b=>b.addEventListener("click",()=>goPage(b.dataset.go)));
 $("#refreshBtn").addEventListener("click",()=>loadAll(true));
 
 async function boot(){
@@ -191,7 +191,7 @@ function renderConversations(){
   if(!rows.length){list.className="conversation-list empty-box";list.textContent="Nenhuma conversa ainda.";return}
   list.className="conversation-list"; list.innerHTML=rows.map(c=>{const ct=c.wa_contacts||{};return '<div class="conversation-item '+(state.activeConversation?.id===c.id?"active":"")+'" data-id="'+c.id+'">'+contactAvatarHtml(ct,true)+'<div class="conversation-info"><b>'+escapeHtml(ct.name||ct.phone||"Cliente")+'</b><span>'+escapeHtml(ct.phone||"")+'</span></div><div class="conversation-time">'+fmtDate(c.last_message_at)+(c.unread_count?'<span class="unread-dot">'+c.unread_count+'</span>':"")+"</div></div>"}).join("");
   wireAvatarFallback(list);
-  $$("[data-id]",list).forEach(el=>el.addEventListener("click",()=>openConversation(el.dataset.id)));
+  $$$("[data-id]",list).forEach(el=>el.addEventListener("click",()=>openConversation(el.dataset.id)));
 }
 $("#conversationSearch").addEventListener("input",renderConversations);
 async function openConversation(id){
@@ -601,14 +601,14 @@ $("#syncContactsBtn")?.addEventListener("click",async()=>{
 const ORGANIC_BASE="https://juliovianadeoliveira-source.github.io/aplicativo-iptv-web/jstech-oferta/";
 function organicLink(src){return ORGANIC_BASE+"?src="+encodeURIComponent(src)}
 function renderOrganicLinks(){
-  $$("[data-organic-link]").forEach(el=>{
+  $$$("[data-organic-link]").forEach(el=>{
     const src=el.dataset.organicLink;
     const url=organicLink(src);
     el.textContent=url;
     el.href=url;
   });
 }
-$$("[data-copy-organic]").forEach(btn=>btn.addEventListener("click",async()=>{
+$$$("[data-copy-organic]").forEach(btn=>btn.addEventListener("click",async()=>{
   const src=btn.dataset.copyOrganic;
   try{
     await navigator.clipboard.writeText(organicLink(src));
@@ -664,7 +664,7 @@ function renderPanelConnectors(){
       +'<span class="pill '+(p.last_status==="driver_ready"?"success":"warning")+'">'+escapeHtml(status)+'</span></div>'
       +'<p>'+escapeHtml((p.capabilities||[]).join(" • ")||"teste • criar usuário • renovar")+'</p></div>';
   }).join("");
-  $("[data-panel-select]",list).forEach(el=>el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect)));
+  $$("[data-panel-select]",list).forEach(el=>el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect)));
   if(!state.activePanel && rows.length)selectPanelConnector(rows[0].id);
 }
 function selectPanelConnector(id){
@@ -689,7 +689,7 @@ function selectPanelConnector(id){
   renderPanelAppMappings();
   const list=$("#panelConnectorList");
   if(list){
-    $("[data-panel-select]",list).forEach(el=>el.classList.toggle("active",el.dataset.panelSelect===p.id));
+    $$("[data-panel-select]",list).forEach(el=>el.classList.toggle("active",el.dataset.panelSelect===p.id));
   }
 }
 function renderPanelAppMappings(){
@@ -717,7 +717,7 @@ function renderPanelAppMappings(){
     +'<p>'+(m.panel_app_code?'Código no painel: '+escapeHtml(m.panel_app_code):'Sem código específico cadastrado')+'</p></div>'
     +'<button class="remove-option" data-remove-panel-app="'+m.id+'">×</button></div></div>'
   ).join("");
-  $("[data-remove-panel-app]",box).forEach(btn=>btn.addEventListener("click",()=>removePanelAppMapping(btn.dataset.removePanelApp)));
+  $$("[data-remove-panel-app]",box).forEach(btn=>btn.addEventListener("click",()=>removePanelAppMapping(btn.dataset.removePanelApp)));
 }
 $("#savePanelAppBtn")?.addEventListener("click",async()=>{
   const p=state.activePanel;if(!p)return;
@@ -844,14 +844,14 @@ $("#clearPanelCredentialsBtn")?.addEventListener("click",async()=>{
 
 function renderAutomations(){
   const list=$("#automationList");list.innerHTML=state.automations.map(a=>'<div class="automation-item '+(state.activeAutomation?.id===a.id?"active":"")+'" data-auto="'+a.id+'"><b>'+escapeHtml(a.name)+'</b><span>'+(a.enabled?"Ativa":"Desativada")+' • '+(a.trigger_texts||[]).join(", ")+'</span></div>').join("");
-  $("[data-auto]",list).forEach(x=>x.addEventListener("click",()=>selectAutomation(x.dataset.auto)));
+  $$("[data-auto]",list).forEach(x=>x.addEventListener("click",()=>selectAutomation(x.dataset.auto)));
   if(state.activeAutomation)renderBuilder();
 }
 function selectAutomation(id){const a=state.automations.find(x=>x.id===id);if(!a)return;state.activeAutomation=structuredClone(a);state.activeNode=a.flow?.start||Object.keys(a.flow?.nodes||{})[0]||null;state.simNode=null;renderAutomations();resetSimulator()}
 function renderBuilder(){
   const a=state.activeAutomation;$("#automationTitle").textContent=a.name;$("#triggerTexts").value=(a.trigger_texts||[]).join(", ");
   const nodes=a.flow?.nodes||{},nl=$("#nodeList");nl.innerHTML=Object.entries(nodes).map(([key,n])=>'<div class="node-item '+(state.activeNode===key?"active":"")+'" data-node="'+escapeHtml(key)+'"><b>'+escapeHtml(key)+'</b><span>'+escapeHtml((n.text||"").slice(0,36))+'</span></div>').join("");
-  $("[data-node]",nl).forEach(x=>x.addEventListener("click",()=>{state.activeNode=x.dataset.node;renderBuilder()}));
+  $$("[data-node]",nl).forEach(x=>x.addEventListener("click",()=>{state.activeNode=x.dataset.node;renderBuilder()}));
   renderNodeEditor();
 }
 function renderNodeEditor(){
@@ -860,7 +860,7 @@ function renderNodeEditor(){
   box.innerHTML='<label>ID da etapa<input id="nodeId" value="'+escapeHtml(key)+'" disabled></label><label>Tipo<select id="nodeType"><option value="message" '+(node.type!=="handoff"?"selected":"")+'>Mensagem</option><option value="handoff" '+(node.type==="handoff"?"selected":"")+'>Transferir para atendente</option></select></label><label>Mensagem<textarea id="nodeText" rows="5">'+escapeHtml(node.text||"")+'</textarea></label><div class="subhead"><b>Botões / opções</b><button id="addOptionBtn" class="btn ghost compact">+ Opção</button></div><div id="optionsEditor"></div>';
   $("#nodeType").addEventListener("change",e=>node.type=e.target.value);$("#nodeText").addEventListener("input",e=>node.text=e.target.value);$("#addOptionBtn").addEventListener("click",()=>{node.options=node.options||[];node.options.push({key:String(node.options.length+1),label:"Nova opção",next:keys[0]||key});renderNodeEditor()});
   const ob=$("#optionsEditor"),opts=node.options||[];ob.innerHTML=opts.map((o,i)=>'<div class="option-row"><input data-ok="'+i+'" value="'+escapeHtml(o.key||"")+'" placeholder="1"><input data-ol="'+i+'" value="'+escapeHtml(o.label||"")+'" placeholder="Texto do botão"><select data-on="'+i+'">'+keys.map(k=>'<option value="'+escapeHtml(k)+'" '+(o.next===k?"selected":"")+'>'+escapeHtml(k)+'</option>').join("")+'</select><button class="remove-option" data-or="'+i+'">×</button></div>').join("");
-  $("[data-ok]",ob).forEach(x=>x.addEventListener("input",e=>opts[+e.target.dataset.ok].key=e.target.value));$("[data-ol]",ob).forEach(x=>x.addEventListener("input",e=>opts[+e.target.dataset.ol].label=e.target.value));$("[data-on]",ob).forEach(x=>x.addEventListener("change",e=>opts[+e.target.dataset.on].next=e.target.value));$("[data-or]",ob).forEach(x=>x.addEventListener("click",e=>{opts.splice(+e.currentTarget.dataset.or,1);renderNodeEditor()}));
+  $$("[data-ok]",ob).forEach(x=>x.addEventListener("input",e=>opts[+e.target.dataset.ok].key=e.target.value));$$("[data-ol]",ob).forEach(x=>x.addEventListener("input",e=>opts[+e.target.dataset.ol].label=e.target.value));$$("[data-on]",ob).forEach(x=>x.addEventListener("change",e=>opts[+e.target.dataset.on].next=e.target.value));$$("[data-or]",ob).forEach(x=>x.addEventListener("click",e=>{opts.splice(+e.currentTarget.dataset.or,1);renderNodeEditor()}));
 }
 $("#addNodeBtn").addEventListener("click",()=>{if(!state.activeAutomation)return;let base="etapa_"+String(Date.now()).slice(-5),key=base,i=1;while(state.activeAutomation.flow.nodes[key])key=base+"_"+i++;state.activeAutomation.flow.nodes[key]={type:"message",text:"Nova mensagem",options:[]};state.activeNode=key;renderBuilder()});
 $("#saveAutomationBtn").addEventListener("click",async()=>{const a=state.activeAutomation;if(!a)return;a.trigger_texts=$("#triggerTexts").value.split(",").map(x=>x.trim()).filter(Boolean);const {error}=await sb.from("wa_automations").update({trigger_texts:a.trigger_texts,flow:a.flow,updated_at:new Date().toISOString()}).eq("id",a.id);if(error)return toast(error.message,"error");const idx=state.automations.findIndex(x=>x.id===a.id);state.automations[idx]=structuredClone(a);toast("Fluxo salvo.");renderAutomations()});
@@ -876,7 +876,7 @@ resetSimulator();
 function renderKnowledge(){
   const list=$("#knowledgeList");if(!state.knowledge.length){list.innerHTML='<p class="muted">Nenhuma informação cadastrada.</p>';return}
   list.innerHTML=state.knowledge.map(k=>'<div class="knowledge-item"><div class="knowledge-item-head"><div><b>'+escapeHtml(k.title)+'</b><p>'+escapeHtml((k.keywords||[]).join(", "))+'</p></div><div class="knowledge-actions"><button data-ke="'+k.id+'">Editar</button><button data-kd="'+k.id+'">Excluir</button></div></div><p>'+escapeHtml(k.content.slice(0,150))+(k.content.length>150?"…":"")+'</p></div>').join("");
-  $$("[data-ke]").forEach(b=>b.addEventListener("click",()=>editKnowledge(b.dataset.ke)));$$("[data-kd]").forEach(b=>b.addEventListener("click",()=>deleteKnowledge(b.dataset.kd)));
+  $$$("[data-ke]").forEach(b=>b.addEventListener("click",()=>editKnowledge(b.dataset.ke)));$$$("[data-kd]").forEach(b=>b.addEventListener("click",()=>deleteKnowledge(b.dataset.kd)));
 }
 function editKnowledge(id){const k=state.knowledge.find(x=>x.id===id);state.editingKnowledge=id;$("#knowledgeFormTitle").textContent="Editar informação";$("#knowledgeTitle").value=k.title;$("#knowledgeKeywords").value=(k.keywords||[]).join(", ");$("#knowledgeContent").value=k.content}
 function clearKnowledge(){state.editingKnowledge=null;$("#knowledgeFormTitle").textContent="Nova informação";$("#knowledgeForm").reset()}

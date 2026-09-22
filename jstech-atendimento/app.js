@@ -236,51 +236,68 @@ async function toggleMarketing(id){
   toast(value?"Cliente autorizado para ofertas.":"Ofertas desativadas para este cliente.");
 }
 
-function phoneDDD(phone=""){
-  let p=String(phone||"").replace(/\D+/g,"");
-  if(p.startsWith("55")&&p.length>=12)p=p.slice(2);
-  return p.slice(0,2);
-}
-function selectedCampaignDDDs(){
-  const out=[];
-  if($("#campaignDdd27")?.checked)out.push("27");
-  if($("#campaignDdd28")?.checked)out.push("28");
-  return out;
-}
 function renderCampaigns(){
   const camp=state.campaigns[0];
-  const ddds=Array.isArray(camp?.ddd_filter)&&camp.ddd_filter.length?camp.ddd_filter:["27","28"];
-  if($("#campaignDdd27"))$("#campaignDdd27").checked=ddds.includes("27");
-  if($("#campaignDdd28"))$("#campaignDdd28").checked=ddds.includes("28");
-  const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at&&ddds.includes(phoneDDD(c.phone))).length;
+  const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at).length;
   if($("#campaignEligible"))$("#campaignEligible").textContent=eligible;
-  if($("#campaignAudience"))$("#campaignAudience").textContent="DDD "+ddds.join(" e ");
+  if($("#campaignAudience"))$("#campaignAudience").textContent="todo o Brasil";
   if(!camp)return;
   if($("#campaignName"))$("#campaignName").value=camp.name||"";
   if($("#campaignMessage"))$("#campaignMessage").value=camp.message||"";
   if($("#campaignHour"))$("#campaignHour").value=String(camp.daily_hour??12);
   if($("#campaignEnabled"))$("#campaignEnabled").checked=!!camp.enabled;
   if($("#campaignStatus"))$("#campaignStatus").textContent=camp.enabled
-    ? "Ativa • 1 envio por dia • "+String(camp.daily_hour??12).padStart(2,"0")+":00 • DDD "+ddds.join("/")
+    ? "Ativa • nacional • 1 envio por dia • "+String(camp.daily_hour??12).padStart(2,"0")+":00"
     : "Desativada";
   if($("#campaignLastSent"))$("#campaignLastSent").textContent=camp.last_sent_at?fmtDate(camp.last_sent_at):"Ainda não enviada";
+  if(camp.image_data_uri){
+    $("#campaignImagePreview").src=camp.image_data_uri;
+    $("#campaignImagePreviewWrap")?.classList.remove("hidden");
+  }else{
+    $("#campaignImagePreview")?.removeAttribute("src");
+    $("#campaignImagePreviewWrap")?.classList.add("hidden");
+  }
 }
+
+function readCampaignImage(){
+  const file=$("#campaignImage")?.files?.[0];
+  if(!file)return Promise.resolve(state.campaigns[0]?.image_data_uri||null);
+  if(file.size>3*1024*1024)return Promise.reject(new Error("A imagem deve ter no máximo 3 MB."));
+  return new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload=()=>resolve(String(fr.result||""));
+    fr.onerror=()=>reject(new Error("Não foi possível ler a imagem."));
+    fr.readAsDataURL(file);
+  });
+}
+$("#campaignImage")?.addEventListener("change",async()=>{
+  try{
+    const img=await readCampaignImage();
+    if(img){
+      $("#campaignImagePreview").src=img;
+      $("#campaignImagePreviewWrap")?.classList.remove("hidden");
+    }
+  }catch(err){toast(err.message||"Falha ao carregar imagem.","error")}
+});
+
 $("#campaignForm")?.addEventListener("submit",async e=>{
   e.preventDefault();
   let camp=state.campaigns[0];
+  let imageData=null;
+  try{imageData=await readCampaignImage()}catch(err){return toast(err.message||"Imagem inválida.","error")}
   const payload={
     workspace_id:state.workspace.id,
-    name:$("#campaignName").value.trim()||"JSTech — TV, IPTV e Receptores",
+    name:$("#campaignName").value.trim()||"Catálogo JSTech — Soluções e Serviços",
     message:$("#campaignMessage").value.trim(),
     enabled:$("#campaignEnabled").checked,
     cadence:"daily",
     daily_hour:Number($("#campaignHour").value||12),
-    ddd_filter:selectedCampaignDDDs(),
+    ddd_filter:[],
+    image_data_uri:imageData,
     updated_at:new Date().toISOString()
   };
   if(!payload.message)return toast("Escreva a mensagem da campanha.","error");
-  if(!payload.ddd_filter.length)return toast("Marque pelo menos o DDD 27 ou 28.","error");
-  const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at&&payload.ddd_filter.includes(phoneDDD(c.phone))).length;
+  const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at).length;
   if(payload.enabled&&eligible===0){
     $("#campaignEnabled").checked=false;
     payload.enabled=false;
@@ -295,7 +312,7 @@ $("#campaignForm")?.addEventListener("submit",async e=>{
   if(result.error)return toast(result.error.message,"error");
   state.campaigns=[result.data];
   renderCampaigns();
-  toast(payload.enabled?"Campanha salva e programada 1x por dia.":"Campanha salva.");
+  toast(payload.enabled?"Campanha nacional salva e programada.":"Campanha salva.");
 });
 
 

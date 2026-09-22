@@ -43,7 +43,7 @@ function showApp(){ $("#loginView").classList.add("hidden"); $("#appView").class
 function pageMeta(page){
   return ({
     dashboard:["Visão geral","Dashboard"],conversations:["Atendimento","Conversas"],
-    contacts:["CRM","Clientes"],campaigns:["Marketing","Campanhas"],
+    contacts:["CRM","Clientes"],campaigns:["Marketing","Transmissão"],
     organic:["Captação","Divulgação grátis"],panels:["Integrações","Painéis automáticos"],
     automation:["Fluxos e regras","Automação"],
     knowledge:["Conteúdo","Respostas prontas"],resellers:["Revenda","Revendedores"],settings:["Integrações","Configurações"]
@@ -240,15 +240,26 @@ function renderCampaigns(){
   const camp=state.campaigns[0];
   const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at).length;
   if($("#campaignEligible"))$("#campaignEligible").textContent=eligible;
-  if($("#campaignAudience"))$("#campaignAudience").textContent="todo o Brasil";
-  if(!camp)return;
+  if($("#transmissionContactsTotal"))$("#transmissionContactsTotal").textContent=state.contacts.length;
+  if($("#lastContactSync"))$("#lastContactSync").textContent=state.settings?.last_contact_sync_at
+    ? fmtDate(state.settings.last_contact_sync_at)+" • "+Number(state.settings?.last_contact_sync_count||0)+" contatos"
+    : "Ainda não sincronizado";
+  if($("#contactSyncStatus")){
+    $("#contactSyncStatus").className="pill "+(state.settings?.bridge_connected?"success":"warning");
+    $("#contactSyncStatus").textContent=state.settings?.bridge_connected?"Ativa":"WhatsApp desconectado";
+  }
+  if(!camp){
+    if($("#campaignStatus"))$("#campaignStatus").textContent="Desativada";
+    if($("#campaignLastSent"))$("#campaignLastSent").textContent="Ainda não enviada";
+    return;
+  }
   if($("#campaignName"))$("#campaignName").value=camp.name||"";
   if($("#campaignMessage"))$("#campaignMessage").value=camp.message||"";
   if($("#campaignHour"))$("#campaignHour").value=String(camp.daily_hour??12);
   if($("#campaignEnabled"))$("#campaignEnabled").checked=!!camp.enabled;
   if($("#campaignStatus"))$("#campaignStatus").textContent=camp.enabled
-    ? "Ativa • nacional • 1 envio por dia • "+String(camp.daily_hour??12).padStart(2,"0")+":00"
-    : "Desativada";
+    ? "Automática • diária • "+String(camp.daily_hour??12).padStart(2,"0")+":00"
+    : "Manual";
   if($("#campaignLastSent"))$("#campaignLastSent").textContent=camp.last_sent_at?fmtDate(camp.last_sent_at):"Ainda não enviada";
   if(camp.image_data_uri){
     $("#campaignImagePreview").src=camp.image_data_uri;
@@ -280,14 +291,13 @@ $("#campaignImage")?.addEventListener("change",async()=>{
   }catch(err){toast(err.message||"Falha ao carregar imagem.","error")}
 });
 
-$("#campaignForm")?.addEventListener("submit",async e=>{
-  e.preventDefault();
+async function saveTransmission(){
   let camp=state.campaigns[0];
   let imageData=null;
-  try{imageData=await readCampaignImage()}catch(err){return toast(err.message||"Imagem inválida.","error")}
+  try{imageData=await readCampaignImage()}catch(err){throw new Error(err.message||"Imagem inválida.")}
   const payload={
     workspace_id:state.workspace.id,
-    name:$("#campaignName").value.trim()||"Catálogo JSTech — Soluções e Serviços",
+    name:$("#campaignName").value.trim()||"Transmissão JSTech",
     message:$("#campaignMessage").value.trim(),
     enabled:$("#campaignEnabled").checked,
     cadence:"daily",
@@ -296,12 +306,12 @@ $("#campaignForm")?.addEventListener("submit",async e=>{
     image_data_uri:imageData,
     updated_at:new Date().toISOString()
   };
-  if(!payload.message)return toast("Escreva a mensagem da campanha.","error");
+  if(!payload.message)throw new Error("Escreva a mensagem da transmissão.");
   const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at).length;
   if(payload.enabled&&eligible===0){
     $("#campaignEnabled").checked=false;
     payload.enabled=false;
-    toast("Nenhum cliente autorizou ofertas ainda. Marque os autorizados na aba Clientes.","error");
+    throw new Error("Nenhum contato está autorizado para transmissão. Marque os autorizados na aba Clientes.");
   }
   let result;
   if(camp){
@@ -309,10 +319,93 @@ $("#campaignForm")?.addEventListener("submit",async e=>{
   }else{
     result=await sb.from("wa_campaigns").insert(payload).select().single();
   }
-  if(result.error)return toast(result.error.message,"error");
+  if(result.error)throw result.error;
   state.campaigns=[result.data];
   renderCampaigns();
-  toast(payload.enabled?"Campanha nacional salva e programada.":"Campanha salva.");
+  return result.data;
+}
+
+$("#campaignForm")?.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=e.submitter;
+  if(btn)btn.disabled=true;
+  try{
+    const camp=await saveTransmission();
+    toast(camp.enabled?"Transmissão automática salva.":"Transmissão salva.");
+  }catch(err){
+    toast(err.message||"Não foi possível salvar a transmissão.","error");
+  }finally{
+    if(btn)btn.disabled=false;
+  }
+});
+
+$("#sendTransmissionNowBtn")?.addEventListener("click",async()=>{
+  const btn=$("#sendTransmissionNowBtn");
+  btn.disabled=true;
+  try{
+    const camp=await saveTransmission();
+    const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at).length;
+    if(!eligible)throw new Error("Nenhum contato autorizado para receber a transmissão.");
+    if(!confirm("Enviar esta transmissão agora para "+eligible+" contato"+(eligible===1?"":"s")+" autorizado"+(eligible===1?"":"s")+"?"))return;
+    const {data,error}=await sb.functions.invoke("jstech-wa-broadcast",{
+      body:{workspace_id:state.workspace.id,campaign_id:camp.id}
+    });
+    if(error)throw error;
+    if(data?.error)throw new Error(data.error==="whatsapp_not_connected"?"Conecte o WhatsApp antes de enviar.":data.error);
+    const total=Number(data?.queued||0);
+    if(total===0){
+      toast("Esses contatos já receberam esta transmissão hoje. Nenhum envio duplicado foi criado.","error");
+    }else{
+      camp.last_sent_at=new Date().toISOString();
+      renderCampaigns();
+      toast(total+" mensagem"+(total===1?"":"s")+" colocada"+(total===1?"":"s")+" na fila de transmissão.");
+    }
+  }catch(err){
+    toast(err.message||"Falha ao iniciar a transmissão.","error");
+  }finally{
+    btn.disabled=false;
+  }
+});
+
+async function refreshSyncedContacts(){
+  const id=state.workspace.id;
+  const [contacts,settings]=await Promise.all([
+    sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),
+    sb.from("wa_settings").select("*").eq("workspace_id",id).single()
+  ]);
+  if(contacts.error)throw contacts.error;
+  if(settings.error)throw settings.error;
+  state.contacts=contacts.data||[];
+  state.settings=settings.data;
+  renderContacts();renderCampaigns();renderDashboard();
+}
+
+$("#syncContactsBtn")?.addEventListener("click",async()=>{
+  const btn=$("#syncContactsBtn");
+  btn.disabled=true;
+  btn.textContent="Sincronizando...";
+  try{
+    if(!state.settings?.bridge_connected)throw new Error("Conecte o WhatsApp antes de sincronizar os contatos.");
+    await bridgeInvoke("sync_contacts");
+    let done=false;
+    for(let i=0;i<18;i++){
+      await new Promise(r=>setTimeout(r,1000));
+      const st=await bridgeInvoke("sync_contacts_status");
+      if(st.status==="done"){
+        await refreshSyncedContacts();
+        const n=Number(st.result?.imported_count??st.result?.count??0);
+        toast(n+" contato"+(n===1?"":"s")+" sincronizado"+(n===1?"":"s")+" com o painel.");
+        done=true;break;
+      }
+      if(st.status==="failed")throw new Error(st.error||"A sincronização falhou.");
+    }
+    if(!done)toast("A sincronização continua em segundo plano. Atualize o painel em alguns segundos.");
+  }catch(err){
+    toast(err.message||"Não foi possível sincronizar os contatos.","error");
+  }finally{
+    btn.disabled=false;
+    btn.textContent="Sincronizar contatos agora";
+  }
 });
 
 

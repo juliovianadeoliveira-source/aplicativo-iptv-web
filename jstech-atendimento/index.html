@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=20260921-contactos1">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -35,7 +35,7 @@
     <aside class="sidebar">
       <div class="sidebar-brand">
         <div class="brand-mark small">JS</div>
-        <div><strong>JSTech</strong><span>Atendimento</span></div>
+        <div><strong id="sidebarCompanyName">JSTech</strong><span>Atendimento</span></div>
       </div>
       <nav id="mainNav">
         <button class="nav-item active" data-page="dashboard">▦ <span>Dashboard</span></button>
@@ -131,10 +131,12 @@
 
       <section id="page-contacts" class="page">
         <article class="panel">
-          <div class="panel-head"><div><p class="eyebrow">CRM</p><h3>Clientes</h3></div><input id="contactSearch" class="inline-search" placeholder="Buscar cliente"></div>
-          <div class="table-wrap">
-            <table><thead><tr><th>Cliente</th><th>Telefone</th><th>Status</th><th>Bot</th><th>Transmissão</th><th>Atualizado</th></tr></thead><tbody id="contactsTable"></tbody></table>
+          <div class="panel-head">
+            <div><p class="eyebrow">CRM</p><h3>Clientes sincronizados</h3></div>
+            <input id="contactSearch" class="inline-search" placeholder="Buscar nome ou telefone">
           </div>
+          <p class="muted">Os contatos aparecem com a foto do WhatsApp quando ela estiver disponível. Use o quadradinho para incluir ou remover cada contato da transmissão.</p>
+          <div id="contactsGrid" class="wa-contact-grid"></div>
         </article>
       </section>
 
@@ -206,12 +208,7 @@
                 <span class="pill success"><b id="transmissionSelectedCount">0</b> selecionados</span>
               </div>
               <input id="transmissionContactSearch" class="inline-search" style="width:100%;margin-bottom:10px" placeholder="Buscar por nome ou telefone">
-              <div class="table-wrap" style="max-height:420px;overflow:auto">
-                <table>
-                  <thead><tr><th style="width:70px">Enviar</th><th>Nome</th><th>Telefone</th></tr></thead>
-                  <tbody id="transmissionContactsTable"></tbody>
-                </table>
-              </div>
+              <div id="transmissionContactsGrid" class="wa-contact-grid compact-grid" style="max-height:520px;overflow:auto"></div>
               <p class="muted" style="margin-top:8px">Marque somente os contatos que podem receber sua transmissão. Desmarque para remover da lista sem apagar o contato do painel.</p>
             </div>
 
@@ -429,10 +426,10 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260921-transmissao5"></script>
+  <script type="module" src="./app.js?v=20260921-contactos1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
-  <script type="module" src="./resellers.js?v=20260921-13"></script>
+  <script type="module" src="./resellers.js?v=20260921-contactos1"></script>
   <script type="module" src="./external-clients.js?v=20260921-13"></script>
 </body>
 </html>

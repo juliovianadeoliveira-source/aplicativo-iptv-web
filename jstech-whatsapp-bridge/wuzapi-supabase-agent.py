@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json, time, urllib.request, urllib.error, subprocess, os, sys, re
+import json, time, urllib.request, urllib.error, subprocess, os, sys, re, hashlib
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
@@ -74,6 +74,15 @@ def wuz(path, body, token=None):
 
 def wuz_get(path, token=None):
     return http_json(WUZ+path,"GET",None,{"token":token or TOKEN},25)
+
+def ensure_local_webhook():
+    sig=hashlib.sha256(TOKEN.encode("utf-8")).hexdigest()
+    hook="https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-wa-wuzapi-webhook?token="+sig
+    body={
+        "webhookurl":hook,
+        "events":["Message","CallOffer","Connected","Disconnected","KeepAliveRestored","KeepAliveTimeout","LoggedOut"]
+    }
+    return wuz("/webhook",body,TOKEN)
 
 def wuz_admin(path, body=None, method="GET"):
     adm=read_admin_token()
@@ -841,9 +850,16 @@ def main():
     try: cloud("recover")
     except Exception: pass
     last_hb=0
+    last_hook=0
     while True:
         try:
             now=time.time()
+            if now-last_hook>60:
+                try:
+                    ensure_local_webhook()
+                except Exception:
+                    pass
+                last_hook=now
             if now-last_hb>25:
                 try:
                     cloud("heartbeat",**local_status_snapshot(True))

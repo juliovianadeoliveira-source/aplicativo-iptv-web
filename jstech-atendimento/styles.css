@@ -49,3 +49,5 @@
   .wa-contact-card{padding:11px}
   .wa-contact-photo,.wa-contact-photo-fallback{width:66px;height:66px}
 }
+
+.conversation-avatar-photo{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#1a3048;border:1px solid #2a4058}

@@ -546,19 +546,20 @@ body.photo-modal-open{overflow:hidden}
 }
 
 
-/* Foto instantânea: mantém a resolução real sem esticar */
+/* Foto instantânea: maior, nítida e sem esticar */
 .contact-photo-dialog{
-  width:min(760px,96vw)!important;
+  width:min(1040px,98vw)!important;
 }
 .contact-photo-stage{
-  min-height:120px;
-  max-height:78vh;
+  width:100%;
+  min-height:280px;
+  max-height:86vh;
 }
 .contact-photo-large{
-  width:auto!important;
-  height:auto!important;
-  max-width:min(720px,92vw)!important;
-  max-height:78vh!important;
+  width:min(960px,94vw)!important;
+  height:min(82vh,900px)!important;
+  max-width:94vw!important;
+  max-height:82vh!important;
   object-fit:contain!important;
   image-rendering:auto;
   border-radius:8px;
@@ -584,8 +585,10 @@ body.photo-modal-open{overflow:hidden}
   .contact-sync-actions{display:grid;grid-template-columns:1fr}
   .contact-sync-actions .btn{width:100%;min-width:0}
   .contact-photo-large{
-    max-width:94vw!important;
-    max-height:74vh!important;
+    width:96vw!important;
+    height:78vh!important;
+    max-width:96vw!important;
+    max-height:78vh!important;
   }
 }
 

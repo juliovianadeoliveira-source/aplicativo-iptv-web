@@ -167,6 +167,12 @@ async function loadAll(showToast=false){
     state.userRole=alias?.role||"owner";
     if(state.userRole==="reseller")state.bridgeHosted=true;
     if(!state.activeAutomation&&state.automations.length){state.activeAutomation=structuredClone(state.automations[0]);state.activeNode=state.activeAutomation.flow?.start||Object.keys(state.activeAutomation.flow?.nodes||{})[0]}
+    try{
+      const multi=await bridgeInvoke("list_connections",{slot:state.activeWhatsAppSlot});
+      state.whatsappConnections=Array.isArray(multi?.connections)?multi.connections:[];
+    }catch{
+      state.whatsappConnections=[];
+    }
     await loadPanelConnectors(false);
     renderAll(); if(showToast)toast("Painel atualizado.");
   }catch(err){console.error(err);toast(err.message||"Erro ao carregar o painel.","error")}
@@ -177,13 +183,43 @@ function renderDashboard(){
   const unread=state.conversations.reduce((n,c)=>n+(c.unread_count||0),0);
   $("#statConversations").textContent=state.conversations.length;$("#statUnread").textContent=unread;$("#statContacts").textContent=state.contacts.length;$("#statBot").textContent=state.contacts.filter(c=>c.bot_enabled).length;
   $("#navUnread").textContent=unread;$("#navUnread").classList.toggle("hidden",!unread);
-  const connected=!!state.settings?.bridge_connected;
-  $("#connectionDot").classList.toggle("on",connected);$("#connectionText").textContent=connected?"WhatsApp conectado":"WhatsApp não conectado";
-  $("#dashMetaPill").className="pill "+(connected?"success":"warning");$("#dashMetaPill").textContent=connected?"Conectado":"Aguardando";
-  $("#dashMetaLine").innerHTML=connected?"<b>✓</b><span>WhatsApp conectado por QR Code</span>":"<b>○</b><span>Conectar WhatsApp por QR Code</span>";
+
+  const fallback=[
+    {slot:1,connected:!!state.settings?.bridge_connected,configured:true,state:state.settings?.bridge_connected?"connected":"disconnected"},
+    {slot:2,connected:false,configured:false,state:"disconnected"},
+    {slot:3,connected:false,configured:false,state:"disconnected"},
+    {slot:4,connected:false,configured:false,state:"disconnected"}
+  ];
+  const rows=state.whatsappConnections?.length?state.whatsappConnections:fallback;
+  const connectedRows=rows.filter(x=>x.connected);
+  const connected=connectedRows.length>0;
+
+  $("#connectionDot").classList.toggle("on",connected);
+  $("#connectionText").textContent=connected
+    ? (connectedRows.length===1?"1 WhatsApp conectado":connectedRows.length+" WhatsApps conectados")
+    :"WhatsApp não conectado";
+
+  $("#dashMetaPill").className="pill "+(connected?"success":"warning");
+  $("#dashMetaPill").textContent=connected
+    ? (connectedRows.length===1?"1 conectado":connectedRows.length+" conectados")
+    :"Aguardando";
+
+  $("#dashMetaLine").innerHTML=connected
+    ? "<b>✓</b><span>"+(connectedRows.length===1?"1 WhatsApp conectado por QR Code":connectedRows.length+" WhatsApps conectados por QR Code")+"</span>"
+    : "<b>○</b><span>Conectar WhatsApp por QR Code</span>";
+
   $("#dashAiLine").innerHTML=state.settings?.ai_enabled
     ? "<b>✓</b><span>IA ativa + atendimento humano pelo painel</span>"
     : "<b>✓</b><span>Automação + atendimento humano pelo painel</span>";
+
+  const box=$("#dashboardWhatsappSlots");
+  if(box){
+    box.innerHTML=[1,2,3,4].map(slot=>{
+      const x=rows.find(r=>Number(r.slot)===slot)||{slot,connected:false,configured:false,state:"disconnected"};
+      const label=x.connected?"Conectado":(x.configured&&["provisioning","preparing_qr","waiting_qr","ready"].includes(String(x.state||""))?"Aguardando QR":"Conectar");
+      return '<button class="dashboard-wa-slot '+(x.connected?"connected ":"")+(state.activeWhatsAppSlot===slot?"active":"")+'" type="button" data-dashboard-wa-slot="'+slot+'"><b>WhatsApp '+slot+'</b><span>'+escapeHtml(label)+'</span></button>';
+    }).join("");
+  }
 }
 function convFilter(c,q){const ct=c.wa_contacts||{};return !q||(ct.name||"").toLowerCase().includes(q)||(ct.phone||"").includes(q);}
 function renderConversations(){

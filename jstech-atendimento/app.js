@@ -275,7 +275,7 @@ function renderTransmissionContacts(){
     const checked=selected(c)?" checked":"";
     return '<tr><td><input type="checkbox" data-transmission-contact="'+c.id+'"'+checked+' style="width:20px;height:20px;cursor:pointer" aria-label="Incluir '+escapeHtml(c.name||c.phone||"contato")+' na transmissão"></td><td><b>'+escapeHtml(c.name||"Sem nome")+'</b></td><td>'+escapeHtml(c.phone||"")+'</td></tr>';
   }).join("");
-  $("[data-transmission-contact]",table).forEach(box=>box.addEventListener("change",async()=>{
+  table.querySelectorAll("[data-transmission-contact]").forEach(box=>box.addEventListener("change",async()=>{
     box.disabled=true;
     await setTransmissionContact(box.dataset.transmissionContact,box.checked);
   }));

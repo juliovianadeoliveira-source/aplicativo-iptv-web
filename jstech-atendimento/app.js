@@ -29,6 +29,7 @@ const state = {
   session:null, workspace:null, settings:null, contacts:[], conversations:[], messages:[],
   automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], activePanel:null, activeConversation:null, activeAutomation:null,
   activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false, userRole:null,
+  whatsappConnections:[], activeWhatsAppSlot:1,
   activeCampaignId:null, campaignFormCampaignId:null
 };
 

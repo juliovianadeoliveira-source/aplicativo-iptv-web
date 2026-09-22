@@ -219,3 +219,16 @@
   }
   #contactsGrid .wa-contact-meta{display:none!important}
 }
+
+
+/* Foto do contato ampliada, estilo WhatsApp */
+[data-contact-avatar]{cursor:pointer}
+.contact-photo-modal{position:fixed;inset:0;z-index:9999;display:grid;place-items:center}
+.contact-photo-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.76);backdrop-filter:blur(5px)}
+.contact-photo-dialog{position:relative;z-index:1;width:min(430px,92vw);background:#0d1929;border:1px solid #263a51;border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.55);overflow:hidden;padding:18px}
+.contact-photo-close{position:absolute;top:10px;right:10px;z-index:2;width:36px;height:36px;border:0;border-radius:50%;background:rgba(5,13,22,.78);color:#fff;font-size:1.55rem;line-height:1;cursor:pointer}
+.contact-photo-large{display:block;width:min(360px,80vw);height:min(360px,80vw);max-width:100%;margin:10px auto 16px;border-radius:50%;object-fit:cover;background:#1a3048;border:1px solid #2a4058}
+.contact-photo-info{text-align:center;display:grid;gap:4px;padding:0 8px 4px}
+.contact-photo-info strong{font-size:1.1rem}
+.contact-photo-info span{color:var(--muted);font-size:.83rem}
+body.photo-modal-open{overflow:hidden}

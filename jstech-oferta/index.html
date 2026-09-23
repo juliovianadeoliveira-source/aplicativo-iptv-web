@@ -58,7 +58,8 @@
   <script>
     const p=new URLSearchParams(location.search);
     const raw=(p.get("src")||"organico").toLowerCase().replace(/[^a-z0-9_-]/g,"").slice(0,40)||"organico";
-    const phone="5527997314781";
+    const configured=(p.get("phone")||"").replace(/\D+/g,"");
+    const phone=/^55\d{10,11}$/.test(configured)?configured:"5527997314781";
     function link(n){return "https://api.whatsapp.com/send?phone="+phone+"&text="+encodeURIComponent("QUERO "+n+" | origem="+raw)}
     document.getElementById("cs").href=link("1");
     document.getElementById("iptv").href=link("2");

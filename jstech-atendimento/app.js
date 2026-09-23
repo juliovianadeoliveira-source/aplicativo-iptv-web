@@ -533,6 +533,8 @@ function renderCampaigns(){
       if($("#campaignMessage"))$("#campaignMessage").value=camp.message||"";
       if($("#campaignHour"))$("#campaignHour").value=String(camp.daily_hour??12);
       if($("#campaignEnabled"))$("#campaignEnabled").checked=!!camp.enabled;
+      if($("#campaignAudienceMode"))$("#campaignAudienceMode").value=camp.audience_mode||"all_opted_in";
+      if($("#campaignRandomLimit"))$("#campaignRandomLimit").value=String(camp.random_limit||50);
       if(camp.image_data_uri){
         $("#campaignImagePreview").src=camp.image_data_uri;
         $("#campaignImagePreviewWrap")?.classList.remove("hidden");
@@ -545,6 +547,8 @@ function renderCampaigns(){
       if($("#campaignMessage"))$("#campaignMessage").value="";
       if($("#campaignHour"))$("#campaignHour").value="12";
       if($("#campaignEnabled"))$("#campaignEnabled").checked=false;
+      if($("#campaignAudienceMode"))$("#campaignAudienceMode").value="all_opted_in";
+      if($("#campaignRandomLimit"))$("#campaignRandomLimit").value="50";
       if($("#campaignImage"))$("#campaignImage").value="";
       $("#campaignImagePreview")?.removeAttribute("src");
       $("#campaignImagePreviewWrap")?.classList.add("hidden");
@@ -565,6 +569,8 @@ function renderCampaigns(){
     }
   }
   if($("#campaignLastSent"))$("#campaignLastSent").textContent=camp?.last_sent_at?fmtDate(camp.last_sent_at):"Ainda não enviada";
+  updateCampaignAudienceUi();
+  updateCampaignShareLink();
 }
 function readCampaignImage(){
   const file=$("#campaignImage")?.files?.[0];
@@ -603,6 +609,31 @@ $("#newTransmissionBtn")?.addEventListener("click",()=>{
   toast("Nova transmissão aberta. Preencha e clique em Salvar transmissão.");
 });
 
+function updateCampaignAudienceUi(){
+  const random=$("#campaignAudienceMode")?.value==="random_opted_in";
+  $("#campaignRandomLimitWrap")?.classList.toggle("hidden",!random);
+}
+function campaignShareUrl(){
+  const camp=currentCampaign();
+  const phone=String(state.settings?.bridge_phone||"").replace(/\D+/g,"");
+  if(!camp?.source_code||!phone)return "";
+  const url=new URL("../jstech-oferta/",location.href);
+  url.searchParams.set("src",camp.source_code);
+  url.searchParams.set("phone",phone);
+  return url.href;
+}
+function updateCampaignShareLink(){
+  const input=$("#campaignShareLink");
+  if(input)input.value=campaignShareUrl();
+}
+$("#campaignAudienceMode")?.addEventListener("change",updateCampaignAudienceUi);
+$("#copyCampaignLinkBtn")?.addEventListener("click",async()=>{
+  const link=campaignShareUrl();
+  if(!link)return toast("Salve a transmissão e conecte o WhatsApp para gerar o link.","error");
+  try{await navigator.clipboard.writeText(link);toast("Link QUERO copiado.");}
+  catch{prompt("Copie o link:",link);}
+});
+
 async function saveTransmission(){
   let camp=currentCampaign();
   let imageData=null;
@@ -615,6 +646,8 @@ async function saveTransmission(){
     cadence:"daily",
     daily_hour:Number($("#campaignHour").value||12),
     ddd_filter:[],
+    audience_mode:$("#campaignAudienceMode")?.value==="random_opted_in"?"random_opted_in":"all_opted_in",
+    random_limit:Math.max(1,Math.min(500,Number($("#campaignRandomLimit")?.value||50))),
     image_data_uri:imageData,
     updated_at:new Date().toISOString()
   };
@@ -662,9 +695,11 @@ $("#sendTransmissionNowBtn")?.addEventListener("click",async()=>{
   btn.disabled=true;
   try{
     const camp=await saveTransmission();
-    const eligible=state.contacts.filter(c=>c.marketing_opt_in&&!c.marketing_opt_out_at).length;
+    const eligible=state.contacts.filter(c=>c.marketing_opt_in&&c.marketing_opt_in_at&&!c.marketing_opt_out_at).length;
     if(!eligible)throw new Error("Nenhum contato autorizado para receber a transmissão.");
-    if(!confirm("Enviar esta transmissão agora para "+eligible+" contato"+(eligible===1?"":"s")+" autorizado"+(eligible===1?"":"s")+"?"))return;
+    const target=camp.audience_mode==="random_opted_in"?Math.min(eligible,Number(camp.random_limit||50)):eligible;
+    const mode=camp.audience_mode==="random_opted_in"?" selecionado"+(target===1?"":"s")+" aleatoriamente":"";
+    if(!confirm("Enviar esta transmissão agora para até "+target+" contato"+(target===1?"":"s")+" autorizado"+(target===1?"":"s")+mode+"?"))return;
     const {data,error}=await sb.functions.invoke("jstech-wa-broadcast",{
       body:{workspace_id:state.workspace.id,campaign_id:camp.id}
     });

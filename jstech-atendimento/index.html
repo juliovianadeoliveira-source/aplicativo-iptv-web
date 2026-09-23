@@ -184,7 +184,27 @@
               </label>
               <div class="stack">
                 <b>Público da transmissão</b>
-                <div class="toggle-line"><span><b>Brasil inteiro</b><small>Todos os contatos autorizados desta conta.</small></span><span class="pill success">Nacional</span></div>
+                <label>Modo de envio
+                  <select id="campaignAudienceMode">
+                    <option value="all_opted_in">Todos os contatos autorizados</option>
+                    <option value="random_opted_in">Contatos autorizados aleatórios</option>
+                  </select>
+                </label>
+                <label id="campaignRandomLimitWrap" class="hidden">Quantidade aleatória por envio
+                  <input id="campaignRandomLimit" type="number" min="1" max="500" value="50">
+                  <small>O sistema sorteia somente pessoas que autorizaram receber mensagens. Nunca usa números desconhecidos.</small>
+                </label>
+                <div class="toggle-line"><span><b>Base própria desta conta</b><small>Administrador e cada revenda enviam apenas para seus próprios contatos autorizados.</small></span><span class="pill success">Protegida</span></div>
+              </div>
+              <div class="stack">
+                <b>Botão QUERO para captar interessados</b>
+                <p class="muted">Divulgue este link em anúncio, bio, status ou grupo que permita publicidade. O cliente toca, envia “QUERO” e o bot inicia a conversa registrando a origem e a autorização.</p>
+                <div class="top-actions" style="align-items:end;justify-content:flex-start;flex-wrap:wrap">
+                  <label style="flex:1;min-width:240px">Link desta transmissão
+                    <input id="campaignShareLink" readonly placeholder="Salve a transmissão para gerar o link">
+                  </label>
+                  <button id="copyCampaignLinkBtn" class="btn ghost" type="button">Copiar link QUERO</button>
+                </div>
               </div>
               <label>Imagem / catálogo
                 <input id="campaignImage" type="file" accept="image/jpeg,image/png,image/webp">
@@ -479,7 +499,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260922-mobile-pc2"></script>
+  <script type="module" src="./app.js?v=20260923-safe-campaigns"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260921-contactos2"></script>

@@ -194,7 +194,32 @@
                   <input id="campaignRandomLimit" type="number" min="1" max="500" value="50">
                   <small>O sistema sorteia somente pessoas que autorizaram receber mensagens. Nunca usa números desconhecidos.</small>
                 </label>
-                <div class="toggle-line"><span><b>Base própria desta conta</b><small>Administrador e cada revenda enviam apenas para seus próprios contatos autorizados.</small></span><span class="pill success">Protegida</span></div>
+                <details>
+                  <summary><b>Filtros de região e público</b></summary>
+                  <div class="stack" style="margin-top:12px">
+                    <label>DDDs, separados por vírgula<input id="campaignDdds" placeholder="Ex.: 27, 28"></label>
+                    <label>Estados, separados por vírgula<input id="campaignStates" placeholder="Ex.: ES, MG"></label>
+                    <label>Tipo de contato
+                      <select id="campaignCustomerKind">
+                        <option value="">Todos os autorizados</option>
+                        <option value="lead">Possíveis clientes</option>
+                        <option value="customer">Clientes</option>
+                        <option value="supplier">Fornecedores</option>
+                        <option value="partner">Parceiros</option>
+                        <option value="former_customer">Ex-clientes</option>
+                      </select>
+                    </label>
+                    <div class="top-actions" style="align-items:end;flex-wrap:wrap">
+                      <label>Latitude central<input id="campaignLatitude" type="number" step="any" placeholder="-20.3155"></label>
+                      <label>Longitude central<input id="campaignLongitude" type="number" step="any" placeholder="-40.3128"></label>
+                      <label>Raio em km<input id="campaignRadiusKm" type="number" min="1" max="1000" placeholder="300"></label>
+                    </div>
+                    <small>O filtro por raio só inclui contatos autorizados que tenham localização cadastrada.</small>
+                    <label>Modelo oficial aprovado (opcional)<input id="campaignTemplateName" placeholder="Nome do template do WhatsApp"></label>
+                    <label>Idioma do modelo<input id="campaignTemplateLanguage" value="pt_BR"></label>
+                  </div>
+                </details>
+                                <div class="toggle-line"><span><b>Base própria desta conta</b><small>Administrador e cada revenda enviam apenas para seus próprios contatos autorizados.</small></span><span class="pill success">Protegida</span></div>
               </div>
               <div class="stack">
                 <b>Botão QUERO para captar interessados</b>
@@ -418,10 +443,22 @@
             <form id="settingsForm" class="stack">
               <label>Nome da empresa<input id="companyName"></label>
               <label>Nome do atendente virtual<input id="virtualAgentName" placeholder="Ex.: Ana"></label>
-              <p class="muted">Cada administrador, revenda e revenda da revenda pode escolher o próprio nome do atendente virtual.</p>
+              <label>Tipo de negócio<input id="businessType" placeholder="Ex.: peças, assistência, estética, loja, serviços"></label>
+              <label>O que sua empresa vende ou faz<textarea id="productsAndServices" rows="5" placeholder="Descreva produtos, serviços, público e diferenciais. Esta informação é exclusiva desta conta."></textarea></label>
+              <label>Descrição da empresa<textarea id="businessDescription" rows="4" placeholder="Conte a história, região atendida e como funciona o atendimento."></textarea></label>
+              <label>Objetivo das conversas<textarea id="salesObjective" rows="3" placeholder="Ex.: entender a necessidade, tirar dúvidas, preparar proposta e fechar a venda."></textarea></label>
+              <label>Região atendida<input id="serviceArea" placeholder="Ex.: todo Brasil ou até 300 km de Vitória-ES"></label>
+              <label>Tom da conversa<input id="conversationTone" placeholder="Ex.: natural, educado, direto e sem repetir perguntas"></label>
+              <label>Perguntas importantes, uma por linha<textarea id="qualificationQuestions" rows="4" placeholder="Qual produto procura?&#10;Qual cidade?&#10;Qual quantidade?"></textarea></label>
+              <label>Quando transferir para uma pessoa, uma regra por linha<textarea id="handoffRules" rows="4" placeholder="Transferir somente para pagamento&#10;Transferir se o cliente pedir atendente"></textarea></label>
+              <label class="toggle-line"><span><b>Atendimento universal</b><small>Entende clientes, fornecedores e assuntos diferentes sem assumir que tudo é IPTV.</small></span><input id="universalMode" type="checkbox"></label>
+              <label class="toggle-line"><span><b>Ler fotos e documentos</b><small>Usa a imagem recebida para continuar a conversa.</small></span><input id="mediaUnderstandingEnabled" type="checkbox"></label>
+              <label class="toggle-line"><span><b>Pesquisar na internet quando necessário</b><small>Consulta informação pública sem inventar dados.</small></span><input id="webResearchEnabled" type="checkbox"></label>
+              <label class="toggle-line"><span><b>Identificação transparente</b><small>Se perguntarem, informa que é assistente virtual da empresa.</small></span><input id="botDisclosure" type="checkbox"></label>
+              <p class="muted">Cada administrador, revenda e sub-revenda tem configuração e memória próprias. Uma conta não mistura informações com outra.</p>
               <label>Mensagem de boas-vindas<textarea id="welcomeMessage" rows="3"></textarea></label>
-              <label>Resposta quando o cliente sair do fluxo<textarea id="fallbackMessage" rows="3"></textarea></label>
-              <button class="btn primary" type="submit">Salvar configurações</button>
+              <label>Resposta quando faltar contexto<textarea id="fallbackMessage" rows="3"></textarea></label>
+              <button class="btn primary" type="submit">Salvar e aplicar na IA</button>
             </form>
           </article>
           <article class="panel">
@@ -499,10 +536,10 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260923-safe-campaigns"></script>
+  <script type="module" src="./app.js?v=20260923-universal-v1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
-  <script type="module" src="./resellers.js?v=20260921-contactos2"></script>
+  <script type="module" src="./resellers.js?v=20260923-hierarchy-v1"></script>
   <script type="module" src="./external-clients.js?v=20260921-13"></script>
 </body>
 </html>

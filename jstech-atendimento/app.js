@@ -535,6 +535,14 @@ function renderCampaigns(){
       if($("#campaignEnabled"))$("#campaignEnabled").checked=!!camp.enabled;
       if($("#campaignAudienceMode"))$("#campaignAudienceMode").value=camp.audience_mode||"all_opted_in";
       if($("#campaignRandomLimit"))$("#campaignRandomLimit").value=String(camp.random_limit||50);
+      if($("#campaignDdds"))$("#campaignDdds").value=(camp.ddd_filter||[]).join(", ");
+      if($("#campaignStates"))$("#campaignStates").value=(camp.audience_filters?.states||[]).join(", ");
+      if($("#campaignCustomerKind"))$("#campaignCustomerKind").value=(camp.audience_filters?.customer_kinds||[])[0]||"";
+      if($("#campaignLatitude"))$("#campaignLatitude").value=camp.center_latitude??"";
+      if($("#campaignLongitude"))$("#campaignLongitude").value=camp.center_longitude??"";
+      if($("#campaignRadiusKm"))$("#campaignRadiusKm").value=camp.radius_km??"";
+      if($("#campaignTemplateName"))$("#campaignTemplateName").value=camp.template_name||"";
+      if($("#campaignTemplateLanguage"))$("#campaignTemplateLanguage").value=camp.template_language||"pt_BR";
       if(camp.image_data_uri){
         $("#campaignImagePreview").src=camp.image_data_uri;
         $("#campaignImagePreviewWrap")?.classList.remove("hidden");
@@ -549,6 +557,14 @@ function renderCampaigns(){
       if($("#campaignEnabled"))$("#campaignEnabled").checked=false;
       if($("#campaignAudienceMode"))$("#campaignAudienceMode").value="all_opted_in";
       if($("#campaignRandomLimit"))$("#campaignRandomLimit").value="50";
+      if($("#campaignDdds"))$("#campaignDdds").value="";
+      if($("#campaignStates"))$("#campaignStates").value="";
+      if($("#campaignCustomerKind"))$("#campaignCustomerKind").value="";
+      if($("#campaignLatitude"))$("#campaignLatitude").value="";
+      if($("#campaignLongitude"))$("#campaignLongitude").value="";
+      if($("#campaignRadiusKm"))$("#campaignRadiusKm").value="";
+      if($("#campaignTemplateName"))$("#campaignTemplateName").value="";
+      if($("#campaignTemplateLanguage"))$("#campaignTemplateLanguage").value="pt_BR";
       if($("#campaignImage"))$("#campaignImage").value="";
       $("#campaignImagePreview")?.removeAttribute("src");
       $("#campaignImagePreviewWrap")?.classList.add("hidden");
@@ -645,9 +661,19 @@ async function saveTransmission(){
     enabled:$("#campaignEnabled").checked,
     cadence:"daily",
     daily_hour:Number($("#campaignHour").value||12),
-    ddd_filter:[],
+    ddd_filter:String($("#campaignDdds")?.value||"").split(",").map(x=>x.replace(/\D/g,"").trim()).filter(Boolean),
+    audience_filters:{
+      states:String($("#campaignStates")?.value||"").split(",").map(x=>x.trim().toUpperCase()).filter(Boolean),
+      customer_kinds:$("#campaignCustomerKind")?.value?[$("#campaignCustomerKind").value]:[]
+    },
     audience_mode:$("#campaignAudienceMode")?.value==="random_opted_in"?"random_opted_in":"all_opted_in",
     random_limit:Math.max(1,Math.min(500,Number($("#campaignRandomLimit")?.value||50))),
+    center_latitude:$("#campaignLatitude")?.value===""?null:Number($("#campaignLatitude")?.value),
+    center_longitude:$("#campaignLongitude")?.value===""?null:Number($("#campaignLongitude")?.value),
+    radius_km:$("#campaignRadiusKm")?.value===""?null:Number($("#campaignRadiusKm")?.value),
+    require_opt_in:true,
+    template_name:$("#campaignTemplateName")?.value.trim()||null,
+    template_language:$("#campaignTemplateLanguage")?.value.trim()||"pt_BR",
     image_data_uri:imageData,
     updated_at:new Date().toISOString()
   };
@@ -1201,11 +1227,29 @@ $(".whatsapp-slot-tabs")?.addEventListener("click",e=>{
   if(btn)selectWhatsAppSlot(Number(btn.dataset.waSlot||1),false);
 });
 
+function linesValue(value){
+  return Array.isArray(value)?value.join("\n"):"";
+}
+function linesArray(value){
+  return String(value||"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+}
 function renderSettings(){
   const s=state.settings||{};
   if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=s.company_name||"JSTech";
   $("#companyName").value=s.company_name||"JSTech";
   if($("#virtualAgentName"))$("#virtualAgentName").value=s.virtual_agent_name||"Ana";
+  if($("#businessType"))$("#businessType").value=state.workspace?.business_type||"";
+  if($("#businessDescription"))$("#businessDescription").value=s.business_description||state.workspace?.business_description||"";
+  if($("#productsAndServices"))$("#productsAndServices").value=s.products_and_services||"";
+  if($("#salesObjective"))$("#salesObjective").value=s.sales_objective||"";
+  if($("#serviceArea"))$("#serviceArea").value=s.service_area||"";
+  if($("#conversationTone"))$("#conversationTone").value=s.conversation_tone||"natural, educado, direto e sem repetir perguntas";
+  if($("#qualificationQuestions"))$("#qualificationQuestions").value=linesValue(s.qualification_questions);
+  if($("#handoffRules"))$("#handoffRules").value=linesValue(s.handoff_rules);
+  if($("#universalMode"))$("#universalMode").checked=s.universal_mode!==false;
+  if($("#mediaUnderstandingEnabled"))$("#mediaUnderstandingEnabled").checked=s.media_understanding_enabled!==false;
+  if($("#webResearchEnabled"))$("#webResearchEnabled").checked=s.web_research_enabled!==false;
+  if($("#botDisclosure"))$("#botDisclosure").checked=s.bot_disclosure!==false;
   $("#welcomeMessage").value=s.welcome_message||"";
   $("#fallbackMessage").value=s.fallback_message||"";
   renderWhatsAppSlotTabs();
@@ -1214,7 +1258,48 @@ function renderSettings(){
   refreshBridgeStatus(state.activeWhatsAppSlot).catch(()=>{});
 }
 
-$("#settingsForm").addEventListener("submit",async e=>{e.preventDefault();const patch={company_name:$("#companyName").value.trim()||"JSTech",virtual_agent_name:$("#virtualAgentName")?.value.trim()||"Ana",welcome_message:$("#welcomeMessage").value.trim(),ai_enabled:state.settings?.ai_enabled!==false,fallback_message:$("#fallbackMessage").value.trim(),updated_at:new Date().toISOString()};const {data,error}=await sb.from("wa_settings").update(patch).eq("workspace_id",state.workspace.id).select().single();if(error)return toast(error.message,"error");state.settings=data;if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=data.company_name||"JSTech";renderDashboard();toast("Configurações salvas.")});
+$("#settingsForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=e.submitter;if(btn)btn.disabled=true;
+  try{
+    const businessDescription=$("#businessDescription")?.value.trim()||"";
+    const settingsPatch={
+      company_name:$("#companyName").value.trim()||"Minha empresa",
+      virtual_agent_name:$("#virtualAgentName")?.value.trim()||"Ana",
+      business_description:businessDescription,
+      products_and_services:$("#productsAndServices")?.value.trim()||"",
+      sales_objective:$("#salesObjective")?.value.trim()||"",
+      service_area:$("#serviceArea")?.value.trim()||"",
+      conversation_tone:$("#conversationTone")?.value.trim()||"natural, educado e direto",
+      qualification_questions:linesArray($("#qualificationQuestions")?.value),
+      handoff_rules:linesArray($("#handoffRules")?.value),
+      universal_mode:$("#universalMode")?.checked!==false,
+      media_understanding_enabled:$("#mediaUnderstandingEnabled")?.checked!==false,
+      web_research_enabled:$("#webResearchEnabled")?.checked!==false,
+      bot_disclosure:$("#botDisclosure")?.checked!==false,
+      welcome_message:$("#welcomeMessage").value.trim(),
+      ai_enabled:true,
+      fallback_message:$("#fallbackMessage").value.trim(),
+      updated_at:new Date().toISOString()
+    };
+    const workspacePatch={
+      business_type:$("#businessType")?.value.trim()||null,
+      business_description:businessDescription||null,
+      onboarding_completed:true,
+      updated_at:new Date().toISOString()
+    };
+    const [sr,wr]=await Promise.all([
+      sb.from("wa_settings").update(settingsPatch).eq("workspace_id",state.workspace.id).select().single(),
+      sb.from("wa_workspaces").update(workspacePatch).eq("id",state.workspace.id).select().single()
+    ]);
+    if(sr.error)throw sr.error;if(wr.error)throw wr.error;
+    state.settings=sr.data;state.workspace=wr.data;
+    if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=sr.data.company_name||"Minha empresa";
+    renderDashboard();
+    toast("Configurações salvas e aplicadas na IA.");
+  }catch(err){toast(err.message||"Não foi possível salvar.","error")}
+  finally{if(btn)btn.disabled=false}
+});
 
 async function bridgeInvoke(action,extra={}){
   const slot=Number(extra?.slot||state.activeWhatsAppSlot||1);

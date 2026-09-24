@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v7-voice-clone";
+const CACHE="jstech-atendimento-v8-panel-automation";
 const CORE=[
   "./",
   "./index.html",

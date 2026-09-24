@@ -753,3 +753,44 @@ img,video,canvas,svg{max-width:100%}
   }
   .main{padding-bottom:calc(134px + env(safe-area-inset-bottom))!important}
 }
+
+
+/* Parede dos disparos */
+.campaign-wall-panel{margin-top:18px;overflow:hidden}
+.campaign-wall-head{align-items:flex-end;gap:16px;flex-wrap:wrap}
+.campaign-wall-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.campaign-wall-filter,.campaign-wall-search{min-height:38px}
+.campaign-wall-search{min-width:260px}
+.campaign-wall-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:16px 0}
+.campaign-wall-stat{display:grid;gap:5px;border:1px solid var(--line);border-radius:14px;padding:14px;background:#091525}
+.campaign-wall-stat span{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+.campaign-wall-stat strong{font-size:1.7rem;line-height:1}
+.campaign-wall-stat.queued strong{color:#ffbf5d}
+.campaign-wall-stat.processing strong{color:#5da7ff}
+.campaign-wall-stat.sent strong{color:#36d399}
+.campaign-wall-stat.failed strong{color:#ff6b7a}
+.campaign-wall-stat.total strong{color:#edf4ff}
+.campaign-wall-table-wrap{max-height:520px;overflow:auto;border:1px solid var(--line);border-radius:14px;background:#081321}
+.campaign-wall-table{min-width:940px}
+.campaign-wall-table thead th{position:sticky;top:0;z-index:1;background:#0d1929}
+.campaign-wall-table td{vertical-align:middle}
+.campaign-wall-status{display:inline-flex;align-items:center;justify-content:center;min-width:86px;padding:5px 9px;border-radius:999px;font-size:.72rem;font-weight:900;border:1px solid transparent}
+.campaign-wall-status.queued{color:#ffd58e;border-color:#6b5730;background:#251f13}
+.campaign-wall-status.processing{color:#9bc8ff;border-color:#31577e;background:#10243b}
+.campaign-wall-status.sent{color:#8cebc5;border-color:#2d8065;background:#0e2a21}
+.campaign-wall-status.failed{color:#ffabb5;border-color:#793e49;background:#31171c}
+.campaign-wall-phone{white-space:nowrap}
+.campaign-wall-detail{max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.campaign-wall-empty{text-align:center!important;color:var(--muted);padding:34px!important}
+@media(max-width:850px){
+  .campaign-wall-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .campaign-wall-actions{width:100%}
+  .campaign-wall-search{flex:1;min-width:180px}
+}
+@media(max-width:560px){
+  .campaign-wall-stats{grid-template-columns:1fr 1fr}
+  .campaign-wall-stat.total{grid-column:1/-1}
+  .campaign-wall-actions{display:grid;grid-template-columns:1fr}
+  .campaign-wall-search{min-width:0;width:100%}
+}
+

@@ -812,3 +812,8 @@ img,video,canvas,svg{max-width:100%}
 .activation-field-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .tenant-exclusive-hidden{display:none!important}
 @media(max-width:700px){.activation-field-grid{grid-template-columns:1fr}}
+
+/* Base nacional de leads */
+#nationalLeadPanel{margin-bottom:18px}
+.national-lead-stats{grid-template-columns:repeat(2,minmax(0,1fr));margin:18px 0}
+@media(max-width:560px){.national-lead-stats{grid-template-columns:1fr}}

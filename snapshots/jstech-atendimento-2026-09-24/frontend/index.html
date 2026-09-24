@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#08111f">
+  <meta name="application-name" content="JSTech Atendimento">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JSTech">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./app-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./app-icon.svg">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>JSTech Atendimento</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="./styles.css?v=20260924-panel-automation-v1">
+  <link rel="stylesheet" href="./crm.css">
+  <link rel="stylesheet" href="./sync-sources.css">
+</head>
+<body>
+  <div id="loginView" class="login-shell">
+    <div class="login-card">
+      <div class="brand-mark">JS</div>
+      <div>
+        <p class="eyebrow">JSTech</p>
+        <h1>Central de Atendimento</h1>
+        <p class="muted">WhatsApp, vendas, automação e atendimento humanizado em um só painel.</p>
+      </div>
+      <form id="loginForm" class="stack">
+        <label>Usuário<input id="loginUsername" autocomplete="username" required placeholder="Seu usuário"></label>
+        <label>Senha<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha"></label>
+        <button class="btn primary" type="submit">Entrar</button>
+      </form>
+      <button id="installAppBtnLogin" class="btn ghost install-app-btn" type="button">Instalar aplicativo</button>
+      <p id="loginMsg" class="form-msg"></p>
+    </div>
+  </div>
+
+  <div id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark small"><img id="sidebarBrandLogo" class="brand-logo-img hidden" alt=""><span id="sidebarBrandInitials">JS</span></div>
+        <div><strong id="sidebarCompanyName">JSTech</strong><span>Atendimento</span></div>
+      </div>
+      <nav id="mainNav">
+        <button class="nav-item active" data-page="dashboard">▦ <span>Dashboard</span></button>
+        <button class="nav-item" data-page="conversations">◉ <span>Conversas</span><b id="navUnread" class="badge hidden">0</b></button>
+        <button class="nav-item" data-page="contacts">♙ <span>Clientes</span></button>
+        <button class="nav-item" data-page="campaigns">✉ <span>Transmissão</span></button>
+        <button class="nav-item" data-page="organic">◎ <span>Divulgação grátis</span></button>
+        <button class="nav-item" data-page="panels">▣ <span>Painéis automáticos</span></button>
+        <button class="nav-item" id="resellerNav" data-page="resellers">◆ <span>Revendas</span></button>
+        <button class="nav-item" data-page="automation">⌘ <span>Automação</span></button>
+        <button class="nav-item" data-page="knowledge">✦ <span>Respostas / Conteúdo</span></button>
+        <button class="nav-item" data-page="settings">⚙ <span>Configurações</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="mini-status"><i id="connectionDot"></i><span id="connectionText">WhatsApp não conectado</span></div>
+        <button id="logoutBtn" class="nav-item danger">↪ <span>Sair</span></button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="pageEyebrow">Visão geral</p>
+          <h2 id="pageTitle">Dashboard</h2>
+        </div>
+        <div class="top-actions">
+          <button class="btn ghost compact install-app-btn" id="installAppBtnTop" type="button">Instalar app</button>
+          <button class="btn ghost compact" id="refreshBtn">↻ Atualizar</button>
+          <div class="avatar" id="userAvatar">J</div>
+        </div>
+      </header>
+
+      <section id="page-dashboard" class="page active">
+        <div class="stats-grid">
+          <article class="stat"><span>Conversas</span><strong id="statConversations">0</strong><small>Total registrado</small></article>
+          <article class="stat"><span>Não lidas</span><strong id="statUnread">0</strong><small>Precisam de atenção</small></article>
+          <article class="stat"><span>Clientes</span><strong id="statContacts">0</strong><small>Base do atendimento</small></article>
+          <article class="stat"><span>Bot ativo</span><strong id="statBot">0</strong><small>Automação ligada</small></article>
+        </div>
+        <div class="dashboard-grid">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Fluxo principal</p><h3>Atendimento inicial</h3></div><span class="pill success">Ativo</span></div>
+            <div class="flow-preview">
+              <div class="flow-node hero-node"><b>Cliente envia “Oi”</b><span>Dispara o menu principal</span></div>
+              <div class="flow-line"></div>
+              <div class="flow-options">
+                <span>1 Ver planos e preços</span><span>2 Pedir um teste</span><span>3 Renovar meu serviço</span><span>4 Preciso de suporte</span><span>5 Falar com uma pessoa</span><span>6 Serviço CS</span><span>7 Serviço IPTV</span><span>8 Painel CS</span><span>9 Painel IPTV</span><span>10 Manutenção / conserto</span><span>11 UniTV</span><span>12 UniTV Free</span><span>13 Liberação de confiança</span>
+              </div>
+            </div>
+            <button class="btn primary" data-go="automation">Editar automação</button>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Integração</p><h3>Status do WhatsApp</h3></div><span id="dashMetaPill" class="pill warning">Aguardando</span></div>
+            <div id="dashboardWhatsappSlots" class="dashboard-wa-slots">
+              <button class="dashboard-wa-slot active" type="button" data-dashboard-wa-slot="1"><b>WhatsApp 1</b><span>Aguardando</span></button>
+              <button class="dashboard-wa-slot" type="button" data-dashboard-wa-slot="2"><b>WhatsApp 2</b><span>Conectar</span></button>
+              <button class="dashboard-wa-slot" type="button" data-dashboard-wa-slot="3"><b>WhatsApp 3</b><span>Conectar</span></button>
+              <button class="dashboard-wa-slot" type="button" data-dashboard-wa-slot="4"><b>WhatsApp 4</b><span>Conectar</span></button>
+            </div>
+            <div class="check-list">
+              <div><b>✓</b><span>Webhook publicado</span></div>
+              <div><b>✓</b><span>Envio manual publicado</span></div>
+              <div id="dashMetaLine"><b>○</b><span>Conectar WhatsApp por QR Code</span></div>
+              <div id="dashAiLine"><b>✓</b><span>Atendimento automático por regras, sem IA</span></div>
+            </div>
+            <button class="btn ghost" data-go="settings">Abrir configurações</button>
+          </article>
+        </div>
+      </section>
+
+      <section id="page-conversations" class="page">
+        <div class="chat-layout">
+          <aside class="conversation-list-panel">
+            <div class="search-row"><input id="conversationSearch" placeholder="Buscar cliente ou telefone"></div>
+            <div id="conversationList" class="conversation-list empty-box">Nenhuma conversa ainda.</div>
+          </aside>
+          <article class="chat-panel">
+            <div id="chatEmpty" class="chat-empty">
+              <div class="empty-icon">◉</div><h3>Escolha uma conversa</h3><p>As mensagens recebidas do WhatsApp vão aparecer aqui.</p>
+            </div>
+            <div id="chatActive" class="chat-active hidden">
+              <header class="chat-head">
+                <button id="mobileChatBack" class="mobile-chat-back" type="button" aria-label="Voltar para conversas">‹</button>
+                <div class="chat-contact-title"><strong id="chatName">Cliente</strong><span id="chatPhone"></span></div>
+                <button id="toggleBotBtn" class="btn ghost compact">🤖 IA ativa</button>
+              </header>
+              <div id="messageList" class="messages"></div>
+              <form id="composerForm" class="composer">
+                <textarea id="composerText" rows="1" placeholder="Digite aqui para responder pelo WhatsApp..."></textarea>
+                <button class="btn primary" type="submit">Enviar no WhatsApp</button>
+              </form>
+            </div>
+          </article>
+          <aside id="contactSidebar" class="contact-sidebar">
+            <h3>Dados do cliente</h3>
+            <div id="contactDetails" class="muted">Selecione uma conversa.</div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="page-contacts" class="page">
+        <article class="panel">
+          <div class="panel-head">
+            <div><p class="eyebrow">CRM</p><h3>Clientes sincronizados</h3></div>
+            <input id="contactSearch" class="inline-search" placeholder="Buscar nome, telefone ou e-mail">
+          </div>
+          <p class="muted">Os contatos do WhatsApp e da agenda do e-mail aparecem juntos nesta conta. A foto é mostrada quando estiver disponível. Use o quadradinho para incluir ou remover da transmissão.</p>
+          <div id="contactsGrid" class="wa-contact-grid"></div>
+        </article>
+      </section>
+
+
+      <section id="page-campaigns" class="page">
+        <div class="settings-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">Lista de transmissão</p><h3>Transmissão automática</h3></div>
+              <span id="campaignStatus" class="pill warning">Desativada</span>
+            </div>
+            <p class="muted">Use o WhatsApp conectado ao painel para enviar sua transmissão. Administrador e revendas usam bases separadas. O envio comercial é feito somente para contatos marcados como <b>Autorizado</b>.</p>
+            <form id="campaignForm" class="stack">
+              <div class="top-actions" style="align-items:end;justify-content:flex-start;flex-wrap:wrap">
+                <label style="flex:1;min-width:220px">Transmissões salvas
+                  <select id="campaignSelector"></select>
+                </label>
+                <button id="newTransmissionBtn" class="btn ghost" type="button">Nova transmissão</button>
+              </div>
+              <label>Nome da transmissão<input id="campaignName" placeholder="Ex.: Ofertas da semana"></label>
+              <label>Mensagem<textarea id="campaignMessage" rows="16" placeholder="Escreva a mensagem que será enviada"></textarea></label>
+              <label>Horário da transmissão automática
+                <select id="campaignHour">
+                  <option value="8">08:00</option><option value="9">09:00</option><option value="10">10:00</option>
+                  <option value="11">11:00</option><option value="12">12:00</option><option value="13">13:00</option>
+                  <option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option>
+                  <option value="17">17:00</option><option value="18">18:00</option><option value="19">19:00</option>
+                </select>
+              </label>
+              <div class="stack">
+                <b>Público da transmissão</b>
+                <label>Modo de envio
+                  <select id="campaignAudienceMode">
+                    <option value="all_opted_in">Todos os contatos autorizados</option>
+                    <option value="random_opted_in">Contatos autorizados aleatórios</option>
+                  </select>
+                </label>
+                <label id="campaignRandomLimitWrap" class="hidden">Quantidade aleatória por envio
+                  <input id="campaignRandomLimit" type="number" min="1" max="500" value="50">
+                  <small>O sistema sorteia somente pessoas que autorizaram receber mensagens. Nunca usa números desconhecidos.</small>
+                </label>
+                <details>
+                  <summary><b>Filtros de região e público</b></summary>
+                  <div class="stack" style="margin-top:12px">
+                    <label>DDDs, separados por vírgula<input id="campaignDdds" placeholder="Ex.: 27, 28"></label>
+                    <label>Estados, separados por vírgula<input id="campaignStates" placeholder="Ex.: ES, MG"></label>
+                    <label>Tipo de contato
+                      <select id="campaignCustomerKind">
+                        <option value="">Todos os autorizados</option>
+                        <option value="lead">Possíveis clientes</option>
+                        <option value="customer">Clientes</option>
+                        <option value="supplier">Fornecedores</option>
+                        <option value="partner">Parceiros</option>
+                        <option value="former_customer">Ex-clientes</option>
+                      </select>
+                    </label>
+                    <div class="top-actions" style="align-items:end;flex-wrap:wrap">
+                      <label>Latitude central<input id="campaignLatitude" type="number" step="any" placeholder="-20.3155"></label>
+                      <label>Longitude central<input id="campaignLongitude" type="number" step="any" placeholder="-40.3128"></label>
+                      <label>Raio em km<input id="campaignRadiusKm" type="number" min="1" max="1000" placeholder="300"></label>
+                    </div>
+                    <small>O filtro por raio só inclui contatos autorizados que tenham localização cadastrada.</small>
+                    <label>Modelo oficial aprovado (opcional)<input id="campaignTemplateName" placeholder="Nome do template do WhatsApp"></label>
+                    <label>Idioma do modelo<input id="campaignTemplateLanguage" value="pt_BR"></label>
+                  </div>
+                </details>
+                                <div class="toggle-line"><span><b>Base própria desta conta</b><small>Administrador e cada revenda enviam apenas para seus próprios contatos autorizados.</small></span><span class="pill success">Protegida</span></div>
+              </div>
+              <div class="stack">
+                <b>Botão QUERO para captar interessados</b>
+                <p class="muted">Divulgue este link em anúncio, bio, status ou grupo que permita publicidade. O cliente toca, envia “QUERO” e o bot inicia a conversa registrando a origem e a autorização.</p>
+                <div class="top-actions" style="align-items:end;justify-content:flex-start;flex-wrap:wrap">
+                  <label style="flex:1;min-width:240px">Link desta transmissão
+                    <input id="campaignShareLink" readonly placeholder="Salve a transmissão para gerar o link">
+                  </label>
+                  <button id="copyCampaignLinkBtn" class="btn ghost" type="button">Copiar link QUERO</button>
+                </div>
+              </div>
+              <label>Imagem / catálogo
+                <input id="campaignImage" type="file" accept="image/jpeg,image/png,image/webp">
+                <small>Opcional. A imagem vai junto com a mensagem.</small>
+              </label>
+              <div id="campaignImagePreviewWrap" class="hidden"><img id="campaignImagePreview" alt="Prévia do catálogo" style="max-width:100%;border-radius:14px"></div>
+              <label class="toggle-line">
+                <span><b>Transmissão automática diária</b><small>Envia uma vez por dia no horário escolhido.</small></span>
+                <input id="campaignEnabled" type="checkbox">
+              </label>
+              <div class="top-actions" style="justify-content:flex-start;flex-wrap:wrap">
+                <button class="btn primary" type="submit">Salvar transmissão</button>
+                <button id="sendTransmissionNowBtn" class="btn ghost" type="button">Enviar agora</button>
+              </div>
+            </form>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">Contatos do WhatsApp</p><h3>Sincronização automática</h3></div>
+              <span id="contactSyncStatus" class="pill success">Ativa</span>
+            </div>
+            <p class="muted">Atualize os contatos pelo WhatsApp ou importe a agenda sincronizada no Google, Outlook ou celular. Cada conta mantém sua própria base.</p>
+
+            <div class="contact-sync-actions">
+              <button id="syncContactsBtn" class="btn primary" type="button">Sincronizar WhatsApp</button>
+              <button id="importEmailContactsBtn" class="btn ghost" type="button">Importar agenda do e-mail</button>
+              <input id="emailContactsFile" class="hidden" type="file" accept=".csv,.vcf,text/csv,text/vcard,text/x-vcard">
+            </div>
+            <small class="muted">Aceita CSV do Google/Outlook e VCF da agenda do celular. Contatos sem telefone são ignorados porque não podem receber WhatsApp.</small>
+
+            <div class="stats-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin:18px 0">
+              <article class="stat"><span>Contatos no painel</span><strong id="transmissionContactsTotal">0</strong><small>Base desta conta</small></article>
+              <article class="stat"><span>Autorizados</span><strong id="campaignEligible">0</strong><small>Podem receber transmissão</small></article>
+            </div>
+
+            <p class="muted" style="margin-top:12px">Última sincronização: <b id="lastContactSync">Ainda não sincronizado</b></p>
+            <p class="muted">Última transmissão: <b id="campaignLastSent">Ainda não enviada</b></p>
+
+            <div style="margin-top:18px">
+              <div class="panel-head" style="margin-bottom:10px">
+                <div><p class="eyebrow">Escolha quem recebe</p><h3>Contatos da transmissão</h3></div>
+                <span class="pill success"><b id="transmissionSelectedCount">0</b> selecionados</span>
+              </div>
+              <input id="transmissionContactSearch" class="inline-search" style="width:100%;margin-bottom:10px" placeholder="Buscar por nome, telefone ou e-mail">
+              <div id="transmissionContactsGrid" class="wa-contact-grid compact-grid" style="max-height:520px;overflow:auto"></div>
+              <p class="muted" style="margin-top:8px">Marque somente os contatos que podem receber sua transmissão. Desmarque para remover da lista sem apagar o contato do painel.</p>
+            </div>
+
+            <div class="check-list">
+              <div><b>✓</b><span>Administrador, revendas e sub-revendas usam bases separadas</span></div>
+              <div><b>✓</b><span>WhatsApp e agenda do e-mail entram na mesma lista desta conta</span></div>
+              <div><b>✓</b><span>Nome, telefone, e-mail e foto ficam disponíveis quando existirem</span></div>
+              <div><b>✓</b><span>Sincronizar não autoriza propaganda automaticamente</span></div>
+              <div><b>✓</b><span>“SAIR” desativa futuras transmissões para o contato</span></div>
+            </div>
+          </article>
+        </div>
+
+
+        <article id="nationalLeadPanel" class="panel hidden">
+          <div class="panel-head">
+            <div><p class="eyebrow">Master • Brasil</p><h3>Base nacional de leads</h3></div>
+            <span class="pill success"><b id="nationalLeadTotal">0</b>&nbsp;leads</span>
+          </div>
+          <p class="muted">Base separada da carteira das revendas. Importe nome, telefone, DDD, estado, cidade e CEP. Esses registros entram como possíveis clientes, nunca como clientes ativos.</p>
+          <div class="stack">
+            <label>Arquivo CSV da base nacional<input id="nationalLeadFile" type="file" accept=".csv,text/csv"></label>
+            <label class="toggle-line">
+              <span><b>Esta lista autorizou receber mensagens</b><small>Quando marcado, os leads também entram na fila de transmissão como contatos autorizados.</small></span>
+              <input id="nationalLeadConsent" type="checkbox">
+            </label>
+            <button id="importNationalLeadsBtn" class="btn primary" type="button">Importar base nacional</button>
+          </div>
+          <div class="stats-grid national-lead-stats">
+            <article class="stat"><span>Autorizados</span><strong id="nationalLeadOpted">0</strong><small>Disponíveis para transmissão</small></article>
+            <article class="stat"><span>Estados</span><strong id="nationalLeadStates">0</strong><small>UFs encontradas</small></article>
+          </div>
+          <div class="campaign-wall-table-wrap">
+            <table class="campaign-wall-table">
+              <thead><tr><th>Nome</th><th>Telefone</th><th>DDD</th><th>UF</th><th>Cidade</th><th>Status</th></tr></thead>
+              <tbody id="nationalLeadBody"><tr><td colspan="6" class="campaign-wall-empty">Nenhum lead importado.</td></tr></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel campaign-wall-panel">
+          <div class="panel-head campaign-wall-head">
+            <div>
+              <p class="eyebrow">Monitor em tempo real</p>
+              <h3>Parede dos disparos</h3>
+            </div>
+            <div class="campaign-wall-actions">
+              <select id="campaignWallStatusFilter" class="campaign-wall-filter" aria-label="Filtrar status">
+                <option value="">Todos</option>
+                <option value="queued">Na fila</option>
+                <option value="processing">Enviando</option>
+                <option value="sent">Enviados</option>
+                <option value="failed">Falhas</option>
+              </select>
+              <input id="campaignWallSearch" class="campaign-wall-search" placeholder="Buscar campanha, nome ou telefone">
+              <button id="campaignWallRefreshBtn" class="btn ghost compact" type="button">↻ Atualizar parede</button>
+            </div>
+          </div>
+
+          <div class="campaign-wall-stats">
+            <div class="campaign-wall-stat queued"><span>Na fila</span><strong id="campaignWallQueued">0</strong></div>
+            <div class="campaign-wall-stat processing"><span>Enviando</span><strong id="campaignWallProcessing">0</strong></div>
+            <div class="campaign-wall-stat sent"><span>Enviados</span><strong id="campaignWallSent">0</strong></div>
+            <div class="campaign-wall-stat failed"><span>Falhas</span><strong id="campaignWallFailed">0</strong></div>
+            <div class="campaign-wall-stat total"><span>Total</span><strong id="campaignWallTotal">0</strong></div>
+          </div>
+
+          <div class="campaign-wall-table-wrap">
+            <table class="campaign-wall-table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Campanha</th>
+                  <th>Contato</th>
+                  <th>Telefone</th>
+                  <th>Tentativas</th>
+                  <th>Horário</th>
+                  <th>Detalhe</th>
+                </tr>
+              </thead>
+              <tbody id="campaignWallBody">
+                <tr><td colspan="7" class="campaign-wall-empty">Nenhum disparo registrado.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+      </section>
+
+      <section id="page-organic" class="page">
+        <div class="settings-grid">
+          <article class="panel">
+            <p class="eyebrow">Captação orgânica</p>
+            <h3>Divulgação grátis</h3>
+            <p class="muted">Use estes links em publicações, bio, descrição de vídeos, status e grupos que permitem divulgação. A pessoa escolhe o serviço e abre seu WhatsApp com a origem identificada.</p>
+
+            <div class="organic-list">
+              <div class="organic-row"><div><b>Facebook</b><a data-organic-link="facebook" target="_blank"></a></div><button class="btn ghost compact" data-copy-organic="facebook">Copiar</button></div>
+              <div class="organic-row"><div><b>Instagram</b><a data-organic-link="instagram" target="_blank"></a></div><button class="btn ghost compact" data-copy-organic="instagram">Copiar</button></div>
+              <div class="organic-row"><div><b>YouTube</b><a data-organic-link="youtube" target="_blank"></a></div><button class="btn ghost compact" data-copy-organic="youtube">Copiar</button></div>
+              <div class="organic-row"><div><b>TikTok</b><a data-organic-link="tiktok" target="_blank"></a></div><button class="btn ghost compact" data-copy-organic="tiktok">Copiar</button></div>
+              <div class="organic-row"><div><b>Status do WhatsApp</b><a data-organic-link="status" target="_blank"></a></div><button class="btn ghost compact" data-copy-organic="status">Copiar</button></div>
+              <div class="organic-row"><div><b>Grupos permitidos</b><a data-organic-link="grupos" target="_blank"></a></div><button class="btn ghost compact" data-copy-organic="grupos">Copiar</button></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <p class="eyebrow">Como funciona</p>
+            <h3>Sem pagar anúncio</h3>
+            <div class="check-list">
+              <div><b>1</b><span>Você publica o link em locais públicos onde divulgação é permitida.</span></div>
+              <div><b>2</b><span>A pessoa abre a página JSTech e escolhe Receptor, IPTV ou Revenda.</span></div>
+              <div><b>3</b><span>O WhatsApp abre com a mensagem pronta e a origem identificada.</span></div>
+              <div><b>4</b><span>A IA atende automaticamente e continua a venda.</span></div>
+            </div>
+            <a class="btn primary" href="https://juliovianadeoliveira-source.github.io/aplicativo-iptv-web/jstech-oferta/?src=painel" target="_blank">Abrir página pública</a>
+          </article>
+        </div>
+      </section>
+
+      <section id="page-panels" class="page">
+        <div class="settings-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">Automação IPTV</p><h3>Painéis do Multi Painéis</h3></div>
+              <button id="reloadPanelsBtn" class="btn ghost compact">↻ Atualizar</button>
+            </div>
+            <p class="muted">Cada painel pode ter um usuário e uma senha diferentes. As credenciais ficam criptografadas e não aparecem novamente depois de salvas.</p>
+            <div class="search-row"><input id="panelSearch" placeholder="Buscar painel"></div>
+            <div id="panelConnectorList" class="knowledge-list"><p class="muted">Carregando painéis...</p></div>
+          </article>
+
+          <article class="panel">
+            <p class="eyebrow">Credenciais individuais</p>
+            <h3 id="panelCredentialTitle">Escolha um painel</h3>
+            <p id="panelCredentialHint" class="muted">Selecione um painel na lista para cadastrar o acesso dele.</p>
+            <form id="panelCredentialForm" class="stack hidden">
+              <input id="panelConnectorId" type="hidden">
+              <label>Endereço do painel<input id="panelBaseUrl" type="url" placeholder="https://painel.exemplo.com/"></label>
+              <label>Usuário<input id="panelUsername" autocomplete="username" placeholder="Usuário deste painel"></label>
+              <label>Senha<input id="panelPassword" type="password" autocomplete="current-password" placeholder="Senha deste painel"></label>
+              <p class="muted">Ao preencher usuário e senha, o acesso é salvo no cofre criptografado e a validação automática é iniciada. A senha não fica visível depois de salva.</p>
+              <div class="row-actions">
+                <button class="btn primary" type="submit">Salvar acesso</button>
+                <button id="openPanelBtn" class="btn ghost" type="button">Abrir painel</button>
+                <button id="testPanelBtn" class="btn ghost" type="button">Testar site</button>
+                <button id="togglePanelBotBtn" class="btn ghost" type="button">Ativar no bot</button>
+                <button id="clearPanelCredentialsBtn" class="btn ghost" type="button">Remover acesso</button>
+              </div>
+              <div class="check-list">
+                <div><b>1</b><span>Você salva o usuário e a senha específicos deste painel.</span></div>
+                <div><b>2</b><span>As credenciais ficam criptografadas e não voltam para o navegador.</span></div>
+                <div><b>3</b><span>Depois de validado, o painel pode ser liberado para o bot gerar teste, criar usuário e renovar.</span></div>
+              </div>
+
+              <div class="subhead"><b>Aplicativos deste painel</b></div>
+              <p class="muted">Associe aqui cada aplicativo ao painel correto. O bot usa esse mapa para não gerar teste no painel errado.</p>
+              <div class="stack">
+                <label>Aplicativo
+                  <select id="panelAppSelect"></select>
+                </label>
+                <label>Código / produto dentro do painel
+                  <input id="panelAppCode" placeholder="Opcional agora; preencha quando o painel usar código específico">
+                </label>
+                <button id="savePanelAppBtn" class="btn ghost" type="button">Adicionar aplicativo a este painel</button>
+              </div>
+              <div id="panelAppMappings" class="knowledge-list"></div>
+
+              <div class="device-activation-box">
+                <div class="subhead"><b>Automação MAC / Key do aplicativo</b><span id="deviceActivationStatus" class="pill warning">Não configurada</span></div>
+                <p class="muted">Configure uma vez por aplicativo. Depois, quando o cliente enviar MAC e Key no WhatsApp, o sistema faz a ativação por API ou navegador automaticamente.</p>
+                <div class="stack">
+                  <label>Aplicativo
+                    <select id="deviceActivationAppSelect"></select>
+                  </label>
+                  <label class="toggle-line">
+                    <span><b>Este aplicativo usa MAC e Key</b><small>Ativa a configuração automática para este player.</small></span>
+                    <input id="deviceRequiresMacKey" type="checkbox">
+                  </label>
+                  <label>Como configurar
+                    <select id="deviceActivationDriver">
+                      <option value="rpa">Navegador automático (RPA)</option>
+                      <option value="api">API do aplicativo</option>
+                    </select>
+                  </label>
+                  <label>Endereço da ativação<input id="deviceActivationUrl" type="url" placeholder="https://painel-do-player.com/"></label>
+                  <label id="deviceActivationMethodWrap">Método da API
+                    <select id="deviceActivationMethod">
+                      <option value="POST">POST</option>
+                      <option value="PUT">PUT</option>
+                      <option value="PATCH">PATCH</option>
+                      <option value="GET">GET</option>
+                    </select>
+                  </label>
+                  <div id="deviceActivationFieldNames" class="activation-field-grid">
+                    <label>Campo MAC<input id="deviceMacFieldName" value="mac" placeholder="mac"></label>
+                    <label>Campo Key<input id="deviceKeyFieldName" value="key" placeholder="key"></label>
+                    <label>Campo lista/M3U (opcional)<input id="devicePlaylistFieldName" placeholder="playlist_url"></label>
+                  </div>
+                  <details class="advanced-box">
+                    <summary>Acesso da automação</summary>
+                    <div class="stack">
+                      <label>Usuário<input id="deviceActivationUsername" autocomplete="username" placeholder="Se o site/API exigir"></label>
+                      <label>Senha<input id="deviceActivationPassword" type="password" autocomplete="current-password" placeholder="Se o site exigir"></label>
+                      <label>Chave da API<input id="deviceActivationApiKey" type="password" placeholder="Se a API exigir"></label>
+                      <label>Nome do cabeçalho da API<input id="deviceActivationApiHeader" value="Authorization" placeholder="Authorization"></label>
+                      <label>Prefixo da chave<input id="deviceActivationApiPrefix" value="Bearer " placeholder="Bearer "></label>
+                    </div>
+                  </details>
+                  <label>Observação<input id="deviceActivationNotes" placeholder="Opcional"></label>
+                  <button id="saveDeviceActivationBtn" class="btn primary" type="button">Salvar automação MAC / Key</button>
+                </div>
+              </div>
+            </form>
+          </article>
+        </div>
+
+        <article class="panel panel-automation-center">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Automação real</p>
+              <h3>Central de Automação dos Painéis</h3>
+            </div>
+            <button id="reloadPanelAutomationBtn" class="btn ghost compact" type="button">↻ Atualizar fila</button>
+          </div>
+          <p class="muted">Esta central usa a mesma fila automática do WhatsApp. Teste, criação, busca, renovação, ativação e MAC/Key são executados pelo agente da VPS nos painéis conectados.</p>
+
+          <div class="panel-automation-stats">
+            <article class="stat"><span>Painéis prontos</span><strong id="panelAutomationReady">0</strong><small>Login validado</small></article>
+            <article class="stat"><span>Aguardando acesso</span><strong id="panelAutomationWaiting">0</strong><small>Falta credencial válida</small></article>
+            <article class="stat"><span>Na fila</span><strong id="panelAutomationPending">0</strong><small>Pendente/processando</small></article>
+            <article class="stat"><span>Concluídos</span><strong id="panelAutomationDone">0</strong><small>Jobs executados</small></article>
+            <article class="stat"><span>Falhas</span><strong id="panelAutomationFailed">0</strong><small>Precisam de ajuste</small></article>
+          </div>
+
+          <div class="panel-automation-grid">
+            <div class="stack">
+              <label>Painel
+                <select id="panelAutomationPanel"></select>
+              </label>
+              <label>Ação
+                <select id="panelAutomationAction"></select>
+              </label>
+              <label>Aplicativo do painel
+                <select id="panelAutomationApp"></select>
+              </label>
+              <label>Usuário / login do cliente
+                <input id="panelAutomationUsername" placeholder="Usado em buscar e renovar">
+              </label>
+              <div class="activation-field-grid">
+                <label>Plano
+                  <select id="panelAutomationPlan">
+                    <option value="30">30 dias</option>
+                    <option value="90">90 dias</option>
+                    <option value="180">180 dias</option>
+                    <option value="365">365 dias</option>
+                  </select>
+                </label>
+                <label>Telas<input id="panelAutomationScreens" type="number" min="1" max="10" value="1"></label>
+                <label>Nome do cliente<input id="panelAutomationCustomer" placeholder="Opcional"></label>
+              </div>
+              <label>Telefone do cliente<input id="panelAutomationPhone" placeholder="Opcional"></label>
+              <div class="activation-field-grid">
+                <label>MAC<input id="panelAutomationMac" placeholder="Para ativação de aplicativo"></label>
+                <label>Key<input id="panelAutomationKey" placeholder="Para ativação de aplicativo"></label>
+                <label>Playlist / M3U<input id="panelAutomationPlaylist" placeholder="Opcional"></label>
+              </div>
+              <button id="queuePanelAutomationBtn" class="btn primary" type="button">Executar automação</button>
+              <p id="panelAutomationHint" class="muted"></p>
+            </div>
+
+            <div>
+              <div class="subhead"><b>Fila e histórico real</b><span id="panelAutomationLastUpdate" class="muted"></span></div>
+              <div class="campaign-wall-table-wrap panel-job-table-wrap">
+                <table class="campaign-wall-table">
+                  <thead><tr><th>Horário</th><th>Painel</th><th>Ação</th><th>Status</th><th>Cliente/usuário</th><th>Erro</th></tr></thead>
+                  <tbody id="panelAutomationJobsBody"><tr><td colspan="6" class="campaign-wall-empty">Nenhum job carregado.</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </article>
+
+      </section>
+
+      <section id="page-resellers" class="page">
+        <div class="settings-grid">
+          <article class="panel">
+            <p class="eyebrow">Venda do sistema</p><h3>Criar revendedor</h3>
+            <form id="resellerForm" class="stack">
+              <label>Nome da revenda<input id="resellerName" required placeholder="Ex.: João IPTV"></label>
+              <label>Usuário<input id="resellerUsername" required minlength="3" placeholder="joaoiptv"></label>
+              <label>Senha<input id="resellerPassword" type="password" required minlength="8" placeholder="Mínimo 8 caracteres"></label>
+              <label>Plano<input id="resellerPlan" value="revenda" placeholder="Revenda"></label>
+              <button class="btn primary" type="submit">Criar acesso</button>
+            </form>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Contas</p><h3>Meus revendedores</h3></div><button id="reloadResellers" class="btn ghost compact">↻ Atualizar</button></div>
+            <div id="resellerList" class="knowledge-list"><p class="muted">Carregando...</p></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="page-automation" class="page">
+        <div class="automation-grid">
+          <article class="panel automations-panel">
+            <div class="panel-head"><div><p class="eyebrow">Fluxos</p><h3>Automações</h3></div><button id="newAutomationBtn" class="btn ghost compact">+ Novo</button></div>
+            <div id="automationList" class="automation-list"></div>
+          </article>
+          <article class="panel builder-panel">
+            <div class="panel-head"><div><p class="eyebrow">Construtor</p><h3 id="automationTitle">Atendimento inicial</h3></div><button id="saveAutomationBtn" class="btn primary compact">Salvar fluxo</button></div>
+            <label>Palavras que iniciam o fluxo<input id="triggerTexts" placeholder="oi, olá, bom dia"></label>
+            <div class="builder-body">
+              <div class="node-list-wrap">
+                <div class="subhead"><b>Etapas</b><button id="addNodeBtn" class="icon-btn">+</button></div>
+                <div id="nodeList" class="node-list"></div>
+              </div>
+              <div id="nodeEditor" class="node-editor"></div>
+            </div>
+          </article>
+          <article class="panel simulator-panel">
+            <div class="panel-head"><div><p class="eyebrow">Teste antes do WhatsApp</p><h3>Simulador</h3></div><button id="resetSimulatorBtn" class="btn ghost compact">Reiniciar</button></div>
+            <div id="simulatorMessages" class="simulator-messages"></div>
+            <form id="simulatorForm" class="simulator-composer"><input id="simulatorInput" placeholder="Digite oi, 1, 2..."><button class="btn primary" type="submit">Enviar</button></form>
+          </article>
+        </div>
+      </section>
+
+      <section id="page-knowledge" class="page">
+        <div class="knowledge-grid">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">Conteúdo do atendimento</p><h3>Respostas e informações</h3></div><button id="newKnowledgeBtn" class="btn ghost compact">+ Adicionar</button></div>
+            <div id="knowledgeList" class="knowledge-list"></div>
+          </article>
+          <article class="panel">
+            <p class="eyebrow">Editar informação</p>
+            <h3 id="knowledgeFormTitle">Nova informação</h3>
+            <form id="knowledgeForm" class="stack">
+              <label>Título<input id="knowledgeTitle" required placeholder="Ex.: Planos IPTV"></label>
+              <label>Palavras-chave<input id="knowledgeKeywords" placeholder="plano, iptv, preço"></label>
+              <label>Conteúdo<textarea id="knowledgeContent" rows="10" required placeholder="Escreva aqui a informação que o atendimento automático pode usar."></textarea></label>
+              <div class="row-actions"><button class="btn primary" type="submit">Salvar</button><button id="cancelKnowledgeBtn" class="btn ghost" type="button">Limpar</button></div>
+            </form>
+          </article>
+        </div>
+      </section>
+
+      <section id="page-settings" class="page">
+        <div class="settings-grid">
+          <article class="panel">
+            <p class="eyebrow">Empresa e atendimento</p><h3>Comportamento do atendimento</h3>
+            <form id="settingsForm" class="stack">
+              <label>Nome da empresa<input id="companyName"></label>
+              <label>Logotipo da empresa<input id="brandLogoFile" type="file" accept="image/png,image/jpeg,image/webp"><small>Opcional. A imagem fica exclusiva nesta conta.</small></label>
+              <div id="brandLogoPreviewWrap" class="brand-logo-preview-wrap hidden"><img id="brandLogoPreview" alt="Logotipo"></div>
+              <label>Nome da secretária / atendente virtual <small>(opcional)</small><input id="virtualAgentName" placeholder="Ex.: Ana. Se deixar vazio, atende sem usar nome."></label>
+              <label>Tipo de negócio <small>(opcional)</small><input id="businessType" placeholder="Ex.: peças, assistência, estética, loja, serviços. Vazio = modo geral."></label>
+              <label>O que sua empresa vende ou faz <small>(opcional)</small><textarea id="productsAndServices" rows="5" placeholder="Esta informação é exclusiva desta conta. Se deixar vazio, a IA não assume nenhum produto ou serviço."></textarea></label>
+              <label>Descrição da empresa<textarea id="businessDescription" rows="4" placeholder="Conte a história, região atendida e como funciona o atendimento."></textarea></label>
+              <label>Objetivo das conversas<textarea id="salesObjective" rows="3" placeholder="Ex.: entender a necessidade, tirar dúvidas, preparar proposta e fechar a venda."></textarea></label>
+              <label>Região atendida<input id="serviceArea" placeholder="Ex.: todo Brasil ou até 300 km de Vitória-ES"></label>
+              <label>Tom da conversa<input id="conversationTone" placeholder="Ex.: natural, educado, direto e sem repetir perguntas"></label>
+              <label>Perguntas importantes, uma por linha<textarea id="qualificationQuestions" rows="4" placeholder="Qual produto procura?&#10;Qual cidade?&#10;Qual quantidade?"></textarea></label>
+              <label>Quando transferir para uma pessoa, uma regra por linha<textarea id="handoffRules" rows="4" placeholder="Transferir somente para pagamento&#10;Transferir se o cliente pedir atendente"></textarea></label>
+              <label class="toggle-line"><span><b>Atendimento universal</b><small>Entende clientes, fornecedores e assuntos diferentes sem assumir que tudo é IPTV.</small></span><input id="universalMode" type="checkbox"></label>
+              <label class="toggle-line"><span><b>Ler fotos e documentos</b><small>Usa a imagem recebida para continuar a conversa.</small></span><input id="mediaUnderstandingEnabled" type="checkbox"></label>
+              <label class="toggle-line"><span><b>Pesquisar na internet quando necessário</b><small>Consulta informação pública sem inventar dados.</small></span><input id="webResearchEnabled" type="checkbox"></label>
+              <label class="toggle-line"><span><b>Identificação transparente</b><small>Se perguntarem, informa que é assistente virtual da empresa.</small></span><input id="botDisclosure" type="checkbox"></label>
+
+              <div class="conversation-bot-box">
+                <div class="panel-head conversation-bot-head">
+                  <div>
+                    <p class="eyebrow">Bot de conversa</p>
+                    <h3>Bot de Conversa Humanizado</h3>
+                  </div>
+                  <span id="conversationBotStatus" class="pill success">Ativo</span>
+                </div>
+                <p class="muted">Fluxo: WhatsApp → Evolution API → n8n → IA → Digitando → resposta fracionada → WhatsApp.</p>
+
+                <label>Cérebro da conversa
+                  <select id="conversationEngine">
+                    <option value="openai">OpenAI (GPT-4o)</option>
+                    <option value="gemini">Gemini</option>
+                  </select>
+                </label>
+
+                <label>Prompt mestre do bot
+                  <textarea id="aiInstructions" rows="12"></textarea>
+                </label>
+
+                <label class="toggle-line">
+                  <span><b>Modo humanizado</b><small>Conversa curta e natural no estilo WhatsApp.</small></span>
+                  <input id="humanizedMode" type="checkbox">
+                </label>
+                <label class="toggle-line">
+                  <span><b>Dividir respostas</b><small>Quebra respostas maiores em 2 ou 3 mensagens curtas.</small></span>
+                  <input id="humanizedSplitMessages" type="checkbox">
+                </label>
+                <label class="toggle-line">
+                  <span><b>Emojis moderados</b><small>Usa no máximo 1 ou 2 quando fizer sentido.</small></span>
+                  <input id="humanizedEmojis" type="checkbox">
+                </label>
+                <label class="toggle-line">
+                  <span><b>Abreviações naturais</b><small>Pode usar vc, pq, tbm e né sem exagerar.</small></span>
+                  <input id="humanizedAbbreviations" type="checkbox">
+                </label>
+
+                <div class="humanized-time-grid">
+                  <label>Digitando mínimo (ms)<input id="humanizedTypingMin" type="number" min="800" max="5000" step="100"></label>
+                  <label>Digitando máximo (ms)<input id="humanizedTypingMax" type="number" min="800" max="5000" step="100"></label>
+                </div>
+              </div>
+
+
+              <div class="conversation-bot-box voice-bot-box">
+                <div class="panel-head conversation-bot-head">
+                  <div>
+                    <p class="eyebrow">Áudio do WhatsApp</p>
+                    <h3>Responder com a sua voz</h3>
+                  </div>
+                  <span id="voiceCloneStatus" class="pill warning">Aguardando configuração</span>
+                </div>
+
+                <p class="muted">Fluxo: áudio do cliente → Whisper ouve → a secretária desta conta responde → ElevenLabs fala com a voz configurada → Evolution envia o áudio no WhatsApp.</p>
+
+                <label>Chave da ElevenLabs
+                  <input id="elevenLabsApiKey" type="password" autocomplete="off" placeholder="Cole a API Key da ElevenLabs">
+                  <small>A chave fica protegida no servidor e não volta para o navegador depois de salvar.</small>
+                </label>
+
+                <button id="saveElevenLabsKeyBtn" class="btn primary" type="button">Salvar chave da ElevenLabs</button>
+
+                <div id="voiceSampleInstruction" class="voice-sample-instruction">
+                  <b id="voiceSampleTitle">Depois de salvar a chave</b>
+                  <span id="voiceSampleText">Mande um áudio normal do seu próprio WhatsApp para qualquer pessoa. O sistema pega esse áudio como amostra da sua voz automaticamente.</span>
+                </div>
+              </div>
+
+              <p class="muted">Cada administrador, revenda e sub-revenda tem configuração e memória próprias. Uma conta não mistura informações com outra.</p>
+              <label>Mensagem de boas-vindas<textarea id="welcomeMessage" rows="3"></textarea></label>
+              <label>Resposta quando faltar contexto<textarea id="fallbackMessage" rows="3"></textarea></label>
+              <button class="btn primary" type="submit">Salvar e aplicar na IA</button>
+            </form>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">WhatsApp</p><h3>Conectar por QR Code</h3></div>
+              <span id="qrStatusPill" class="pill warning">Não conectado</span>
+            </div>
+            <p class="muted">Conecte o número uma única vez ao painel. Funciona tanto com WhatsApp comum quanto com WhatsApp Business. O mesmo número continua funcionando no celular e pode permanecer vinculado também no WhatsApp Web/Desktop.</p>
+
+            <div class="whatsapp-slot-selector">
+              <div class="whatsapp-slot-selector-head">
+                <b>Escolha a conexão</b>
+                <span>Até 4 WhatsApps nesta conta</span>
+              </div>
+              <div class="whatsapp-slot-tabs">
+                <button class="whatsapp-slot-tab active" type="button" data-wa-slot="1">WhatsApp 1</button>
+                <button class="whatsapp-slot-tab" type="button" data-wa-slot="2">WhatsApp 2</button>
+                <button class="whatsapp-slot-tab" type="button" data-wa-slot="3">WhatsApp 3</button>
+                <button class="whatsapp-slot-tab" type="button" data-wa-slot="4">WhatsApp 4</button>
+              </div>
+            </div>
+
+            <div class="qr-connect-box">
+              <div id="qrIdle">
+                <div class="qr-icon">▦</div>
+                <b id="qrConnectionTitle">WhatsApp ainda não conectado</b>
+                <span id="qrConnectionHint">Use o botão abaixo para gerar o QR Code.</span>
+              </div>
+
+              <div id="qrPanel" class="qr-panel hidden">
+                <img id="qrImage" alt="QR Code do WhatsApp">
+                <div>
+                  <b>Escaneie pelo WhatsApp</b>
+                  <p>Abra o WhatsApp → Aparelhos conectados → Conectar um aparelho.</p>
+                  <small>O QR Code expira por segurança. Se expirar, clique em gerar novamente.</small>
+                </div>
+              </div>
+
+              <div class="row-actions">
+                <button id="connectWhatsAppBtn" class="btn primary" type="button">Conectar WhatsApp</button>
+                <button id="disconnectWhatsAppBtn" class="btn ghost hidden" type="button">Desconectar</button>
+              </div>
+            </div>
+
+            <details id="bridgeAdvanced" class="advanced-box">
+              <summary>Configuração inicial do servidor</summary>
+              <p class="muted">Feita uma única vez pelo administrador. Depois disso, clientes e revendedores só usam o QR Code.</p>
+              <div class="stack">
+                <label>Endereço do servidor do WhatsApp<input id="bridgeUrl" placeholder="https://wa.seudominio.com ou http://IP:8080"></label>
+                <label>Chave do servidor<input id="bridgeApiKey" type="password" placeholder="Cole somente na configuração inicial"></label>
+                <label>Nome da conexão<input id="bridgeInstance" value="jstech" placeholder="jstech"></label>
+                <button id="saveBridgeBtn" class="btn ghost" type="button">Salvar servidor</button>
+              </div>
+            </details>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="contactPhotoModal" class="contact-photo-modal hidden" role="dialog" aria-modal="true" aria-label="Foto do contato">
+    <div class="contact-photo-backdrop" data-close-contact-photo></div>
+    <div class="contact-photo-dialog">
+      <div class="contact-photo-header">
+        <div class="contact-photo-info">
+          <strong id="contactPhotoName">Contato</strong>
+          <span id="contactPhotoPhone"></span>
+        </div>
+        <button id="closeContactPhotoBtn" class="contact-photo-close" type="button" aria-label="Fechar">×</button>
+      </div>
+      <div class="contact-photo-stage">
+        <img id="contactPhotoLarge" class="contact-photo-large" alt="Foto do contato">
+      </div>
+    </div>
+  </div>
+
+
+  <div id="onboardingWizard" class="onboarding-wizard hidden" role="dialog" aria-modal="true">
+    <div class="onboarding-card">
+      <p class="eyebrow">Configuração inicial</p>
+      <h2>Deixe esta conta com a sua marca</h2>
+      <p class="muted">Cada revenda e sub-revenda configura somente a própria conta. Nome da secretária, ramo e produtos podem ficar vazios: nesse caso o atendimento trabalha em modo geral e não herda dados de outra conta.</p>
+      <form id="onboardingForm" class="stack">
+        <label>Nome da sua empresa / marca<input id="onboardingCompany" required placeholder="Ex.: Minha Empresa"></label>
+        <label>Logotipo<input id="onboardingLogo" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        <div id="onboardingLogoPreviewWrap" class="brand-logo-preview-wrap hidden"><img id="onboardingLogoPreview" alt="Prévia do logotipo"></div>
+        <label>Nome da secretária / atendente virtual <small>(opcional)</small><input id="onboardingAgent" placeholder="Ex.: Ana, Cris, João. Se deixar vazio, atende sem usar nome."></label>
+        <label>Seu WhatsApp com DDD<input id="onboardingWhatsapp" required placeholder="Ex.: 5511999999999"></label>
+        <label>Tipo de negócio <small>(opcional)</small><input id="onboardingBusinessType" placeholder="Ex.: peças, loja, assistência, serviços. Pode deixar vazio para modo geral."></label>
+        <label>O que sua empresa vende ou faz <small>(opcional)</small><textarea id="onboardingProducts" rows="5" placeholder="Se souber, descreva produtos e serviços. Se deixar vazio, o atendimento fica em modo geral e não inventa o que a empresa vende."></textarea></label>
+        <label>Região atendida<input id="onboardingArea" placeholder="Ex.: todo Brasil ou minha cidade/região"></label>
+        <label>DDDs que você atende<input id="onboardingDdds" placeholder="Ex.: 27, 28, 11"></label>
+        <label>Tom da conversa<input id="onboardingTone" value="natural, educado, direto e sem repetir perguntas"></label>
+        <button class="btn primary" type="submit">Salvar e iniciar painel</button>
+      </form>
+      <p id="onboardingMsg" class="form-msg"></p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script type="module" src="./app.js?v=20260924-panel-stability-v1"></script>
+  <script type="module" src="./crm.js?v=20260921-13"></script>
+  <script type="module" src="./sync-sources.js?v=20260921-13"></script>
+  <script type="module" src="./resellers.js?v=20260923-full-project-v2"></script>
+  <script type="module" src="./external-clients.js?v=20260921-13"></script>
+</body>
+</html>

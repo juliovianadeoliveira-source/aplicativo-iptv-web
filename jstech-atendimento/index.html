@@ -17,7 +17,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260924-voice-clone-v1">
+  <link rel="stylesheet" href="./styles.css?v=20260924-panel-automation-v1">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -492,6 +492,73 @@
             </form>
           </article>
         </div>
+
+        <article class="panel panel-automation-center">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Automação real</p>
+              <h3>Central de Automação dos Painéis</h3>
+            </div>
+            <button id="reloadPanelAutomationBtn" class="btn ghost compact" type="button">↻ Atualizar fila</button>
+          </div>
+          <p class="muted">Esta central usa a mesma fila automática do WhatsApp. Teste, criação, busca, renovação, ativação e MAC/Key são executados pelo agente da VPS nos painéis conectados.</p>
+
+          <div class="panel-automation-stats">
+            <article class="stat"><span>Painéis prontos</span><strong id="panelAutomationReady">0</strong><small>Login validado</small></article>
+            <article class="stat"><span>Aguardando acesso</span><strong id="panelAutomationWaiting">0</strong><small>Falta credencial válida</small></article>
+            <article class="stat"><span>Na fila</span><strong id="panelAutomationPending">0</strong><small>Pendente/processando</small></article>
+            <article class="stat"><span>Concluídos</span><strong id="panelAutomationDone">0</strong><small>Jobs executados</small></article>
+            <article class="stat"><span>Falhas</span><strong id="panelAutomationFailed">0</strong><small>Precisam de ajuste</small></article>
+          </div>
+
+          <div class="panel-automation-grid">
+            <div class="stack">
+              <label>Painel
+                <select id="panelAutomationPanel"></select>
+              </label>
+              <label>Ação
+                <select id="panelAutomationAction"></select>
+              </label>
+              <label>Aplicativo do painel
+                <select id="panelAutomationApp"></select>
+              </label>
+              <label>Usuário / login do cliente
+                <input id="panelAutomationUsername" placeholder="Usado em buscar e renovar">
+              </label>
+              <div class="activation-field-grid">
+                <label>Plano
+                  <select id="panelAutomationPlan">
+                    <option value="30">30 dias</option>
+                    <option value="90">90 dias</option>
+                    <option value="180">180 dias</option>
+                    <option value="365">365 dias</option>
+                  </select>
+                </label>
+                <label>Telas<input id="panelAutomationScreens" type="number" min="1" max="10" value="1"></label>
+                <label>Nome do cliente<input id="panelAutomationCustomer" placeholder="Opcional"></label>
+              </div>
+              <label>Telefone do cliente<input id="panelAutomationPhone" placeholder="Opcional"></label>
+              <div class="activation-field-grid">
+                <label>MAC<input id="panelAutomationMac" placeholder="Para ativação de aplicativo"></label>
+                <label>Key<input id="panelAutomationKey" placeholder="Para ativação de aplicativo"></label>
+                <label>Playlist / M3U<input id="panelAutomationPlaylist" placeholder="Opcional"></label>
+              </div>
+              <button id="queuePanelAutomationBtn" class="btn primary" type="button">Executar automação</button>
+              <p id="panelAutomationHint" class="muted"></p>
+            </div>
+
+            <div>
+              <div class="subhead"><b>Fila e histórico real</b><span id="panelAutomationLastUpdate" class="muted"></span></div>
+              <div class="campaign-wall-table-wrap panel-job-table-wrap">
+                <table class="campaign-wall-table">
+                  <thead><tr><th>Horário</th><th>Painel</th><th>Ação</th><th>Status</th><th>Cliente/usuário</th><th>Erro</th></tr></thead>
+                  <tbody id="panelAutomationJobsBody"><tr><td colspan="6" class="campaign-wall-empty">Nenhum job carregado.</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </article>
+
       </section>
 
       <section id="page-resellers" class="page">
@@ -752,7 +819,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260924-voice-clone-v1"></script>
+  <script type="module" src="./app.js?v=20260924-panel-automation-v1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260923-full-project-v2"></script>

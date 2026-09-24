@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v9-tenant-secretary";
+const CACHE="jstech-atendimento-v10-panel-url-status";
 const CORE=[
   "./",
   "./index.html",

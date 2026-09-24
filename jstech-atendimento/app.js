@@ -1676,6 +1676,15 @@ function renderSettings(){
   if($("#mediaUnderstandingEnabled"))$("#mediaUnderstandingEnabled").checked=s.media_understanding_enabled!==false;
   if($("#webResearchEnabled"))$("#webResearchEnabled").checked=s.web_research_enabled!==false;
   if($("#botDisclosure"))$("#botDisclosure").checked=s.bot_disclosure!==false;
+  if($("#conversationEngine"))$("#conversationEngine").value=s.conversation_engine||"openai";
+  if($("#aiInstructions"))$("#aiInstructions").value=s.ai_instructions||"";
+  if($("#humanizedMode"))$("#humanizedMode").checked=s.humanized_mode!==false;
+  if($("#humanizedSplitMessages"))$("#humanizedSplitMessages").checked=s.humanized_split_messages!==false;
+  if($("#humanizedEmojis"))$("#humanizedEmojis").checked=s.humanized_emojis!==false;
+  if($("#humanizedAbbreviations"))$("#humanizedAbbreviations").checked=s.humanized_abbreviations!==false;
+  if($("#humanizedTypingMin"))$("#humanizedTypingMin").value=Number(s.humanized_typing_min_ms||1800);
+  if($("#humanizedTypingMax"))$("#humanizedTypingMax").value=Number(s.humanized_typing_max_ms||5000);
+  if($("#conversationBotStatus")){$("#conversationBotStatus").className="pill "+(s.ai_enabled===false?"warning":"success");$("#conversationBotStatus").textContent=s.ai_enabled===false?"Desativado":"Ativo";}
   $("#welcomeMessage").value=s.welcome_message||"";
   $("#fallbackMessage").value=s.fallback_message||"";
   renderWhatsAppSlotTabs();
@@ -1706,6 +1715,14 @@ $("#settingsForm").addEventListener("submit",async e=>{
       media_understanding_enabled:$("#mediaUnderstandingEnabled")?.checked!==false,
       web_research_enabled:$("#webResearchEnabled")?.checked!==false,
       bot_disclosure:$("#botDisclosure")?.checked!==false,
+      conversation_engine:$("#conversationEngine")?.value||"openai",
+      ai_instructions:$("#aiInstructions")?.value||"",
+      humanized_mode:$("#humanizedMode")?.checked!==false,
+      humanized_split_messages:$("#humanizedSplitMessages")?.checked!==false,
+      humanized_emojis:$("#humanizedEmojis")?.checked!==false,
+      humanized_abbreviations:$("#humanizedAbbreviations")?.checked!==false,
+      humanized_typing_min_ms:Math.max(800,Math.min(5000,Number($("#humanizedTypingMin")?.value||1800))),
+      humanized_typing_max_ms:Math.max(800,Math.min(5000,Number($("#humanizedTypingMax")?.value||5000))),
       welcome_message:$("#welcomeMessage").value.trim(),
       ai_enabled:true,
       fallback_message:$("#fallbackMessage").value.trim(),

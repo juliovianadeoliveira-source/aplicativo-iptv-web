@@ -30,7 +30,7 @@ const state = {
   automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], activePanel:null, activeConversation:null, activeAutomation:null,
   activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false, userRole:null,
   whatsappConnections:[], activeWhatsAppSlot:1,
-  activeCampaignId:null, campaignFormCampaignId:null
+  activeCampaignId:null, campaignFormCampaignId:null, campaignDeliveries:[]
 };
 
 function toast(msg, type="success"){
@@ -232,16 +232,17 @@ async function loadAll(showToast=false){
   try{
     await ensureWorkspace();
     const id=state.workspace.id;
-    const [settings,contacts,convs,autos,knowledge,campaigns]=await Promise.all([
+    const [settings,contacts,convs,autos,knowledge,campaigns,campaignDeliveries]=await Promise.all([
       sb.from("wa_settings").select("*").eq("workspace_id",id).single(),
       sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),
       sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url,profile_photo_preview_url,profile_photo_hd_url,bot_context,memory_context)").eq("workspace_id",id).order("last_message_at",{ascending:false}),
       sb.from("wa_automations").select("*").eq("workspace_id",id).order("created_at"),
       sb.from("wa_knowledge").select("*").eq("workspace_id",id).order("title"),
-      sb.from("wa_campaigns").select("*").eq("workspace_id",id).order("created_at",{ascending:true})
+      sb.from("wa_campaigns").select("*").eq("workspace_id",id).order("created_at",{ascending:true}),
+      sb.from("wa_campaign_deliveries").select("id,campaign_id,contact_id,message_id,status,sent_at,created_at,attempt_count,claimed_at,next_attempt_at,last_error,provider_message_id").eq("workspace_id",id).order("created_at",{ascending:false}).limit(500)
     ]);
-    if(settings.error)throw settings.error;if(contacts.error)throw contacts.error;if(convs.error)throw convs.error;if(autos.error)throw autos.error;if(knowledge.error)throw knowledge.error;if(campaigns.error)throw campaigns.error;
-    state.settings=settings.data;state.contacts=contacts.data||[];state.conversations=convs.data||[];state.automations=autos.data||[];state.knowledge=knowledge.data||[];state.campaigns=campaigns.data||[];
+    if(settings.error)throw settings.error;if(contacts.error)throw contacts.error;if(convs.error)throw convs.error;if(autos.error)throw autos.error;if(knowledge.error)throw knowledge.error;if(campaigns.error)throw campaigns.error;if(campaignDeliveries.error)throw campaignDeliveries.error;
+    state.settings=settings.data;state.contacts=contacts.data||[];state.conversations=convs.data||[];state.automations=autos.data||[];state.knowledge=knowledge.data||[];state.campaigns=campaigns.data||[];state.campaignDeliveries=campaignDeliveries.data||[];
     if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=state.settings?.company_name||"JSTech";
     if(!state.activeCampaignId || (state.activeCampaignId!=="__new__" && !state.campaigns.some(x=>x.id===state.activeCampaignId))){
       state.activeCampaignId=state.campaigns[0]?.id||"__new__";
@@ -490,6 +491,86 @@ function renderTransmissionContacts(){
 }
 $("#transmissionContactSearch")?.addEventListener("input",renderTransmissionContacts);
 
+
+function campaignWallStatusLabel(status){
+  return ({queued:"Na fila",processing:"Enviando",sent:"Enviado",failed:"Falhou"})[status]||String(status||"-");
+}
+function campaignWallStatusClass(status){
+  return ["queued","processing","sent","failed"].includes(status)?status:"queued";
+}
+function renderCampaignWall(){
+  const body=$("#campaignWallBody");
+  if(!body)return;
+  const rows=state.campaignDeliveries||[];
+  const counts={queued:0,processing:0,sent:0,failed:0};
+  rows.forEach(r=>{if(counts[r.status]!==undefined)counts[r.status]++});
+  $("#campaignWallQueued").textContent=counts.queued;
+  $("#campaignWallProcessing").textContent=counts.processing;
+  $("#campaignWallSent").textContent=counts.sent;
+  $("#campaignWallFailed").textContent=counts.failed;
+  $("#campaignWallTotal").textContent=rows.length;
+
+  const status=$("#campaignWallStatusFilter")?.value||"";
+  const q=($("#campaignWallSearch")?.value||"").trim().toLowerCase();
+  const contacts=new Map(state.contacts.map(c=>[c.id,c]));
+  const campaigns=new Map(state.campaigns.map(c=>[c.id,c]));
+  const filtered=rows.filter(r=>{
+    if(status&&r.status!==status)return false;
+    if(!q)return true;
+    const ct=contacts.get(r.contact_id)||{};
+    const camp=campaigns.get(r.campaign_id)||{};
+    return [ct.name,ct.phone,camp.name,r.status,r.last_error].some(v=>String(v||"").toLowerCase().includes(q));
+  });
+
+  if(!filtered.length){
+    body.innerHTML='<tr><td colspan="7" class="campaign-wall-empty">Nenhum disparo encontrado.</td></tr>';
+    return;
+  }
+
+  body.innerHTML=filtered.map(r=>{
+    const ct=contacts.get(r.contact_id)||{};
+    const camp=campaigns.get(r.campaign_id)||{};
+    const when=r.sent_at||r.claimed_at||r.created_at;
+    const detail=r.status==="failed"
+      ? (r.last_error||"Falha no envio")
+      : r.status==="processing"
+        ? "Enviando agora"
+        : r.status==="queued"
+          ? "Aguardando envio"
+          : (r.provider_message_id?"ID: "+r.provider_message_id:"Confirmado");
+    return '<tr data-wall-status="'+escapeHtml(r.status||"")+'">'
+      +'<td><span class="campaign-wall-status '+campaignWallStatusClass(r.status)+'">'+escapeHtml(campaignWallStatusLabel(r.status))+'</span></td>'
+      +'<td><b>'+escapeHtml(camp.name||"Campanha")+'</b></td>'
+      +'<td>'+escapeHtml(ct.name||"Sem nome")+'</td>'
+      +'<td class="campaign-wall-phone">'+escapeHtml(ct.phone||"-")+'</td>'
+      +'<td>'+Number(r.attempt_count||0)+'</td>'
+      +'<td>'+escapeHtml(fmtDate(when))+'</td>'
+      +'<td class="campaign-wall-detail" title="'+escapeHtml(detail)+'">'+escapeHtml(detail)+'</td>'
+      +'</tr>';
+  }).join("");
+}
+async function refreshCampaignWall(showToast=false){
+  if(!state.workspace?.id)return;
+  const {data,error}=await sb.from("wa_campaign_deliveries")
+    .select("id,campaign_id,contact_id,message_id,status,sent_at,created_at,attempt_count,claimed_at,next_attempt_at,last_error,provider_message_id")
+    .eq("workspace_id",state.workspace.id)
+    .order("created_at",{ascending:false})
+    .limit(500);
+  if(error){
+    if(showToast)toast(error.message||"Falha ao atualizar a parede.","error");
+    return;
+  }
+  state.campaignDeliveries=data||[];
+  renderCampaignWall();
+  if(showToast)toast("Parede dos disparos atualizada.");
+}
+$("#campaignWallRefreshBtn")?.addEventListener("click",()=>refreshCampaignWall(true));
+$("#campaignWallStatusFilter")?.addEventListener("change",renderCampaignWall);
+$("#campaignWallSearch")?.addEventListener("input",renderCampaignWall);
+setInterval(()=>{
+  if(state.session && $("#page-campaigns")?.classList.contains("active"))refreshCampaignWall(false);
+},5000);
+
 function currentCampaign(){
   return state.campaigns.find(x=>x.id===state.activeCampaignId)||null;
 }
@@ -508,6 +589,7 @@ function renderCampaignSelector(){
 }
 
 function renderCampaigns(){
+  renderCampaignWall();
   renderTransmissionContacts();
   renderCampaignSelector();
   const camp=currentCampaign();
@@ -736,6 +818,7 @@ $("#sendTransmissionNowBtn")?.addEventListener("click",async()=>{
       toast("Esses contatos já receberam esta transmissão hoje. Nenhum envio duplicado foi criado.","error");
     }else{
       camp.last_sent_at=new Date().toISOString();
+      await refreshCampaignWall(false);
       renderCampaigns();
       toast(total+" mensagem"+(total===1?"":"s")+" colocada"+(total===1?"":"s")+" na fila de transmissão.");
     }

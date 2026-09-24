@@ -1,0 +1,753 @@
+[
+  {
+    "updatedAt": "2026-09-24T00:38:28.000Z",
+    "createdAt": "2026-09-23T23:00:25.271Z",
+    "id": "8b5b0202-2f4e-4cba-9d5e-32434f42aab1",
+    "name": "JSTech - Evolution -> IA/Supabase",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "evolution-jstech",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "id": "7f2d7f5e-2e93-4f76-8b40-001a677a7401",
+        "name": "Evolution Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "5f086ee6-d6b1-42e6-a924-8385cb5bdeef"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-wa-evolution-n8n-webhook?token=e148ae5b61388f07023c11ee5c3a238d94c861c7fcc45bb237b39c68bd26c964",
+          "sendBody": true,
+          "contentType": "raw",
+          "rawContentType": "application/json",
+          "body": "={{ JSON.stringify($json.body ?? $json) }}",
+          "options": {}
+        },
+        "id": "e6fc4834-0f19-48fa-b7ab-5fe95ca8bfa8",
+        "name": "IA + Supabase",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          280,
+          0
+        ]
+      }
+    ],
+    "connections": {
+      "Evolution Webhook": {
+        "main": [
+          [
+            {
+              "node": "IA + Supabase",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "staticData": null,
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "8dae626a-03d9-4514-a819-04011ded29e6",
+    "activeVersionId": "8dae626a-03d9-4514-a819-04011ded29e6",
+    "versionCounter": 1,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-23T23:00:25.278Z",
+        "createdAt": "2026-09-23T23:00:25.278Z",
+        "role": "workflow:owner",
+        "workflowId": "8b5b0202-2f4e-4cba-9d5e-32434f42aab1",
+        "projectId": "rwdqV5nOiyh7aNB0",
+        "project": {
+          "updatedAt": "2026-09-23T22:54:43.545Z",
+          "createdAt": "2026-09-23T22:54:43.545Z",
+          "id": "rwdqV5nOiyh7aNB0",
+          "name": "Unnamed Project",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "7c535352-7c3f-4fe8-abaa-09ab0dd62307"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  },
+  {
+    "updatedAt": "2026-09-23T23:52:20.000Z",
+    "createdAt": "2026-09-23T23:22:34.437Z",
+    "id": "002d1453-4a89-4ce5-9ff1-940cdfbba148",
+    "name": "JSTech - Fila Inteligente de Campanhas",
+    "description": null,
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 10
+              }
+            ]
+          },
+          "misfirePolicy": "skip",
+          "misfireGraceSeconds": 0
+        },
+        "id": "trig-001",
+        "name": "A cada 10 minutos",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.4,
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "return Array.from({length:10}, (_,i) => ({json:{slot:i+1,batch_size:10}}));"
+        },
+        "id": "code-001",
+        "name": "Criar lote de 10",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          220,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "batchSize": 10,
+          "options": {}
+        },
+        "id": "batch-001",
+        "name": "Lote de 10 contatos",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          450,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "batchSize": 1,
+          "options": {}
+        },
+        "id": "batch-002",
+        "name": "Um contato por vez",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          690,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "language": "javaScript",
+          "jsCode": "const minSegundos = 15;\nconst maxSegundos = 35;\nconst delay_seconds = Math.floor(Math.random() * (maxSegundos - minSegundos + 1) + minSegundos);\nreturn { json: { ...$json, delay_seconds } };"
+        },
+        "id": "code-002",
+        "name": "Atraso aleatorio 15-35s",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          930,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "resume": "timeInterval",
+          "amount": "={{ $json.delay_seconds }}",
+          "unit": "seconds"
+        },
+        "id": "wait-001",
+        "name": "Esperar atraso",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          1170,
+          120
+        ],
+        "webhookId": "wait-fila-inteligente-jstech"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-n8n-campaign-queue",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={\"action\":\"tick\"}",
+          "options": {
+            "timeout": 25000
+          }
+        },
+        "id": "http-001",
+        "name": "Evolution API - enviar proximo",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.5,
+        "position": [
+          1410,
+          120
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "47175bb0-86c9-4fd7-a51b-0a40fcd6cf47",
+            "name": "JSTech - Token Fila Campanhas"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "A cada 10 minutos": {
+        "main": [
+          [
+            {
+              "node": "Criar lote de 10",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Criar lote de 10": {
+        "main": [
+          [
+            {
+              "node": "Lote de 10 contatos",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Lote de 10 contatos": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Um contato por vez",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Um contato por vez": {
+        "main": [
+          [
+            {
+              "node": "Lote de 10 contatos",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Atraso aleatorio 15-35s",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Atraso aleatorio 15-35s": {
+        "main": [
+          [
+            {
+              "node": "Esperar atraso",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Esperar atraso": {
+        "main": [
+          [
+            {
+              "node": "Evolution API - enviar proximo",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Evolution API - enviar proximo": {
+        "main": [
+          [
+            {
+              "node": "Um contato por vez",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "America/Sao_Paulo"
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "a64288d7-6278-4b27-836f-5f715a7147a5",
+    "activeVersionId": null,
+    "versionCounter": 3,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-23T23:22:39.992Z",
+        "createdAt": "2026-09-23T23:22:39.992Z",
+        "role": "workflow:owner",
+        "workflowId": "002d1453-4a89-4ce5-9ff1-940cdfbba148",
+        "projectId": "rwdqV5nOiyh7aNB0",
+        "project": {
+          "updatedAt": "2026-09-23T22:54:43.545Z",
+          "createdAt": "2026-09-23T22:54:43.545Z",
+          "id": "rwdqV5nOiyh7aNB0",
+          "name": "Unnamed Project",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "7c535352-7c3f-4fe8-abaa-09ab0dd62307"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  },
+  {
+    "updatedAt": "2026-09-23T23:52:25.000Z",
+    "createdAt": "2026-09-23T23:50:41.298Z",
+    "id": "aaa4aac4-54a2-4e9b-acb1-4fb3321dab71",
+    "name": "JSTech - Fila Inteligente Evolution API",
+    "description": "Fila real de campanhas: Supabase -> lote 20 -> atraso 15-35s -> Evolution API -> confirmação -> loop.",
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "*/15 9-18 * * *"
+              }
+            ]
+          }
+        },
+        "id": "480aa144-1966-4715-bb8e-9860b7761686",
+        "name": "09h-19h a cada 15 min",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.4,
+        "position": [
+          -1080,
+          -140
+        ]
+      },
+      {
+        "parameters": {},
+        "id": "e62b24fe-a252-475f-a180-4a995646d68c",
+        "name": "Iniciar manualmente",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          -1080,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-n8n-campaign-queue",
+          "sendBody": true,
+          "contentType": "raw",
+          "rawContentType": "application/json",
+          "body": "={{ JSON.stringify({ action: 'claim', token: $env.N8N_CAMPAIGN_TOKEN, limit: 20 }) }}",
+          "options": {}
+        },
+        "id": "ac3f2f73-f464-4e0a-aaa9-d13c24c793b7",
+        "name": "1. Buscar contatos no Supabase",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -820,
+          -40
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const rows = Array.isArray($json.items) ? $json.items : [];\nreturn rows.map(row => ({ json: row }));"
+        },
+        "id": "e09843bb-5e40-490a-b63c-1adba1383364",
+        "name": "2. Preparar lista",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -580,
+          -40
+        ]
+      },
+      {
+        "parameters": {
+          "batchSize": 20,
+          "options": {}
+        },
+        "id": "d680ec82-e985-44da-9e50-b86cd33fd2c5",
+        "name": "3. Lote de 20 contatos",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          -340,
+          -40
+        ]
+      },
+      {
+        "parameters": {
+          "batchSize": 1,
+          "options": {}
+        },
+        "id": "2b3c3b41-3eb2-4e44-acaf-e3ef0e5478c6",
+        "name": "4. Um contato por vez",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          -80,
+          100
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "language": "javaScript",
+          "jsCode": "const minSegundos = 15;\nconst maxSegundos = 35;\nconst tempoAleatorio = Math.floor(Math.random() * (maxSegundos - minSegundos + 1) + minSegundos);\nconst item = $input.item;\nitem.json.delay_seconds = tempoAleatorio;\nreturn item;"
+        },
+        "id": "504d6ba8-92f7-4afc-8953-3581fca4c441",
+        "name": "5. Atraso aleatorio 15-35s",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          180,
+          100
+        ]
+      },
+      {
+        "parameters": {
+          "resume": "timeInterval",
+          "amount": "={{ $json.delay_seconds }}",
+          "unit": "seconds"
+        },
+        "id": "b7c237c4-bf48-4cc3-9154-a43db4f278bc",
+        "name": "6. Wait inteligente",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          420,
+          100
+        ],
+        "webhookId": "38fb52e1-6e34-4ca6-911f-5f8186746bc1"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $json.base_url.replace(/\\/+$/, '') + '/message/sendText/' + encodeURIComponent($json.instance_name) }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "={{ $json.api_key }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "raw",
+          "rawContentType": "application/json",
+          "body": "={{ JSON.stringify({ number: $json.phone, text: $json.body }) }}",
+          "options": {}
+        },
+        "id": "4ffbb978-c86c-45b2-a7dd-a4e1b060c29b",
+        "name": "7. Enviar pela Evolution API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          660,
+          100
+        ],
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "language": "javaScript",
+          "jsCode": "const src = $('5. Atraso aleatorio 15-35s').item.json;\nconst r = $json || {};\nconst mid = r?.key?.id ?? r?.data?.key?.id ?? r?.message?.key?.id ?? r?.messages?.[0]?.id ?? null;\nlet err = null;\nif (!mid) {\n  try { err = JSON.stringify(r).slice(0, 700); } catch { err = 'send_failed'; }\n}\nreturn { json: { ...src, send_ok: !!mid, provider_message_id: mid, send_error: err } };"
+        },
+        "id": "4ec5510d-bf3c-4c86-890e-fe8d3aff9c46",
+        "name": "8. Conferir resultado",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          900,
+          100
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/jstech-n8n-campaign-queue",
+          "sendBody": true,
+          "contentType": "raw",
+          "rawContentType": "application/json",
+          "body": "={{ JSON.stringify({ action: 'ack', token: $env.N8N_CAMPAIGN_TOKEN, delivery_id: $json.delivery_id, ok: $json.send_ok, provider_message_id: $json.provider_message_id, error: $json.send_error }) }}",
+          "options": {}
+        },
+        "id": "8589d43a-5991-4aff-a210-d1bcf9f44cdd",
+        "name": "9. Confirmar no Supabase",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1140,
+          100
+        ],
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "return $input.all();"
+        },
+        "id": "b6e7146e-965d-4311-b1e8-45deac65271e",
+        "name": "10. Lote concluido",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -80,
+          -180
+        ]
+      }
+    ],
+    "connections": {
+      "09h-19h a cada 15 min": {
+        "main": [
+          [
+            {
+              "node": "1. Buscar contatos no Supabase",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Iniciar manualmente": {
+        "main": [
+          [
+            {
+              "node": "1. Buscar contatos no Supabase",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Buscar contatos no Supabase": {
+        "main": [
+          [
+            {
+              "node": "2. Preparar lista",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2. Preparar lista": {
+        "main": [
+          [
+            {
+              "node": "3. Lote de 20 contatos",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3. Lote de 20 contatos": {
+        "main": [
+          [
+            {
+              "node": "10. Lote concluido",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "4. Um contato por vez",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4. Um contato por vez": {
+        "main": [
+          [
+            {
+              "node": "3. Lote de 20 contatos",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "5. Atraso aleatorio 15-35s",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5. Atraso aleatorio 15-35s": {
+        "main": [
+          [
+            {
+              "node": "6. Wait inteligente",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "6. Wait inteligente": {
+        "main": [
+          [
+            {
+              "node": "7. Enviar pela Evolution API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. Enviar pela Evolution API": {
+        "main": [
+          [
+            {
+              "node": "8. Conferir resultado",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. Conferir resultado": {
+        "main": [
+          [
+            {
+              "node": "9. Confirmar no Supabase",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "9. Confirmar no Supabase": {
+        "main": [
+          [
+            {
+              "node": "4. Um contato por vez",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "America/Sao_Paulo"
+    },
+    "staticData": null,
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "ca6c17b6-9cfb-4712-9ebf-320089c3f2d8",
+    "activeVersionId": "ca6c17b6-9cfb-4712-9ebf-320089c3f2d8",
+    "versionCounter": 1,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-23T23:50:47.364Z",
+        "createdAt": "2026-09-23T23:50:47.364Z",
+        "role": "workflow:owner",
+        "workflowId": "aaa4aac4-54a2-4e9b-acb1-4fb3321dab71",
+        "projectId": "rwdqV5nOiyh7aNB0",
+        "project": {
+          "updatedAt": "2026-09-23T22:54:43.545Z",
+          "createdAt": "2026-09-23T22:54:43.545Z",
+          "id": "rwdqV5nOiyh7aNB0",
+          "name": "Unnamed Project",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "7c535352-7c3f-4fe8-abaa-09ab0dd62307"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]

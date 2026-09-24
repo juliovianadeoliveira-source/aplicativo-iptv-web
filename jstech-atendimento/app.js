@@ -30,7 +30,7 @@ const state = {
   automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], activePanel:null, activeConversation:null, activeAutomation:null,
   activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false, userRole:null,
   whatsappConnections:[], activeWhatsAppSlot:1,
-  activeCampaignId:null, campaignFormCampaignId:null, campaignDeliveries:[]
+  activeCampaignId:null, campaignFormCampaignId:null, campaignDeliveries:[], activeActivationAppId:null
 };
 
 function toast(msg, type="success"){
@@ -359,6 +359,9 @@ async function loadAll(showToast=false){
     }
     const {data:alias}=await sb.from("wa_login_aliases").select("role").eq("auth_user_id",state.session.user.id).eq("workspace_id",id).maybeSingle();
     state.userRole=alias?.role||"owner";
+    const exclusivePanels=Number(state.workspace?.tenant_level||0)===0;
+    $(".nav-item[data-page=\"panels\"]")?.classList.toggle("hidden",!exclusivePanels);
+    $("#page-panels")?.classList.toggle("tenant-exclusive-hidden",!exclusivePanels);
     if(state.userRole==="reseller")state.bridgeHosted=true;
     if(!state.activeAutomation&&state.automations.length){state.activeAutomation=structuredClone(state.automations[0]);state.activeNode=state.activeAutomation.flow?.start||Object.keys(state.activeAutomation.flow?.nodes||{})[0]}
     try{
@@ -1174,6 +1177,7 @@ function selectPanelConnector(id){
     botBtn.disabled=!ready;
   }
   renderPanelAppMappings();
+  renderDeviceActivation();
   const list=$("#panelConnectorList");
   if(list){
     $$("[data-panel-select]",list).forEach(el=>el.classList.toggle("active",el.dataset.panelSelect===p.id));
@@ -1206,6 +1210,105 @@ function renderPanelAppMappings(){
   ).join("");
   $$("[data-remove-panel-app]",box).forEach(btn=>btn.addEventListener("click",()=>removePanelAppMapping(btn.dataset.removePanelApp)));
 }
+
+function activationApp(){
+  return state.panelApps.find(a=>a.id===state.activeActivationAppId)||null;
+}
+function activationPayloadFieldNames(app){
+  const t=app?.activation_payload_template&&typeof app.activation_payload_template==="object"?app.activation_payload_template:{};
+  let mac="mac",key="key",playlist="";
+  for(const [k,v] of Object.entries(t)){
+    const s=String(v||"");
+    if(s.includes("{{mac}}"))mac=k;
+    else if(s.includes("{{key}}")||s.includes("{{device_key}}"))key=k;
+    else if(s.includes("{{playlist_url}}")||s.includes("{{m3u}}")||s.includes("{{url}}"))playlist=k;
+  }
+  return {mac,key,playlist};
+}
+function updateDeviceActivationDriverUi(){
+  const api=$("#deviceActivationDriver")?.value==="api";
+  $("#deviceActivationMethodWrap")?.classList.toggle("hidden",!api);
+  $("#deviceActivationFieldNames")?.classList.toggle("hidden",!api);
+}
+function renderDeviceActivation(){
+  const sel=$("#deviceActivationAppSelect");
+  if(!sel)return;
+  const apps=(state.panelApps||[]).slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));
+  if(!apps.length){
+    sel.innerHTML='<option value="">Nenhum aplicativo cadastrado</option>';
+    return;
+  }
+  if(!state.activeActivationAppId||!apps.some(a=>a.id===state.activeActivationAppId))state.activeActivationAppId=apps[0].id;
+  sel.innerHTML=apps.map(a=>'<option value="'+a.id+'">'+escapeHtml(a.name)+'</option>').join("");
+  sel.value=state.activeActivationAppId;
+  const a=activationApp();
+  if(!a)return;
+  $("#deviceRequiresMacKey").checked=!!a.requires_mac_key;
+  $("#deviceActivationDriver").value=a.activation_driver||"rpa";
+  $("#deviceActivationUrl").value=a.activation_url||"";
+  $("#deviceActivationMethod").value=a.activation_method||"POST";
+  const fields=activationPayloadFieldNames(a);
+  $("#deviceMacFieldName").value=fields.mac||"mac";
+  $("#deviceKeyFieldName").value=fields.key||"key";
+  $("#devicePlaylistFieldName").value=fields.playlist||"";
+  $("#deviceActivationApiHeader").value=a.activation_api_key_header||"Authorization";
+  $("#deviceActivationApiPrefix").value=a.activation_api_key_prefix??"Bearer ";
+  $("#deviceActivationNotes").value=a.activation_notes||"";
+  $("#deviceActivationUsername").value="";
+  $("#deviceActivationPassword").value="";
+  $("#deviceActivationApiKey").value="";
+  const ready=!!(a.requires_mac_key&&a.activation_driver&&a.activation_url);
+  $("#deviceActivationStatus").className="pill "+(ready?"success":"warning");
+  $("#deviceActivationStatus").textContent=ready?(a.has_activation_credentials?"Configurada + acesso":"Configurada"):"Não configurada";
+  updateDeviceActivationDriverUi();
+}
+$("#deviceActivationAppSelect")?.addEventListener("change",e=>{
+  state.activeActivationAppId=e.target.value||null;
+  renderDeviceActivation();
+});
+$("#deviceActivationDriver")?.addEventListener("change",updateDeviceActivationDriverUi);
+$("#saveDeviceActivationBtn")?.addEventListener("click",async()=>{
+  const appId=$("#deviceActivationAppSelect")?.value;
+  if(!appId)return toast("Escolha o aplicativo.","error");
+  const requires=$("#deviceRequiresMacKey")?.checked===true;
+  const driver=$("#deviceActivationDriver")?.value||"rpa";
+  const url=$("#deviceActivationUrl")?.value.trim()||"";
+  if(requires&&!url)return toast("Informe o endereço usado para configurar MAC e Key.","error");
+
+  const macField=$("#deviceMacFieldName")?.value.trim()||"mac";
+  const keyField=$("#deviceKeyFieldName")?.value.trim()||"key";
+  const playlistField=$("#devicePlaylistFieldName")?.value.trim()||"";
+  const template={};
+  template[macField]="{{mac}}";
+  template[keyField]="{{key}}";
+  if(playlistField)template[playlistField]="{{playlist_url}}";
+
+  const btn=$("#saveDeviceActivationBtn");btn.disabled=true;
+  try{
+    await panelAdmin({
+      action:"save_app_activation",
+      workspace_id:state.workspace.id,
+      app_catalog_id:appId,
+      requires_mac_key:requires,
+      activation_driver:driver,
+      activation_url:url,
+      activation_method:$("#deviceActivationMethod")?.value||"POST",
+      activation_payload_template:template,
+      activation_username:$("#deviceActivationUsername")?.value.trim()||"",
+      activation_password:$("#deviceActivationPassword")?.value||"",
+      activation_api_key:$("#deviceActivationApiKey")?.value.trim()||"",
+      activation_api_key_header:$("#deviceActivationApiHeader")?.value.trim()||"Authorization",
+      activation_api_key_prefix:$("#deviceActivationApiPrefix")?.value??"Bearer ",
+      activation_notes:$("#deviceActivationNotes")?.value.trim()||""
+    });
+    await loadPanelConnectors(false);
+    state.activeActivationAppId=appId;
+    renderDeviceActivation();
+    toast("Automação MAC / Key salva para este aplicativo.");
+  }catch(err){toast(err.message||"Falha ao salvar a automação MAC / Key.","error")}
+  finally{btn.disabled=false}
+});
+
 $("#savePanelAppBtn")?.addEventListener("click",async()=>{
   const p=state.activePanel;if(!p)return;
   const appId=$("#panelAppSelect").value;

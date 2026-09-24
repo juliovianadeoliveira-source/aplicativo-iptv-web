@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v8-panel-automation";
+const CACHE="jstech-atendimento-v9-tenant-secretary";
 const CORE=[
   "./",
   "./index.html",

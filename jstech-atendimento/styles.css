@@ -830,3 +830,12 @@ img,video,canvas,svg{max-width:100%}
 .voice-sample-instruction{display:grid;gap:5px;margin-top:14px;padding:14px;border:1px dashed var(--line);border-radius:14px;background:#081321}
 .voice-sample-instruction b{font-size:.92rem}
 .voice-sample-instruction span{font-size:.82rem;color:var(--muted);line-height:1.45}
+
+/* Central de automação dos painéis */
+.panel-automation-center{margin-top:18px}
+.panel-automation-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:16px 0}
+.panel-automation-grid{display:grid;grid-template-columns:minmax(300px,.8fr) minmax(420px,1.2fr);gap:18px;align-items:start}
+.panel-job-table-wrap{max-height:520px;overflow:auto}
+.panel-job-error{max-width:260px;white-space:normal;word-break:break-word}
+@media(max-width:1100px){.panel-automation-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.panel-automation-grid{grid-template-columns:1fr}}
+@media(max-width:650px){.panel-automation-stats{grid-template-columns:1fr 1fr}}

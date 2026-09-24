@@ -17,7 +17,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260923-full-project-v2">
+  <link rel="stylesheet" href="./styles.css?v=20260924-full-project-v3">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -416,6 +416,52 @@
                 <button id="savePanelAppBtn" class="btn ghost" type="button">Adicionar aplicativo a este painel</button>
               </div>
               <div id="panelAppMappings" class="knowledge-list"></div>
+
+              <div class="device-activation-box">
+                <div class="subhead"><b>Automação MAC / Key do aplicativo</b><span id="deviceActivationStatus" class="pill warning">Não configurada</span></div>
+                <p class="muted">Configure uma vez por aplicativo. Depois, quando o cliente enviar MAC e Key no WhatsApp, o sistema faz a ativação por API ou navegador automaticamente.</p>
+                <div class="stack">
+                  <label>Aplicativo
+                    <select id="deviceActivationAppSelect"></select>
+                  </label>
+                  <label class="toggle-line">
+                    <span><b>Este aplicativo usa MAC e Key</b><small>Ativa a configuração automática para este player.</small></span>
+                    <input id="deviceRequiresMacKey" type="checkbox">
+                  </label>
+                  <label>Como configurar
+                    <select id="deviceActivationDriver">
+                      <option value="rpa">Navegador automático (RPA)</option>
+                      <option value="api">API do aplicativo</option>
+                    </select>
+                  </label>
+                  <label>Endereço da ativação<input id="deviceActivationUrl" type="url" placeholder="https://painel-do-player.com/"></label>
+                  <label id="deviceActivationMethodWrap">Método da API
+                    <select id="deviceActivationMethod">
+                      <option value="POST">POST</option>
+                      <option value="PUT">PUT</option>
+                      <option value="PATCH">PATCH</option>
+                      <option value="GET">GET</option>
+                    </select>
+                  </label>
+                  <div id="deviceActivationFieldNames" class="activation-field-grid">
+                    <label>Campo MAC<input id="deviceMacFieldName" value="mac" placeholder="mac"></label>
+                    <label>Campo Key<input id="deviceKeyFieldName" value="key" placeholder="key"></label>
+                    <label>Campo lista/M3U (opcional)<input id="devicePlaylistFieldName" placeholder="playlist_url"></label>
+                  </div>
+                  <details class="advanced-box">
+                    <summary>Acesso da automação</summary>
+                    <div class="stack">
+                      <label>Usuário<input id="deviceActivationUsername" autocomplete="username" placeholder="Se o site/API exigir"></label>
+                      <label>Senha<input id="deviceActivationPassword" type="password" autocomplete="current-password" placeholder="Se o site exigir"></label>
+                      <label>Chave da API<input id="deviceActivationApiKey" type="password" placeholder="Se a API exigir"></label>
+                      <label>Nome do cabeçalho da API<input id="deviceActivationApiHeader" value="Authorization" placeholder="Authorization"></label>
+                      <label>Prefixo da chave<input id="deviceActivationApiPrefix" value="Bearer " placeholder="Bearer "></label>
+                    </div>
+                  </details>
+                  <label>Observação<input id="deviceActivationNotes" placeholder="Opcional"></label>
+                  <button id="saveDeviceActivationBtn" class="btn primary" type="button">Salvar automação MAC / Key</button>
+                </div>
+              </div>
             </form>
           </article>
         </div>
@@ -608,7 +654,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260923-full-project-v2"></script>
+  <script type="module" src="./app.js?v=20260924-full-project-v3"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260923-full-project-v2"></script>

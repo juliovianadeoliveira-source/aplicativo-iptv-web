@@ -30,7 +30,7 @@ const state = {
   automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], activePanel:null, activeConversation:null, activeAutomation:null,
   activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false, userRole:null,
   whatsappConnections:[], activeWhatsAppSlot:1,
-  activeCampaignId:null, campaignFormCampaignId:null, campaignDeliveries:[], activeActivationAppId:null
+  activeCampaignId:null, campaignFormCampaignId:null, campaignDeliveries:[], activeActivationAppId:null, nationalLeads:[], nationalLeadCount:0
 };
 
 function toast(msg, type="success"){
@@ -341,17 +341,22 @@ async function loadAll(showToast=false){
   try{
     await ensureWorkspace();
     const id=state.workspace.id;
-    const [settings,contacts,convs,autos,knowledge,campaigns,campaignDeliveries]=await Promise.all([
+    const isMasterRoot=Number(state.workspace?.tenant_level||0)===0&&!state.workspace?.parent_workspace_id;
+    const nationalLeadPromise=isMasterRoot
+      ? sb.from("wa_national_leads").select("*",{count:"exact"}).eq("workspace_id",id).order("updated_at",{ascending:false}).limit(500)
+      : Promise.resolve({data:[],error:null,count:0});
+    const [settings,contacts,convs,autos,knowledge,campaigns,campaignDeliveries,nationalLeads]=await Promise.all([
       sb.from("wa_settings").select("*").eq("workspace_id",id).single(),
       sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),
       sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url,profile_photo_preview_url,profile_photo_hd_url,bot_context,memory_context)").eq("workspace_id",id).order("last_message_at",{ascending:false}),
       sb.from("wa_automations").select("*").eq("workspace_id",id).order("created_at"),
       sb.from("wa_knowledge").select("*").eq("workspace_id",id).order("title"),
       sb.from("wa_campaigns").select("*").eq("workspace_id",id).order("created_at",{ascending:true}),
-      sb.from("wa_campaign_deliveries").select("id,campaign_id,contact_id,message_id,status,sent_at,created_at,attempt_count,claimed_at,next_attempt_at,last_error,provider_message_id").eq("workspace_id",id).order("created_at",{ascending:false}).limit(500)
+      sb.from("wa_campaign_deliveries").select("id,campaign_id,contact_id,message_id,status,sent_at,created_at,attempt_count,claimed_at,next_attempt_at,last_error,provider_message_id").eq("workspace_id",id).order("created_at",{ascending:false}).limit(500),
+      nationalLeadPromise
     ]);
-    if(settings.error)throw settings.error;if(contacts.error)throw contacts.error;if(convs.error)throw convs.error;if(autos.error)throw autos.error;if(knowledge.error)throw knowledge.error;if(campaigns.error)throw campaigns.error;if(campaignDeliveries.error)throw campaignDeliveries.error;
-    state.settings=settings.data;state.contacts=contacts.data||[];state.conversations=convs.data||[];state.automations=autos.data||[];state.knowledge=knowledge.data||[];state.campaigns=campaigns.data||[];state.campaignDeliveries=campaignDeliveries.data||[];
+    if(settings.error)throw settings.error;if(contacts.error)throw contacts.error;if(convs.error)throw convs.error;if(autos.error)throw autos.error;if(knowledge.error)throw knowledge.error;if(campaigns.error)throw campaigns.error;if(campaignDeliveries.error)throw campaignDeliveries.error;if(nationalLeads.error)throw nationalLeads.error;
+    state.settings=settings.data;state.contacts=contacts.data||[];state.conversations=convs.data||[];state.automations=autos.data||[];state.knowledge=knowledge.data||[];state.campaigns=campaigns.data||[];state.campaignDeliveries=campaignDeliveries.data||[];state.nationalLeads=nationalLeads.data||[];state.nationalLeadCount=Number(nationalLeads.count??state.nationalLeads.length);
     if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=state.settings?.company_name||"JSTech";
     if(!state.activeCampaignId || (state.activeCampaignId!=="__new__" && !state.campaigns.some(x=>x.id===state.activeCampaignId))){
       state.activeCampaignId=state.campaigns[0]?.id||"__new__";
@@ -604,6 +609,128 @@ function renderTransmissionContacts(){
 $("#transmissionContactSearch")?.addEventListener("input",renderTransmissionContacts);
 
 
+
+function renderNationalLeads(){
+  const panel=$("#nationalLeadPanel");
+  if(!panel)return;
+  const master=Number(state.workspace?.tenant_level||0)===0&&!state.workspace?.parent_workspace_id;
+  panel.classList.toggle("hidden",!master);
+  if(!master)return;
+  const rows=state.nationalLeads||[];
+  $("#nationalLeadTotal").textContent=String(state.nationalLeadCount||rows.length);
+  $("#nationalLeadOpted").textContent=String(rows.filter(x=>x.marketing_opt_in).length);
+  $("#nationalLeadStates").textContent=String(new Set(rows.map(x=>String(x.state_code||"").trim().toUpperCase()).filter(Boolean)).size);
+  const body=$("#nationalLeadBody");
+  if(!body)return;
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="6" class="campaign-wall-empty">Nenhum lead importado.</td></tr>';
+    return;
+  }
+  body.innerHTML=rows.slice(0,250).map(x=>
+    '<tr><td>'+escapeHtml(x.name||"Sem nome")+'</td><td>'+escapeHtml(x.phone||"")+'</td><td>'+escapeHtml(x.ddd||"")+'</td><td>'+escapeHtml(x.state_code||"")+'</td><td>'+escapeHtml(x.city||"")+'</td><td><span class="campaign-wall-status '+(x.marketing_opt_in?"sent":"queued")+'">'+(x.marketing_opt_in?"Autorizado":"Lead")+'</span></td></tr>'
+  ).join("");
+}
+
+function nationalHeaderIndex(headers,names){
+  return headers.findIndex(h=>names.some(n=>h===n||h.includes(n)));
+}
+function parseNationalLeadCsv(text){
+  const lines=String(text||"").replace(/^\uFEFF/,"").replace(/\r/g,"").split("\n").filter(x=>x.trim());
+  if(lines.length<2)return [];
+  const first=lines[0];
+  const delimiter=(first.match(/;/g)||[]).length>(first.match(/,/g)||[]).length?";":((first.match(/\t/g)||[]).length?"\t":",");
+  const headers=splitCsvLine(first,delimiter).map(x=>x.trim().toLowerCase());
+  const nameI=nationalHeaderIndex(headers,["nome","name","contato"]);
+  const phoneI=nationalHeaderIndex(headers,["whatsapp","telefone","celular","phone","mobile"]);
+  const dddI=nationalHeaderIndex(headers,["ddd"]);
+  const stateI=nationalHeaderIndex(headers,["estado","uf","state"]);
+  const cityI=nationalHeaderIndex(headers,["cidade","city","municipio","município"]);
+  const cepI=nationalHeaderIndex(headers,["cep","postal"]);
+  const out=[];
+  for(const line of lines.slice(1)){
+    const c=splitCsvLine(line,delimiter);
+    const phone=normalizeImportedPhone(phoneI>=0?c[phoneI]:"");
+    if(!phone)continue;
+    const local=phone.startsWith("55")?phone.slice(2):phone;
+    out.push({
+      name:nameI>=0?String(c[nameI]||"").trim():"",
+      phone,
+      ddd:(dddI>=0?String(c[dddI]||"").replace(/\D/g,"").slice(0,2):local.slice(0,2)),
+      state_code:stateI>=0?String(c[stateI]||"").trim().toUpperCase().slice(0,2):"",
+      city:cityI>=0?String(c[cityI]||"").trim():"",
+      postal_code:cepI>=0?String(c[cepI]||"").replace(/\D/g,"").slice(0,8):""
+    });
+  }
+  return [...new Map(out.map(x=>[x.phone,x])).values()];
+}
+async function reloadNationalLeads(){
+  if(!state.workspace?.id)return;
+  const {data,error,count}=await sb.from("wa_national_leads").select("*",{count:"exact"})
+    .eq("workspace_id",state.workspace.id).order("updated_at",{ascending:false}).limit(500);
+  if(error)throw error;
+  state.nationalLeads=data||[];
+  state.nationalLeadCount=Number(count??state.nationalLeads.length);
+  renderNationalLeads();
+}
+$("#importNationalLeadsBtn")?.addEventListener("click",async()=>{
+  const file=$("#nationalLeadFile")?.files?.[0];
+  if(!file)return toast("Escolha o arquivo CSV da base nacional.","error");
+  const consent=$("#nationalLeadConsent")?.checked===true;
+  const btn=$("#importNationalLeadsBtn");btn.disabled=true;btn.textContent="Importando...";
+  try{
+    const rows=parseNationalLeadCsv(await file.text());
+    if(!rows.length)throw new Error("Não encontrei telefones válidos no CSV.");
+    const now=new Date().toISOString();
+    const baseRows=rows.map(x=>({
+      workspace_id:state.workspace.id,
+      name:x.name||x.phone,
+      phone:x.phone,
+      ddd:x.ddd||null,
+      state_code:x.state_code||null,
+      city:x.city||null,
+      postal_code:x.postal_code||null,
+      source:"csv_base_nacional",
+      marketing_opt_in:consent,
+      marketing_opt_in_at:consent?now:null,
+      marketing_consent_proof:consent?{source:"import_base_nacional",confirmed_in_panel:true,confirmed_at:now}:{},
+      status:"lead",
+      updated_at:now
+    }));
+    for(let i=0;i<baseRows.length;i+=250){
+      const {error}=await sb.from("wa_national_leads").upsert(baseRows.slice(i,i+250),{onConflict:"workspace_id,phone",ignoreDuplicates:false});
+      if(error)throw error;
+    }
+    if(consent){
+      const contactRows=baseRows.map(x=>({
+        workspace_id:state.workspace.id,
+        phone:x.phone,
+        name:x.name,
+        city:x.city,
+        state_code:x.state_code,
+        postal_code:x.postal_code,
+        customer_kind:"lead",
+        lead_source:"base_nacional",
+        lead_source_at:now,
+        marketing_opt_in:true,
+        marketing_opt_in_at:now,
+        marketing_opt_out_at:null,
+        marketing_source:"base_nacional",
+        marketing_consent_proof:x.marketing_consent_proof,
+        updated_at:now
+      }));
+      for(let i=0;i<contactRows.length;i+=250){
+        const {error}=await sb.from("wa_contacts").upsert(contactRows.slice(i,i+250),{onConflict:"workspace_id,phone",ignoreDuplicates:false});
+        if(error)throw error;
+      }
+      await refreshSyncedContacts();
+    }
+    await reloadNationalLeads();
+    $("#nationalLeadFile").value="";
+    toast(rows.length+" lead"+(rows.length===1?"":"s")+" importado"+(rows.length===1?"":"s")+" na base nacional.");
+  }catch(err){toast(err.message||"Falha ao importar a base nacional.","error")}
+  finally{btn.disabled=false;btn.textContent="Importar base nacional"}
+});
+
 function campaignWallStatusLabel(status){
   return ({queued:"Na fila",processing:"Enviando",sent:"Enviado",failed:"Falhou"})[status]||String(status||"-");
 }
@@ -701,6 +828,7 @@ function renderCampaignSelector(){
 }
 
 function renderCampaigns(){
+  renderNationalLeads();
   renderCampaignWall();
   renderTransmissionContacts();
   renderCampaignSelector();

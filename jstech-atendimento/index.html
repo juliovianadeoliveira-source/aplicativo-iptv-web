@@ -17,7 +17,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260924-full-project-v4">
+  <link rel="stylesheet" href="./styles.css?v=20260924-humanized-bot-v1">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -578,6 +578,51 @@
               <label class="toggle-line"><span><b>Ler fotos e documentos</b><small>Usa a imagem recebida para continuar a conversa.</small></span><input id="mediaUnderstandingEnabled" type="checkbox"></label>
               <label class="toggle-line"><span><b>Pesquisar na internet quando necessário</b><small>Consulta informação pública sem inventar dados.</small></span><input id="webResearchEnabled" type="checkbox"></label>
               <label class="toggle-line"><span><b>Identificação transparente</b><small>Se perguntarem, informa que é assistente virtual da empresa.</small></span><input id="botDisclosure" type="checkbox"></label>
+
+              <div class="conversation-bot-box">
+                <div class="panel-head conversation-bot-head">
+                  <div>
+                    <p class="eyebrow">Bot de conversa</p>
+                    <h3>Bot de Conversa Humanizado</h3>
+                  </div>
+                  <span id="conversationBotStatus" class="pill success">Ativo</span>
+                </div>
+                <p class="muted">Fluxo: WhatsApp → Evolution API → n8n → IA → Digitando → resposta fracionada → WhatsApp.</p>
+
+                <label>Cérebro da conversa
+                  <select id="conversationEngine">
+                    <option value="openai">OpenAI (GPT-4o)</option>
+                    <option value="gemini">Gemini</option>
+                  </select>
+                </label>
+
+                <label>Prompt mestre do bot
+                  <textarea id="aiInstructions" rows="12"></textarea>
+                </label>
+
+                <label class="toggle-line">
+                  <span><b>Modo humanizado</b><small>Conversa curta e natural no estilo WhatsApp.</small></span>
+                  <input id="humanizedMode" type="checkbox">
+                </label>
+                <label class="toggle-line">
+                  <span><b>Dividir respostas</b><small>Quebra respostas maiores em 2 ou 3 mensagens curtas.</small></span>
+                  <input id="humanizedSplitMessages" type="checkbox">
+                </label>
+                <label class="toggle-line">
+                  <span><b>Emojis moderados</b><small>Usa no máximo 1 ou 2 quando fizer sentido.</small></span>
+                  <input id="humanizedEmojis" type="checkbox">
+                </label>
+                <label class="toggle-line">
+                  <span><b>Abreviações naturais</b><small>Pode usar vc, pq, tbm e né sem exagerar.</small></span>
+                  <input id="humanizedAbbreviations" type="checkbox">
+                </label>
+
+                <div class="humanized-time-grid">
+                  <label>Digitando mínimo (ms)<input id="humanizedTypingMin" type="number" min="800" max="5000" step="100"></label>
+                  <label>Digitando máximo (ms)<input id="humanizedTypingMax" type="number" min="800" max="5000" step="100"></label>
+                </div>
+              </div>
+
               <p class="muted">Cada administrador, revenda e sub-revenda tem configuração e memória próprias. Uma conta não mistura informações com outra.</p>
               <label>Mensagem de boas-vindas<textarea id="welcomeMessage" rows="3"></textarea></label>
               <label>Resposta quando faltar contexto<textarea id="fallbackMessage" rows="3"></textarea></label>
@@ -682,7 +727,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260924-full-project-v5"></script>
+  <script type="module" src="./app.js?v=20260924-humanized-bot-v1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260923-full-project-v2"></script>

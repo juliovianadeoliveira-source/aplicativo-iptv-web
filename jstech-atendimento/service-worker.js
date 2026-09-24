@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v6-humanized-bot";
+const CACHE="jstech-atendimento-v7-voice-clone";
 const CORE=[
   "./",
   "./index.html",

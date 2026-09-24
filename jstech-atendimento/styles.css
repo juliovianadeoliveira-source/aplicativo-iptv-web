@@ -805,3 +805,10 @@ img,video,canvas,svg{max-width:100%}
 .onboarding-card h2{margin-bottom:8px}
 .onboarding-card textarea{resize:vertical}
 @media(max-width:560px){.onboarding-wizard{padding:10px}.onboarding-card{padding:18px;border-radius:18px}}
+
+/* Automação MAC Key */
+.device-activation-box{margin-top:20px;padding:16px;border:1px solid var(--line);border-radius:16px;background:#091525}
+.device-activation-box .subhead{margin-bottom:7px}
+.activation-field-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tenant-exclusive-hidden{display:none!important}
+@media(max-width:700px){.activation-field-grid{grid-template-columns:1fr}}

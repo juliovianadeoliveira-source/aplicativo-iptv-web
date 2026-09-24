@@ -14,6 +14,9 @@ Este diretório reúne o código que estava pronto/implantado no projeto no mome
 - frontend/manifest.webmanifest
 - frontend/app-icon.svg
 - frontend/README.md
+- frontend/coletor-revenda/README.md
+- frontend/coletor-revenda/config.example.php
+- frontend/coletor-revenda/sync.php
 
 ## VPS
 - vps/jstech-wuzapi-agent.py — agente Python/Playwright em execução

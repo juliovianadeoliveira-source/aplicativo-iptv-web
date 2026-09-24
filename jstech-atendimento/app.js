@@ -28,7 +28,7 @@ const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const state = {
   session:null, workspace:null, settings:null, contacts:[], conversations:[], messages:[],
-  automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], activePanel:null, activeConversation:null, activeAutomation:null,
+  automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], panelJobs:[], activePanel:null, activeConversation:null, activeAutomation:null,
   activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false, userRole:null,
   whatsappConnections:[], activeWhatsAppSlot:1,
   activeCampaignId:null, campaignFormCampaignId:null, campaignDeliveries:[], activeActivationAppId:null, nationalLeads:[], nationalLeadCount:0, voiceConfig:null
@@ -1248,6 +1248,7 @@ async function loadPanelConnectors(showToast=false){
     state.panels=data?.panels||[];
     state.panelApps=data?.apps||[];
     state.panelMappings=data?.mappings||[];
+    state.panelJobs=data?.jobs||[];
     state.panelLoadError=null;
     if(state.activePanel){
       state.activePanel=state.panels.find(x=>x.id===state.activePanel.id)||null;
@@ -1258,10 +1259,202 @@ async function loadPanelConnectors(showToast=false){
     state.panels=[];
     state.panelApps=[];
     state.panelMappings=[];
+    state.panelJobs=[];
     state.panelLoadError=err?.message||"Falha ao carregar os painéis";
     if(showToast)toast("Não foi possível carregar os painéis: "+state.panelLoadError,"error");
   }
 }
+
+const PANEL_ACTION_LABELS={
+  test:"Criar teste",
+  create_user:"Criar usuário",
+  search_user:"Buscar cliente",
+  renew:"Renovar",
+  activate:"Ativar acesso",
+  activate_app:"Ativar aplicativo"
+};
+function panelJobStatusLabel(status){
+  return ({
+    pending:"Na fila",
+    processing:"Executando",
+    waiting_setup:"Aguardando acesso",
+    done:"Concluído",
+    failed:"Falhou",
+    cancelled:"Cancelado"
+  })[status]||status||"-";
+}
+function panelJobStatusClass(status){
+  if(status==="done")return "sent";
+  if(status==="failed")return "failed";
+  if(status==="processing")return "sending";
+  return "queued";
+}
+function supportedPanelActions(panel){
+  if(!panel)return [];
+  const caps=new Set(panel.capabilities||[]);
+  const out=[];
+  if(caps.has("test"))out.push("test");
+  if(caps.has("create_user"))out.push("create_user");
+  if(caps.has("lookup_client")||caps.has("search_user"))out.push("search_user");
+  if(caps.has("renew")){out.push("renew");out.push("activate")}
+  if(caps.has("activate_app"))out.push("activate_app");
+  return [...new Set(out)];
+}
+function renderPanelAutomationAppOptions(panelId){
+  const sel=$("#panelAutomationApp");
+  if(!sel)return;
+  const maps=(state.panelMappings||[]).filter(m=>m.connector_id===panelId&&m.enabled!==false);
+  if(!maps.length){
+    sel.innerHTML='<option value="">Nenhum aplicativo mapeado neste painel</option>';
+    return;
+  }
+  sel.innerHTML='<option value="">Escolha quando a ação exigir</option>'+maps.map(m=>
+    '<option value="'+m.id+'" data-app-id="'+escapeHtml(m.app_catalog_id||"")+'" data-app-name="'+escapeHtml(m.app_name||"")+'" data-app-code="'+escapeHtml(m.panel_app_code||"")+'">'+escapeHtml(m.app_name||"Aplicativo")+(m.panel_app_code?" • "+escapeHtml(m.panel_app_code):"")+'</option>'
+  ).join("");
+}
+function renderPanelAutomationActions(panelId){
+  const panel=(state.panels||[]).find(p=>p.id===panelId);
+  const sel=$("#panelAutomationAction");
+  if(!sel)return;
+  const actions=supportedPanelActions(panel);
+  sel.innerHTML=actions.length
+    ? actions.map(a=>'<option value="'+a+'">'+escapeHtml(PANEL_ACTION_LABELS[a]||a)+'</option>').join("")
+    : '<option value="">Nenhuma ação disponível</option>';
+  renderPanelAutomationAppOptions(panelId);
+  updatePanelAutomationHint();
+}
+function updatePanelAutomationHint(){
+  const panel=(state.panels||[]).find(p=>p.id===$("#panelAutomationPanel")?.value);
+  const action=$("#panelAutomationAction")?.value||"";
+  const hint=$("#panelAutomationHint");
+  if(!hint)return;
+  if(!panel){hint.textContent="Escolha um painel.";return}
+  if(!(panel.has_credentials&&panel.last_status==="driver_ready")){
+    hint.textContent="Este painel ainda não está pronto. O job pode ser salvo como Aguardando acesso e será liberado depois que o login for validado.";
+    return;
+  }
+  hint.textContent=(PANEL_ACTION_LABELS[action]||"Ação")+" será executado pelo agente da VPS neste painel.";
+}
+function renderPanelAutomationCenter(){
+  const panelSel=$("#panelAutomationPanel");
+  if(!panelSel)return;
+
+  const panels=state.panels||[];
+  const ready=panels.filter(p=>p.has_credentials&&p.last_status==="driver_ready").length;
+  const waiting=panels.length-ready;
+  const jobs=state.panelJobs||[];
+  const pending=jobs.filter(j=>["pending","processing","waiting_setup"].includes(j.status)).length;
+  const done=jobs.filter(j=>j.status==="done").length;
+  const failed=jobs.filter(j=>j.status==="failed").length;
+  $("#panelAutomationReady").textContent=String(ready);
+  $("#panelAutomationWaiting").textContent=String(waiting);
+  $("#panelAutomationPending").textContent=String(pending);
+  $("#panelAutomationDone").textContent=String(done);
+  $("#panelAutomationFailed").textContent=String(failed);
+  $("#panelAutomationLastUpdate").textContent="Atualizado "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+
+  const previous=panelSel.value;
+  panelSel.innerHTML=panels.length
+    ? panels.map(p=>'<option value="'+p.id+'">'+escapeHtml(p.name)+' • '+escapeHtml(panelStatusLabel(p))+'</option>').join("")
+    : '<option value="">Nenhum painel</option>';
+  const selected=(previous&&panels.some(p=>p.id===previous))
+    ? previous
+    : (state.activePanel?.id||panels[0]?.id||"");
+  if(selected)panelSel.value=selected;
+  renderPanelAutomationActions(selected);
+
+  const byId=new Map(panels.map(p=>[p.id,p]));
+  const body=$("#panelAutomationJobsBody");
+  if(body){
+    body.innerHTML=jobs.length?jobs.slice(0,100).map(j=>{
+      const p=byId.get(j.connector_id);
+      const who=j.requested_username||j.customer_name||j.customer_phone||j.payload?.username||"-";
+      return '<tr>'
+        +'<td>'+escapeHtml(fmtDate(j.created_at))+'</td>'
+        +'<td>'+escapeHtml(p?.name||"Aplicativo")+'</td>'
+        +'<td>'+escapeHtml(PANEL_ACTION_LABELS[j.action_type]||j.action_type||"-")+'</td>'
+        +'<td><span class="campaign-wall-status '+panelJobStatusClass(j.status)+'">'+escapeHtml(panelJobStatusLabel(j.status))+'</span></td>'
+        +'<td>'+escapeHtml(who)+'</td>'
+        +'<td class="panel-job-error">'+escapeHtml(j.error||"")+'</td>'
+        +'</tr>';
+    }).join(""):'<tr><td colspan="6" class="campaign-wall-empty">Nenhum job ainda.</td></tr>';
+  }
+}
+$("#panelAutomationPanel")?.addEventListener("change",e=>renderPanelAutomationActions(e.target.value));
+$("#panelAutomationAction")?.addEventListener("change",updatePanelAutomationHint);
+$("#reloadPanelAutomationBtn")?.addEventListener("click",async()=>{
+  const btn=$("#reloadPanelAutomationBtn");btn.disabled=true;
+  try{
+    await loadPanelConnectors(false);
+    renderPanelConnectors();
+    renderPanelAutomationCenter();
+    toast("Fila de automação atualizada.");
+  }finally{btn.disabled=false}
+});
+$("#queuePanelAutomationBtn")?.addEventListener("click",async()=>{
+  const connectorId=$("#panelAutomationPanel")?.value||"";
+  const actionType=$("#panelAutomationAction")?.value||"";
+  const panel=state.panels.find(p=>p.id===connectorId);
+  if(!panel||!actionType)return toast("Escolha o painel e a ação.","error");
+
+  const username=$("#panelAutomationUsername")?.value.trim()||"";
+  const customerName=$("#panelAutomationCustomer")?.value.trim()||"";
+  const customerPhone=$("#panelAutomationPhone")?.value.trim()||"";
+  const planDays=Number($("#panelAutomationPlan")?.value||30);
+  const screenCount=Math.max(1,Math.min(10,Number($("#panelAutomationScreens")?.value||1)));
+  const appOption=$("#panelAutomationApp")?.selectedOptions?.[0];
+  const appCatalogId=appOption?.dataset?.appId||null;
+  const appName=appOption?.dataset?.appName||null;
+  const panelAppCode=appOption?.dataset?.appCode||null;
+  const mac=$("#panelAutomationMac")?.value.trim()||"";
+  const deviceKey=$("#panelAutomationKey")?.value.trim()||"";
+  const playlist=$("#panelAutomationPlaylist")?.value.trim()||"";
+
+  if(["search_user","renew","activate"].includes(actionType)&&!username)
+    return toast("Informe o usuário/login para esta ação.","error");
+  if(actionType==="test"&&!appCatalogId)
+    return toast("Escolha o aplicativo mapeado para criar o teste.","error");
+  if(actionType==="activate_app"&&!mac&&!deviceKey)
+    return toast("Informe o MAC ou a Key para ativar o aplicativo.","error");
+
+  const btn=$("#queuePanelAutomationBtn");
+  btn.disabled=true;btn.textContent="Enviando para a fila...";
+  try{
+    const data=await panelAdmin({
+      action:"queue_job",
+      workspace_id:state.workspace.id,
+      connector_id:connectorId,
+      action_type:actionType,
+      username,
+      customer_name:customerName,
+      customer_phone:customerPhone,
+      plan_days:planDays,
+      screen_count:screenCount,
+      app_catalog_id:appCatalogId,
+      app_name:appName,
+      panel_app_code:panelAppCode,
+      payload:{
+        username,
+        customer_name:customerName,
+        phone:customerPhone,
+        plan_days:planDays,
+        screen_count:screenCount,
+        mac,
+        device_key:deviceKey,
+        playlist_url:playlist
+      }
+    });
+    await loadPanelConnectors(false);
+    renderPanelConnectors();
+    renderPanelAutomationCenter();
+    toast(data.waiting_setup?"Job salvo. Está aguardando acesso válido do painel.":"Automação enviada para execução.");
+  }catch(err){
+    toast(err.message||"Não foi possível criar o job.","error");
+  }finally{
+    btn.disabled=false;btn.textContent="Executar automação";
+  }
+});
+
 function panelStatusLabel(p){
   if(p.last_status==="driver_ready")return "Conectado";
   if(p.last_status==="validando_login")return "Validando login";
@@ -1271,6 +1464,7 @@ function panelStatusLabel(p){
   return "Aguardando acesso";
 }
 function renderPanelConnectors(){
+  renderPanelAutomationCenter();
   const list=$("#panelConnectorList");
   if(!list)return;
   const q=($("#panelSearch")?.value||"").toLowerCase().trim();
@@ -1292,6 +1486,10 @@ function renderPanelConnectors(){
 function selectPanelConnector(id){
   const p=state.panels.find(x=>x.id===id);if(!p)return;
   state.activePanel=p;
+  if($("#panelAutomationPanel")){
+    $("#panelAutomationPanel").value=p.id;
+    renderPanelAutomationActions(p.id);
+  }
   $("#panelCredentialTitle").textContent=p.name;
   $("#panelCredentialHint").textContent=p.has_credentials
     ?"Este painel já tem credenciais próprias salvas. Digite novas credenciais somente se quiser substituir o acesso."
@@ -2045,3 +2243,13 @@ let refreshTimer=null;function refreshConversationData(){clearTimeout(refreshTim
 boot();
 $("#campaignDdd27")?.addEventListener("change",renderCampaigns);
 $("#campaignDdd28")?.addEventListener("change",renderCampaigns);
+
+let panelAutomationAutoRefresh=setInterval(async()=>{
+  const page=$("#page-panels");
+  if(!page||!page.classList.contains("active")||!state.workspace?.id)return;
+  try{
+    await loadPanelConnectors(false);
+    renderPanelConnectors();
+    renderPanelAutomationCenter();
+  }catch{}
+},8000);

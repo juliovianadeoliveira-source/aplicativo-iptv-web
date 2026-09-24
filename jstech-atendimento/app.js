@@ -226,7 +226,7 @@ $("#onboardingForm")?.addEventListener("submit",async e=>{
     const area=$("#onboardingArea").value.trim();
     const serviceDdds=String($("#onboardingDdds").value||"").split(",").map(x=>x.replace(/\D/g,"").slice(0,2)).filter(x=>x.length===2);
     const tone=$("#onboardingTone").value.trim()||"natural, educado, direto e sem repetir perguntas";
-    if(!company||!agent||!whatsapp||!businessType||!products)throw new Error("Preencha empresa, atendente, WhatsApp, tipo de negócio e o que você vende ou faz.");
+    if(!company||!whatsapp)throw new Error("Preencha o nome da empresa/marca e o WhatsApp. Os demais campos podem ficar vazios para usar o modo geral.");
 
     const settingsPatch={
       company_name:company,
@@ -234,7 +234,7 @@ $("#onboardingForm")?.addEventListener("submit",async e=>{
       virtual_agent_name:agent,
       whatsapp_number:whatsapp,
       products_and_services:products,
-      business_description:products,
+      business_description:products||"",
       service_area:area,
       conversation_tone:tone,
       ai_enabled:true,
@@ -245,8 +245,8 @@ $("#onboardingForm")?.addEventListener("submit",async e=>{
     };
     const workspacePatch={
       name:company+" - Atendimento",
-      business_type:businessType,
-      business_description:products,
+      business_type:businessType||null,
+      business_description:products||null,
       service_ddds:[...new Set(serviceDdds)],
       onboarding_completed:true,
       updated_at:new Date().toISOString()
@@ -1999,7 +1999,7 @@ $("#settingsForm").addEventListener("submit",async e=>{
     const settingsPatch={
       brand_logo_url:brandLogo,
       company_name:$("#companyName").value.trim()||"Minha empresa",
-      virtual_agent_name:$("#virtualAgentName")?.value.trim()||(Number(state.workspace?.tenant_level||0)===0?"Ana":"Atendimento"),
+      virtual_agent_name:$("#virtualAgentName")?.value.trim()||(Number(state.workspace?.tenant_level||0)===0?"Ana":""),
       business_description:businessDescription,
       products_and_services:$("#productsAndServices")?.value.trim()||"",
       sales_objective:$("#salesObjective")?.value.trim()||"",

@@ -632,9 +632,9 @@
               <label>Nome da empresa<input id="companyName"></label>
               <label>Logotipo da empresa<input id="brandLogoFile" type="file" accept="image/png,image/jpeg,image/webp"><small>Opcional. A imagem fica exclusiva nesta conta.</small></label>
               <div id="brandLogoPreviewWrap" class="brand-logo-preview-wrap hidden"><img id="brandLogoPreview" alt="Logotipo"></div>
-              <label>Nome do atendente virtual<input id="virtualAgentName" placeholder="Ex.: Ana"></label>
-              <label>Tipo de negócio<input id="businessType" placeholder="Ex.: peças, assistência, estética, loja, serviços"></label>
-              <label>O que sua empresa vende ou faz<textarea id="productsAndServices" rows="5" placeholder="Descreva produtos, serviços, público e diferenciais. Esta informação é exclusiva desta conta."></textarea></label>
+              <label>Nome da secretária / atendente virtual <small>(opcional)</small><input id="virtualAgentName" placeholder="Ex.: Ana. Se deixar vazio, atende sem usar nome."></label>
+              <label>Tipo de negócio <small>(opcional)</small><input id="businessType" placeholder="Ex.: peças, assistência, estética, loja, serviços. Vazio = modo geral."></label>
+              <label>O que sua empresa vende ou faz <small>(opcional)</small><textarea id="productsAndServices" rows="5" placeholder="Esta informação é exclusiva desta conta. Se deixar vazio, a IA não assume nenhum produto ou serviço."></textarea></label>
               <label>Descrição da empresa<textarea id="businessDescription" rows="4" placeholder="Conte a história, região atendida e como funciona o atendimento."></textarea></label>
               <label>Objetivo das conversas<textarea id="salesObjective" rows="3" placeholder="Ex.: entender a necessidade, tirar dúvidas, preparar proposta e fechar a venda."></textarea></label>
               <label>Região atendida<input id="serviceArea" placeholder="Ex.: todo Brasil ou até 300 km de Vitória-ES"></label>
@@ -700,7 +700,7 @@
                   <span id="voiceCloneStatus" class="pill warning">Aguardando configuração</span>
                 </div>
 
-                <p class="muted">Fluxo: áudio do cliente → Whisper ouve → Ana responde → ElevenLabs fala com a sua voz → Evolution envia o áudio no WhatsApp.</p>
+                <p class="muted">Fluxo: áudio do cliente → Whisper ouve → a secretária desta conta responde → ElevenLabs fala com a voz configurada → Evolution envia o áudio no WhatsApp.</p>
 
                 <label>Chave da ElevenLabs
                   <input id="elevenLabsApiKey" type="password" autocomplete="off" placeholder="Cole a API Key da ElevenLabs">
@@ -800,15 +800,15 @@
     <div class="onboarding-card">
       <p class="eyebrow">Configuração inicial</p>
       <h2>Deixe esta conta com a sua marca</h2>
-      <p class="muted">Preencha uma vez. O atendimento, as mensagens e as automações desta conta passam a usar somente estas informações.</p>
+      <p class="muted">Cada revenda e sub-revenda configura somente a própria conta. Nome da secretária, ramo e produtos podem ficar vazios: nesse caso o atendimento trabalha em modo geral e não herda dados de outra conta.</p>
       <form id="onboardingForm" class="stack">
         <label>Nome da sua empresa / marca<input id="onboardingCompany" required placeholder="Ex.: Minha Empresa"></label>
         <label>Logotipo<input id="onboardingLogo" type="file" accept="image/png,image/jpeg,image/webp"></label>
         <div id="onboardingLogoPreviewWrap" class="brand-logo-preview-wrap hidden"><img id="onboardingLogoPreview" alt="Prévia do logotipo"></div>
-        <label>Nome do atendente virtual<input id="onboardingAgent" required placeholder="Ex.: Ana, Cris, João"></label>
+        <label>Nome da secretária / atendente virtual <small>(opcional)</small><input id="onboardingAgent" placeholder="Ex.: Ana, Cris, João. Se deixar vazio, atende sem usar nome."></label>
         <label>Seu WhatsApp com DDD<input id="onboardingWhatsapp" required placeholder="Ex.: 5511999999999"></label>
-        <label>Tipo de negócio<input id="onboardingBusinessType" required placeholder="Ex.: peças, loja, assistência, serviços"></label>
-        <label>O que sua empresa vende ou faz<textarea id="onboardingProducts" rows="5" required placeholder="Descreva produtos, serviços, público e como você trabalha."></textarea></label>
+        <label>Tipo de negócio <small>(opcional)</small><input id="onboardingBusinessType" placeholder="Ex.: peças, loja, assistência, serviços. Pode deixar vazio para modo geral."></label>
+        <label>O que sua empresa vende ou faz <small>(opcional)</small><textarea id="onboardingProducts" rows="5" placeholder="Se souber, descreva produtos e serviços. Se deixar vazio, o atendimento fica em modo geral e não inventa o que a empresa vende."></textarea></label>
         <label>Região atendida<input id="onboardingArea" placeholder="Ex.: todo Brasil ou minha cidade/região"></label>
         <label>DDDs que você atende<input id="onboardingDdds" placeholder="Ex.: 27, 28, 11"></label>
         <label>Tom da conversa<input id="onboardingTone" value="natural, educado, direto e sem repetir perguntas"></label>
@@ -819,7 +819,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260924-panel-automation-v1"></script>
+  <script type="module" src="./app.js?v=20260924-tenant-secretary-v1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260923-full-project-v2"></script>

@@ -17,7 +17,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260923-campaign-wall-v1">
+  <link rel="stylesheet" href="./styles.css?v=20260923-full-project-v2">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -43,7 +43,7 @@
   <div id="appView" class="app-shell hidden">
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <div class="brand-mark small">JS</div>
+        <div class="brand-mark small"><img id="sidebarBrandLogo" class="brand-logo-img hidden" alt=""><span id="sidebarBrandInitials">JS</span></div>
         <div><strong id="sidebarCompanyName">JSTech</strong><span>Atendimento</span></div>
       </div>
       <nav id="mainNav">
@@ -490,6 +490,8 @@
             <p class="eyebrow">Empresa e atendimento</p><h3>Comportamento do atendimento</h3>
             <form id="settingsForm" class="stack">
               <label>Nome da empresa<input id="companyName"></label>
+              <label>Logotipo da empresa<input id="brandLogoFile" type="file" accept="image/png,image/jpeg,image/webp"><small>Opcional. A imagem fica exclusiva nesta conta.</small></label>
+              <div id="brandLogoPreviewWrap" class="brand-logo-preview-wrap hidden"><img id="brandLogoPreview" alt="Logotipo"></div>
               <label>Nome do atendente virtual<input id="virtualAgentName" placeholder="Ex.: Ana"></label>
               <label>Tipo de negócio<input id="businessType" placeholder="Ex.: peças, assistência, estética, loja, serviços"></label>
               <label>O que sua empresa vende ou faz<textarea id="productsAndServices" rows="5" placeholder="Descreva produtos, serviços, público e diferenciais. Esta informação é exclusiva desta conta."></textarea></label>
@@ -583,11 +585,33 @@
     </div>
   </div>
 
+
+  <div id="onboardingWizard" class="onboarding-wizard hidden" role="dialog" aria-modal="true">
+    <div class="onboarding-card">
+      <p class="eyebrow">Configuração inicial</p>
+      <h2>Deixe esta conta com a sua marca</h2>
+      <p class="muted">Preencha uma vez. O atendimento, as mensagens e as automações desta conta passam a usar somente estas informações.</p>
+      <form id="onboardingForm" class="stack">
+        <label>Nome da sua empresa / marca<input id="onboardingCompany" required placeholder="Ex.: Minha Empresa"></label>
+        <label>Logotipo<input id="onboardingLogo" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        <div id="onboardingLogoPreviewWrap" class="brand-logo-preview-wrap hidden"><img id="onboardingLogoPreview" alt="Prévia do logotipo"></div>
+        <label>Nome do atendente virtual<input id="onboardingAgent" required placeholder="Ex.: Ana, Cris, João"></label>
+        <label>Seu WhatsApp com DDD<input id="onboardingWhatsapp" required placeholder="Ex.: 5511999999999"></label>
+        <label>Tipo de negócio<input id="onboardingBusinessType" required placeholder="Ex.: peças, loja, assistência, serviços"></label>
+        <label>O que sua empresa vende ou faz<textarea id="onboardingProducts" rows="5" required placeholder="Descreva produtos, serviços, público e como você trabalha."></textarea></label>
+        <label>Região atendida<input id="onboardingArea" placeholder="Ex.: todo Brasil ou minha cidade/região"></label>
+        <label>Tom da conversa<input id="onboardingTone" value="natural, educado, direto e sem repetir perguntas"></label>
+        <button class="btn primary" type="submit">Salvar e iniciar painel</button>
+      </form>
+      <p id="onboardingMsg" class="form-msg"></p>
+    </div>
+  </div>
+
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260923-campaign-wall-v1"></script>
+  <script type="module" src="./app.js?v=20260923-full-project-v2"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
-  <script type="module" src="./resellers.js?v=20260923-hierarchy-v1"></script>
+  <script type="module" src="./resellers.js?v=20260923-full-project-v2"></script>
   <script type="module" src="./external-clients.js?v=20260921-13"></script>
 </body>
 </html>

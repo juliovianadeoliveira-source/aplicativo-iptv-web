@@ -154,6 +154,115 @@ $("#contactPhotoModal")?.addEventListener("click",e=>{
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape"&&!$("#contactPhotoModal")?.classList.contains("hidden"))closeContactPhoto();
 });
+
+async function fileToDataUrl(file,maxBytes=1572864){
+  if(!file)return null;
+  if(file.size>maxBytes)throw new Error("A imagem deve ter no máximo 1,5 MB.");
+  return await new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload=()=>resolve(String(fr.result||""));
+    fr.onerror=()=>reject(new Error("Não foi possível ler a imagem."));
+    fr.readAsDataURL(file);
+  });
+}
+function applyBrandLogo(){
+  const logo=String(state.settings?.brand_logo_url||"").trim();
+  const img=$("#sidebarBrandLogo"), initials=$("#sidebarBrandInitials");
+  if(img&&initials){
+    if(logo){img.src=logo;img.classList.remove("hidden");initials.classList.add("hidden");}
+    else{img.removeAttribute("src");img.classList.add("hidden");initials.classList.remove("hidden");}
+  }
+  const preview=$("#brandLogoPreview"), wrap=$("#brandLogoPreviewWrap");
+  if(preview&&wrap){
+    if(logo){preview.src=logo;wrap.classList.remove("hidden");}
+    else{preview.removeAttribute("src");wrap.classList.add("hidden");}
+  }
+}
+function showOnboardingIfNeeded(){
+  const modal=$("#onboardingWizard");
+  if(!modal||!state.workspace)return;
+  if(state.workspace.onboarding_completed){modal.classList.add("hidden");return;}
+  $("#onboardingCompany").value=state.settings?.company_name&&state.settings.company_name!=="Minha empresa"?state.settings.company_name:"";
+  $("#onboardingAgent").value=state.settings?.virtual_agent_name||"";
+  $("#onboardingWhatsapp").value=state.settings?.whatsapp_number||state.settings?.bridge_phone||"";
+  $("#onboardingBusinessType").value=state.workspace?.business_type||"";
+  $("#onboardingProducts").value=state.settings?.products_and_services||"";
+  $("#onboardingArea").value=state.settings?.service_area||"";
+  $("#onboardingTone").value=state.settings?.conversation_tone||"natural, educado, direto e sem repetir perguntas";
+  modal.classList.remove("hidden");
+}
+$("#onboardingLogo")?.addEventListener("change",async e=>{
+  const file=e.target.files?.[0];
+  if(!file)return;
+  try{
+    const url=await fileToDataUrl(file);
+    $("#onboardingLogoPreview").src=url;
+    $("#onboardingLogoPreviewWrap").classList.remove("hidden");
+  }catch(err){$("#onboardingMsg").textContent=err.message||"Imagem inválida."}
+});
+$("#brandLogoFile")?.addEventListener("change",async e=>{
+  const file=e.target.files?.[0];
+  if(!file)return;
+  try{
+    const url=await fileToDataUrl(file);
+    $("#brandLogoPreview").src=url;
+    $("#brandLogoPreviewWrap").classList.remove("hidden");
+  }catch(err){toast(err.message||"Imagem inválida.","error")}
+});
+$("#onboardingForm")?.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=e.submitter; if(btn)btn.disabled=true;
+  const msg=$("#onboardingMsg"); if(msg)msg.textContent="Salvando...";
+  try{
+    const logoFile=$("#onboardingLogo")?.files?.[0];
+    const logo=logoFile?await fileToDataUrl(logoFile):(state.settings?.brand_logo_url||null);
+    const company=$("#onboardingCompany").value.trim();
+    const agent=$("#onboardingAgent").value.trim();
+    const whatsapp=$("#onboardingWhatsapp").value.replace(/\D+/g,"");
+    const businessType=$("#onboardingBusinessType").value.trim();
+    const products=$("#onboardingProducts").value.trim();
+    const area=$("#onboardingArea").value.trim();
+    const tone=$("#onboardingTone").value.trim()||"natural, educado, direto e sem repetir perguntas";
+    if(!company||!agent||!whatsapp||!businessType||!products)throw new Error("Preencha empresa, atendente, WhatsApp, tipo de negócio e o que você vende ou faz.");
+
+    const settingsPatch={
+      company_name:company,
+      brand_logo_url:logo,
+      virtual_agent_name:agent,
+      whatsapp_number:whatsapp,
+      products_and_services:products,
+      business_description:products,
+      service_area:area,
+      conversation_tone:tone,
+      ai_enabled:true,
+      universal_mode:true,
+      media_understanding_enabled:true,
+      web_research_enabled:true,
+      updated_at:new Date().toISOString()
+    };
+    const workspacePatch={
+      name:company+" - Atendimento",
+      business_type:businessType,
+      business_description:products,
+      onboarding_completed:true,
+      updated_at:new Date().toISOString()
+    };
+    const [sr,wr]=await Promise.all([
+      sb.from("wa_settings").update(settingsPatch).eq("workspace_id",state.workspace.id).select().single(),
+      sb.from("wa_workspaces").update(workspacePatch).eq("id",state.workspace.id).select().single()
+    ]);
+    if(sr.error)throw sr.error;if(wr.error)throw wr.error;
+    state.settings=sr.data;state.workspace=wr.data;
+    applyBrandLogo();
+    if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=company;
+    $("#onboardingWizard").classList.add("hidden");
+    renderAll();
+    toast("Configuração inicial salva. Esta conta está pronta.");
+  }catch(err){
+    if(msg)msg.textContent=err.message||"Não foi possível salvar.";
+  }finally{if(btn)btn.disabled=false}
+});
+
 function showLogin(msg=""){ $("#loginView").classList.remove("hidden"); $("#appView").classList.add("hidden"); $("#loginMsg").textContent=msg; }
 function showApp(){ $("#loginView").classList.add("hidden"); $("#appView").classList.remove("hidden"); }
 function pageMeta(page){
@@ -259,7 +368,7 @@ async function loadAll(showToast=false){
       state.whatsappConnections=[];
     }
     await loadPanelConnectors(false);
-    renderAll(); if(showToast)toast("Painel atualizado.");
+    renderAll(); applyBrandLogo(); showOnboardingIfNeeded(); if(showToast)toast("Painel atualizado.");
   }catch(err){console.error(err);toast(err.message||"Erro ao carregar o painel.","error")}
 }
 function renderAll(){renderDashboard();renderConversations();renderContacts();renderCampaigns();renderOrganicLinks();renderPanelConnectors();renderAutomations();renderKnowledge();renderSettings();}
@@ -1320,7 +1429,7 @@ function renderSettings(){
   const s=state.settings||{};
   if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=s.company_name||"JSTech";
   $("#companyName").value=s.company_name||"JSTech";
-  if($("#virtualAgentName"))$("#virtualAgentName").value=s.virtual_agent_name||"Ana";
+  if($("#virtualAgentName"))$("#virtualAgentName").value=s.virtual_agent_name||(Number(state.workspace?.tenant_level||0)===0?"Ana":"");
   if($("#businessType"))$("#businessType").value=state.workspace?.business_type||"";
   if($("#businessDescription"))$("#businessDescription").value=s.business_description||state.workspace?.business_description||"";
   if($("#productsAndServices"))$("#productsAndServices").value=s.products_and_services||"";
@@ -1346,9 +1455,12 @@ $("#settingsForm").addEventListener("submit",async e=>{
   const btn=e.submitter;if(btn)btn.disabled=true;
   try{
     const businessDescription=$("#businessDescription")?.value.trim()||"";
+    const brandFile=$("#brandLogoFile")?.files?.[0];
+    const brandLogo=brandFile?await fileToDataUrl(brandFile):(state.settings?.brand_logo_url||null);
     const settingsPatch={
+      brand_logo_url:brandLogo,
       company_name:$("#companyName").value.trim()||"Minha empresa",
-      virtual_agent_name:$("#virtualAgentName")?.value.trim()||"Ana",
+      virtual_agent_name:$("#virtualAgentName")?.value.trim()||(Number(state.workspace?.tenant_level||0)===0?"Ana":"Atendimento"),
       business_description:businessDescription,
       products_and_services:$("#productsAndServices")?.value.trim()||"",
       sales_objective:$("#salesObjective")?.value.trim()||"",
@@ -1378,6 +1490,7 @@ $("#settingsForm").addEventListener("submit",async e=>{
     if(sr.error)throw sr.error;if(wr.error)throw wr.error;
     state.settings=sr.data;state.workspace=wr.data;
     if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=sr.data.company_name||"Minha empresa";
+    applyBrandLogo();
     renderDashboard();
     toast("Configurações salvas e aplicadas na IA.");
   }catch(err){toast(err.message||"Não foi possível salvar.","error")}

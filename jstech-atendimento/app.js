@@ -3,6 +3,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const SUPABASE_URL = "https://fvttsguxeocisqvcrbqh.supabase.co";
 const SUPABASE_KEY = "sb_publishable_0EBQukCnPwUwAFo5gzfl5g_Ycbw3dqN";
 const BRIDGE_FUNCTION = "jstech-wa-bridge";
+const VOICE_FUNCTION = "jstech-voice-admin";
 const USERNAME_LOGIN_URL = SUPABASE_URL + "/functions/v1/jstech-username-login";
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -30,7 +31,7 @@ const state = {
   automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], activePanel:null, activeConversation:null, activeAutomation:null,
   activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false, userRole:null,
   whatsappConnections:[], activeWhatsAppSlot:1,
-  activeCampaignId:null, campaignFormCampaignId:null, campaignDeliveries:[], activeActivationAppId:null, nationalLeads:[], nationalLeadCount:0
+  activeCampaignId:null, campaignFormCampaignId:null, campaignDeliveries:[], activeActivationAppId:null, nationalLeads:[], nationalLeadCount:0, voiceConfig:null
 };
 
 function toast(msg, type="success"){
@@ -1659,6 +1660,102 @@ function linesValue(value){
 function linesArray(value){
   return String(value||"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
 }
+
+async function voiceAdmin(action,extra={}){
+  const {data,error}=await sb.functions.invoke(VOICE_FUNCTION,{
+    body:{workspace_id:state.workspace.id,action,...extra}
+  });
+  if(error)throw error;
+  if(data?.error)throw new Error(data.error);
+  return data||{};
+}
+
+function renderVoiceConfig(){
+  const c=state.voiceConfig||null;
+  const pill=$("#voiceCloneStatus");
+  const title=$("#voiceSampleTitle");
+  const text=$("#voiceSampleText");
+  if(!pill||!title||!text)return;
+
+  if(!c||!c.has_api_key){
+    pill.className="pill warning";
+    pill.textContent="Falta chave ElevenLabs";
+    title.textContent="Primeiro salve a chave da ElevenLabs";
+    text.textContent="Depois mande um áudio normal do seu próprio WhatsApp para qualquer pessoa. O sistema vai pegar esse áudio como amostra da sua voz.";
+    return;
+  }
+
+  if(c.clone_status==="waiting_sample"){
+    pill.className="pill warning";
+    pill.textContent="Aguardando seu áudio";
+    title.textContent="Agora mande um áudio pelo seu WhatsApp";
+    text.textContent="Pode mandar para qualquer pessoa. O próximo áudio enviado por você será usado automaticamente como amostra da sua voz.";
+    return;
+  }
+
+  if(c.clone_status==="cloning"){
+    pill.className="pill warning";
+    pill.textContent="Criando sua voz";
+    title.textContent="Sua amostra foi recebida";
+    text.textContent="A ElevenLabs está criando a voz a partir do áudio que você enviou.";
+    return;
+  }
+
+  if(c.clone_status==="ready"&&c.voice_ready){
+    pill.className="pill success";
+    pill.textContent="Sua voz está pronta";
+    title.textContent="Resposta em áudio ativada";
+    text.textContent="Quando o cliente mandar áudio, o Whisper ouve e a resposta volta em áudio usando a sua voz.";
+    return;
+  }
+
+  if(c.clone_status==="verification_required"){
+    pill.className="pill warning";
+    pill.textContent="Verificação necessária";
+    title.textContent="A ElevenLabs pediu verificação da voz";
+    text.textContent="A amostra foi recebida, mas a ElevenLabs ainda exige a verificação da sua voz antes de liberar o uso.";
+    return;
+  }
+
+  pill.className="pill danger";
+  pill.textContent="Erro na voz";
+  title.textContent="Não foi possível concluir";
+  text.textContent=c.last_error||"Confira a chave da ElevenLabs e mande novamente um áudio seu pelo WhatsApp.";
+}
+
+async function loadVoiceConfig(){
+  if(!state.workspace?.id)return null;
+  try{
+    const data=await voiceAdmin("status");
+    state.voiceConfig=data?.config||null;
+    renderVoiceConfig();
+    return state.voiceConfig;
+  }catch{
+    state.voiceConfig=null;
+    renderVoiceConfig();
+    return null;
+  }
+}
+
+$("#saveElevenLabsKeyBtn")?.addEventListener("click",async()=>{
+  const apiKey=$("#elevenLabsApiKey")?.value.trim()||"";
+  if(!apiKey)return toast("Cole a chave da ElevenLabs.","error");
+  const btn=$("#saveElevenLabsKeyBtn");
+  btn.disabled=true;
+  btn.textContent="Salvando...";
+  try{
+    await voiceAdmin("save_key",{api_key:apiKey});
+    $("#elevenLabsApiKey").value="";
+    await loadVoiceConfig();
+    toast("Chave salva. Agora mande um áudio seu pelo WhatsApp para qualquer pessoa.");
+  }catch(err){
+    toast(err.message||"Não foi possível salvar a chave da ElevenLabs.","error");
+  }finally{
+    btn.disabled=false;
+    btn.textContent="Salvar chave da ElevenLabs";
+  }
+});
+
 function renderSettings(){
   const s=state.settings||{};
   if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=s.company_name||"JSTech";
@@ -1691,6 +1788,7 @@ function renderSettings(){
   const row=connectionForSlot(state.activeWhatsAppSlot);
   renderBridgeUi(!!row?.connected,row?.configured!==false);
   refreshBridgeStatus(state.activeWhatsAppSlot).catch(()=>{});
+  loadVoiceConfig().catch(()=>{});
 }
 
 $("#settingsForm").addEventListener("submit",async e=>{

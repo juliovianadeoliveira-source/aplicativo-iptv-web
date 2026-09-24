@@ -288,6 +288,54 @@
             </div>
           </article>
         </div>
+
+        <article class="panel campaign-wall-panel">
+          <div class="panel-head campaign-wall-head">
+            <div>
+              <p class="eyebrow">Monitor em tempo real</p>
+              <h3>Parede dos disparos</h3>
+            </div>
+            <div class="campaign-wall-actions">
+              <select id="campaignWallStatusFilter" class="campaign-wall-filter" aria-label="Filtrar status">
+                <option value="">Todos</option>
+                <option value="queued">Na fila</option>
+                <option value="processing">Enviando</option>
+                <option value="sent">Enviados</option>
+                <option value="failed">Falhas</option>
+              </select>
+              <input id="campaignWallSearch" class="campaign-wall-search" placeholder="Buscar campanha, nome ou telefone">
+              <button id="campaignWallRefreshBtn" class="btn ghost compact" type="button">↻ Atualizar parede</button>
+            </div>
+          </div>
+
+          <div class="campaign-wall-stats">
+            <div class="campaign-wall-stat queued"><span>Na fila</span><strong id="campaignWallQueued">0</strong></div>
+            <div class="campaign-wall-stat processing"><span>Enviando</span><strong id="campaignWallProcessing">0</strong></div>
+            <div class="campaign-wall-stat sent"><span>Enviados</span><strong id="campaignWallSent">0</strong></div>
+            <div class="campaign-wall-stat failed"><span>Falhas</span><strong id="campaignWallFailed">0</strong></div>
+            <div class="campaign-wall-stat total"><span>Total</span><strong id="campaignWallTotal">0</strong></div>
+          </div>
+
+          <div class="campaign-wall-table-wrap">
+            <table class="campaign-wall-table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Campanha</th>
+                  <th>Contato</th>
+                  <th>Telefone</th>
+                  <th>Tentativas</th>
+                  <th>Horário</th>
+                  <th>Detalhe</th>
+                </tr>
+              </thead>
+              <tbody id="campaignWallBody">
+                <tr><td colspan="7" class="campaign-wall-empty">Nenhum disparo registrado.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
       </section>
 
       <section id="page-organic" class="page">

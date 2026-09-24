@@ -188,6 +188,7 @@ function showOnboardingIfNeeded(){
   $("#onboardingBusinessType").value=state.workspace?.business_type||"";
   $("#onboardingProducts").value=state.settings?.products_and_services||"";
   $("#onboardingArea").value=state.settings?.service_area||"";
+  $("#onboardingDdds").value=(state.workspace?.service_ddds||[]).join(", ");
   $("#onboardingTone").value=state.settings?.conversation_tone||"natural, educado, direto e sem repetir perguntas";
   modal.classList.remove("hidden");
 }
@@ -222,6 +223,7 @@ $("#onboardingForm")?.addEventListener("submit",async e=>{
     const businessType=$("#onboardingBusinessType").value.trim();
     const products=$("#onboardingProducts").value.trim();
     const area=$("#onboardingArea").value.trim();
+    const serviceDdds=String($("#onboardingDdds").value||"").split(",").map(x=>x.replace(/\D/g,"").slice(0,2)).filter(x=>x.length===2);
     const tone=$("#onboardingTone").value.trim()||"natural, educado, direto e sem repetir perguntas";
     if(!company||!agent||!whatsapp||!businessType||!products)throw new Error("Preencha empresa, atendente, WhatsApp, tipo de negócio e o que você vende ou faz.");
 
@@ -244,6 +246,7 @@ $("#onboardingForm")?.addEventListener("submit",async e=>{
       name:company+" - Atendimento",
       business_type:businessType,
       business_description:products,
+      service_ddds:[...new Set(serviceDdds)],
       onboarding_completed:true,
       updated_at:new Date().toISOString()
     };

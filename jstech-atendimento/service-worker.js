@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v2-universal";
+const CACHE="jstech-atendimento-v3-campaign-wall";
 const CORE=[
   "./",
   "./index.html",

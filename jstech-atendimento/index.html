@@ -17,7 +17,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260924-humanized-bot-v1">
+  <link rel="stylesheet" href="./styles.css?v=20260924-voice-clone-v1">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -623,6 +623,31 @@
                 </div>
               </div>
 
+
+              <div class="conversation-bot-box voice-bot-box">
+                <div class="panel-head conversation-bot-head">
+                  <div>
+                    <p class="eyebrow">Áudio do WhatsApp</p>
+                    <h3>Responder com a sua voz</h3>
+                  </div>
+                  <span id="voiceCloneStatus" class="pill warning">Aguardando configuração</span>
+                </div>
+
+                <p class="muted">Fluxo: áudio do cliente → Whisper ouve → Ana responde → ElevenLabs fala com a sua voz → Evolution envia o áudio no WhatsApp.</p>
+
+                <label>Chave da ElevenLabs
+                  <input id="elevenLabsApiKey" type="password" autocomplete="off" placeholder="Cole a API Key da ElevenLabs">
+                  <small>A chave fica protegida no servidor e não volta para o navegador depois de salvar.</small>
+                </label>
+
+                <button id="saveElevenLabsKeyBtn" class="btn primary" type="button">Salvar chave da ElevenLabs</button>
+
+                <div id="voiceSampleInstruction" class="voice-sample-instruction">
+                  <b id="voiceSampleTitle">Depois de salvar a chave</b>
+                  <span id="voiceSampleText">Mande um áudio normal do seu próprio WhatsApp para qualquer pessoa. O sistema pega esse áudio como amostra da sua voz automaticamente.</span>
+                </div>
+              </div>
+
               <p class="muted">Cada administrador, revenda e sub-revenda tem configuração e memória próprias. Uma conta não mistura informações com outra.</p>
               <label>Mensagem de boas-vindas<textarea id="welcomeMessage" rows="3"></textarea></label>
               <label>Resposta quando faltar contexto<textarea id="fallbackMessage" rows="3"></textarea></label>
@@ -727,7 +752,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260924-humanized-bot-v1"></script>
+  <script type="module" src="./app.js?v=20260924-voice-clone-v1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260923-full-project-v2"></script>

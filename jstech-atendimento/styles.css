@@ -817,3 +817,10 @@ img,video,canvas,svg{max-width:100%}
 #nationalLeadPanel{margin-bottom:18px}
 .national-lead-stats{grid-template-columns:repeat(2,minmax(0,1fr));margin:18px 0}
 @media(max-width:560px){.national-lead-stats{grid-template-columns:1fr}}
+
+/* Bot de conversa humanizado */
+.conversation-bot-box{margin-top:18px;padding:18px;border:1px solid var(--line);border-radius:18px;background:#091525}
+.conversation-bot-head{margin-bottom:8px}
+.conversation-bot-box textarea{min-height:220px}
+.humanized-time-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:620px){.humanized-time-grid{grid-template-columns:1fr}}

@@ -1341,13 +1341,16 @@ function renderPanelAutomationCenter(){
 
   const panels=state.panels||[];
   const ready=panels.filter(p=>p.has_credentials&&p.last_status==="driver_ready").length;
-  const waiting=panels.length-ready;
+  const saved=panels.filter(p=>p.has_credentials&&p.last_status!=="driver_ready").length;
+  const withoutCredentials=panels.filter(p=>!p.has_credentials).length;
   const jobs=state.panelJobs||[];
-  const pending=jobs.filter(j=>["pending","processing","waiting_setup"].includes(j.status)).length;
-  const done=jobs.filter(j=>j.status==="done").length;
-  const failed=jobs.filter(j=>j.status==="failed").length;
+  const realJobs=jobs.filter(j=>j.action_type!=="probe_login");
+  const pending=realJobs.filter(j=>["pending","processing","waiting_setup"].includes(j.status)).length;
+  const done=realJobs.filter(j=>j.status==="done").length;
+  const failed=realJobs.filter(j=>j.status==="failed").length;
   $("#panelAutomationReady").textContent=String(ready);
-  $("#panelAutomationWaiting").textContent=String(waiting);
+  $("#panelAutomationWaiting").textContent=String(saved);
+  if($("#panelAutomationWaitingDetail"))$("#panelAutomationWaitingDetail").textContent=withoutCredentials+" sem credencial";
   $("#panelAutomationPending").textContent=String(pending);
   $("#panelAutomationDone").textContent=String(done);
   $("#panelAutomationFailed").textContent=String(failed);

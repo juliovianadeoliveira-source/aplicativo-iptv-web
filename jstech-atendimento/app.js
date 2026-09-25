@@ -1245,7 +1245,12 @@ async function loadPanelConnectors(showToast=false){
   if(!state.workspace?.id)return;
   try{
     const data=await panelAdmin({action:"list",workspace_id:state.workspace.id});
-    state.panels=data?.panels||[];
+    state.panels=(data?.panels||[]).slice().sort((a,b)=>{
+      const aConnected=a.last_status==="driver_ready"?0:1;
+      const bConnected=b.last_status==="driver_ready"?0:1;
+      if(aConnected!==bConnected)return aConnected-bConnected;
+      return String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base"});
+    });
     state.panelApps=data?.apps||[];
     state.panelMappings=data?.mappings||[];
     state.panelJobs=data?.jobs||[];

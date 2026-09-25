@@ -1462,12 +1462,15 @@ function panelStatusLabel(p){
   if(p.last_status==="driver_ready")return p.consecutive_failures>0
     ?"Conectado • oscilação "+p.consecutive_failures+"/3"
     :"Conectado";
-  if(p.last_status==="validando_login")return "Validando automaticamente";
+  if(p.last_status==="validando_login")return "Validando automação";
   if(p.last_status==="route_blocked")return "Rota VPS bloqueada • tentando reconectar";
-  if(p.last_status==="url_invalid")return "Endereço inválido/fora do ar";
+  if(p.last_status==="url_invalid")return "URL não responde na VPS";
   if(p.last_status==="unreachable")return "Painel inacessível pela VPS";
-  if(p.last_status==="auth_failed")return "Login não validado • tentando novamente";
-  if(p.has_credentials)return "Validando automaticamente";
+  if(p.last_status==="bot_challenge")return "Cloudflare bloqueando automação";
+  if(p.last_status==="auth_failed")return p.has_credentials
+    ?"Acesso salvo • login automático falhou"
+    :"Login não validado";
+  if(p.has_credentials)return "Acesso salvo • reconectando automação";
   if(p.last_status==="site_online")return "Site online";
   return "Aguardando acesso";
 }

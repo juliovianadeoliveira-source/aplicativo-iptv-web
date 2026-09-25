@@ -1462,11 +1462,12 @@ function panelStatusLabel(p){
   if(p.last_status==="driver_ready")return p.consecutive_failures>0
     ?"Conectado • oscilação "+p.consecutive_failures+"/3"
     :"Conectado";
-  if(p.last_status==="validando_login")return "Validando automação";
-  if(p.last_status==="route_blocked")return "Acesso salvo • rota VPS bloqueada";
-  if(p.has_credentials&&["url_invalid","unreachable","auth_failed"].includes(p.last_status))
-    return "Acesso salvo • reconectando automação";
-  if(p.has_credentials)return "Acesso salvo";
+  if(p.last_status==="validando_login")return "Validando automaticamente";
+  if(p.last_status==="route_blocked")return "Rota VPS bloqueada • tentando reconectar";
+  if(p.last_status==="url_invalid")return "Endereço inválido/fora do ar";
+  if(p.last_status==="unreachable")return "Painel inacessível pela VPS";
+  if(p.last_status==="auth_failed")return "Login não validado • tentando novamente";
+  if(p.has_credentials)return "Validando automaticamente";
   if(p.last_status==="site_online")return "Site online";
   return "Aguardando acesso";
 }

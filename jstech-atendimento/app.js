@@ -1464,7 +1464,7 @@ function panelStatusLabel(p){
     :"Conectado";
   if(p.last_status==="validando_login")return "Validando automação";
   if(p.last_status==="route_blocked")return "Rota VPS bloqueada • tentando reconectar";
-  if(p.last_status==="url_invalid")return "URL não responde na VPS";
+  if(p.last_status==="url_invalid")return "VPS bloqueada pelo painel (404)";
   if(p.last_status==="unreachable")return "Painel inacessível pela VPS";
   if(p.last_status==="bot_challenge")return "Cloudflare bloqueando automação";
   if(p.last_status==="auth_failed")return p.has_credentials

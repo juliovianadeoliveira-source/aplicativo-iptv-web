@@ -1460,6 +1460,7 @@ function panelStatusLabel(p){
     ?"Conectado • oscilação "+p.consecutive_failures+"/3"
     :"Conectado";
   if(p.last_status==="validando_login")return "Validando automação";
+  if(p.last_status==="route_blocked")return "Acesso salvo • rota VPS bloqueada";
   if(p.has_credentials&&["url_invalid","unreachable","auth_failed"].includes(p.last_status))
     return "Acesso salvo • reconectando automação";
   if(p.has_credentials)return "Acesso salvo";

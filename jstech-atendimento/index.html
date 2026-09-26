@@ -17,7 +17,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260926-panel-status-v2">
+  <link rel="stylesheet" href="./styles.css?v=20260926-panels-layout-v2">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -398,7 +398,7 @@
 
       <section id="page-panels" class="page">
         <div class="settings-grid">
-          <article class="panel">
+          <article id="panelConnectorCard" class="panel">
             <div class="panel-head">
               <div><p class="eyebrow">Automação IPTV</p><h3>Painéis do Multi Painéis</h3></div>
               <button id="reloadPanelsBtn" class="btn ghost compact">↻ Atualizar</button>
@@ -408,7 +408,7 @@
             <div id="panelConnectorList" class="knowledge-list"><p class="muted">Carregando painéis...</p></div>
           </article>
 
-          <article class="panel">
+          <article id="panelCredentialCard" class="panel">
             <p class="eyebrow">Credenciais individuais</p>
             <h3 id="panelCredentialTitle">Escolha um painel</h3>
             <p id="panelCredentialHint" class="muted">Selecione um painel na lista para cadastrar o acesso dele.</p>
@@ -851,7 +851,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260926-panel-status-v2"></script>
+  <script type="module" src="./app.js?v=20260926-panels-layout-v2"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260923-full-project-v2"></script>

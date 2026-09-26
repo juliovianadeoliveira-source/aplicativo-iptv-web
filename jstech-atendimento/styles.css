@@ -854,3 +854,79 @@ img,video,canvas,svg{max-width:100%}
 .panel-resource-empty{display:grid;gap:5px;padding:18px;border:1px dashed var(--line);border-radius:14px}
 .panel-resource-empty span{color:var(--muted);font-size:.86rem}
 @media(max-width:760px){.panel-resource-toolbar{grid-template-columns:1fr}.panel-resource-cards{grid-template-columns:1fr}}
+
+
+/* Ajuste visual da aba Painéis automáticos — backup: backup-painel-antes-ajuste-20260926-1654 */
+#page-panels > .settings-grid{
+  align-items:start;
+}
+
+/* A lista grande não aumenta mais a altura da página inteira.
+   Ela rola dentro da própria caixa e deixa a Central logo abaixo. */
+#page-panels > .settings-grid > .panel:first-child{
+  align-self:start;
+  display:flex;
+  flex-direction:column;
+  max-height:calc(100vh - 135px);
+  min-height:520px;
+  overflow:hidden;
+}
+#page-panels #panelConnectorList{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-right:6px;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:#168cff #0a1625;
+}
+#page-panels #panelConnectorList::-webkit-scrollbar{
+  width:8px;
+}
+#page-panels #panelConnectorList::-webkit-scrollbar-track{
+  background:#0a1625;
+  border-radius:999px;
+}
+#page-panels #panelConnectorList::-webkit-scrollbar-thumb{
+  background:#168cff;
+  border-radius:999px;
+}
+
+/* Barra horizontal no ponto marcado, logo abaixo dos botões das credenciais. */
+#page-panels #panelCredentialForm .row-actions{
+  width:100%;
+  max-width:100%;
+  flex-wrap:nowrap;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding:0 0 10px;
+  margin-bottom:10px;
+  overscroll-behavior-x:contain;
+  scrollbar-width:auto;
+  scrollbar-color:#168cff #0a1625;
+}
+#page-panels #panelCredentialForm .row-actions .btn{
+  flex:0 0 auto;
+}
+#page-panels #panelCredentialForm .row-actions::-webkit-scrollbar{
+  height:8px;
+}
+#page-panels #panelCredentialForm .row-actions::-webkit-scrollbar-track{
+  background:#0a1625;
+  border-radius:999px;
+}
+#page-panels #panelCredentialForm .row-actions::-webkit-scrollbar-thumb{
+  background:#168cff;
+  border-radius:999px;
+}
+#page-panels #panelCredentialForm .row-actions::-webkit-scrollbar-thumb:hover{
+  background:#42a6ff;
+}
+
+@media(max-width:850px){
+  #page-panels > .settings-grid > .panel:first-child{
+    max-height:62vh;
+    min-height:420px;
+  }
+}

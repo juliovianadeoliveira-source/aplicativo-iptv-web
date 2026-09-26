@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-panels-layout";
+const CACHE="jstech-atendimento-v11-universal";
 const CORE=[
   "./",
   "./index.html",

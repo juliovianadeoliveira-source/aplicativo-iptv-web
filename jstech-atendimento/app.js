@@ -1430,8 +1430,12 @@ function updatePanelAutomationHint(){
   const hint=$("#panelAutomationHint");
   if(!hint)return;
   if(!panel){hint.textContent="Escolha um painel.";return}
+  if(panel.last_status==="route_blocked"){
+    hint.textContent="A credencial está salva, mas a rota da VPS para este painel está bloqueada. A sequência automática pula este painel enquanto houver servidores conectados e o health-check tenta novamente depois.";
+    return;
+  }
   if(!(panel.has_credentials&&panel.last_status==="driver_ready")){
-    hint.textContent="Este painel ainda não está pronto. O job pode ser salvo como Aguardando acesso e será liberado depois que o login for validado.";
+    hint.textContent="A credencial continua salva, mas a automação ainda não validou este painel. O sistema tenta reconectar sem apagar o acesso.";
     return;
   }
   hint.textContent=(PANEL_ACTION_LABELS[action]||"Ação")+" será executado pelo agente da VPS neste painel.";
@@ -1560,16 +1564,16 @@ $("#queuePanelAutomationBtn")?.addEventListener("click",async()=>{
 });
 
 function panelStatusLabel(p){
-  if(p.last_status==="driver_ready")return "Conectado";
-  if(p.last_status==="validando_login")return "Reconectando";
-  if(p.last_status==="route_blocked")return "Reconectando";
-  if(p.last_status==="url_invalid")return "VPS bloqueada pelo painel (404)";
+  if(p.last_status==="driver_ready")return "Automação conectada";
+  if(p.last_status==="validando_login")return "Validando automação";
+  if(p.last_status==="route_blocked")return "Rota da VPS bloqueada • acesso salvo";
+  if(p.last_status==="url_invalid")return "Endereço não respondeu à VPS";
   if(p.last_status==="unreachable")return "Painel inacessível pela VPS";
-  if(p.last_status==="bot_challenge")return "Cloudflare bloqueando automação";
+  if(p.last_status==="bot_challenge")return "Proteção do site bloqueou a VPS";
   if(p.last_status==="auth_failed")return p.has_credentials
-    ?"Reconectando"
+    ?"Credencial salva • login não validado"
     :"Login não validado";
-  if(p.has_credentials)return "Reconectando";
+  if(p.has_credentials)return "Acesso salvo • aguardando automação";
   if(p.last_status==="site_online")return "Site online";
   return "Aguardando acesso";
 }

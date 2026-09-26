@@ -1473,8 +1473,9 @@ function renderPanelAutomationCenter(){
 
   const byId=new Map(panels.map(p=>[p.id,p]));
   const body=$("#panelAutomationJobsBody");
+  const visibleJobs=jobs.filter(j=>j.action_type!=="probe_login");
   if(body){
-    body.innerHTML=jobs.length?jobs.slice(0,100).map(j=>{
+    body.innerHTML=visibleJobs.length?visibleJobs.slice(0,100).map(j=>{
       const p=byId.get(j.connector_id);
       const who=j.requested_username||j.customer_name||j.customer_phone||j.payload?.username||"-";
       return '<tr>'
@@ -1566,8 +1567,8 @@ $("#queuePanelAutomationBtn")?.addEventListener("click",async()=>{
 function panelStatusLabel(p){
   if(p.last_status==="driver_ready")return "Automação conectada";
   if(p.last_status==="validando_login")return "Validando automação";
-  if(p.last_status==="route_blocked")return "Rota da VPS bloqueada • acesso salvo";
-  if(p.last_status==="url_invalid")return "Endereço não respondeu à VPS";
+  if(p.last_status==="route_blocked")return "VPS bloqueada pelo painel • acesso salvo";
+  if(p.last_status==="url_invalid")return "Endereço não respondeu pela VPS";
   if(p.last_status==="unreachable")return "Painel inacessível pela VPS";
   if(p.last_status==="bot_challenge")return "Proteção do site bloqueou a VPS";
   if(p.last_status==="auth_failed")return p.has_credentials

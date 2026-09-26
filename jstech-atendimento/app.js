@@ -1995,6 +1995,8 @@ function renderSettings(){
   if($("#humanizedAbbreviations"))$("#humanizedAbbreviations").checked=s.humanized_abbreviations!==false;
   if($("#humanizedTypingMin"))$("#humanizedTypingMin").value=Number(s.humanized_typing_min_ms||1800);
   if($("#humanizedTypingMax"))$("#humanizedTypingMax").value=Number(s.humanized_typing_max_ms||5000);
+  if($("#autoCloseInactiveConversations"))$("#autoCloseInactiveConversations").checked=s.auto_close_inactive_conversations!==false;
+  if($("#customerReplyTimeoutMinutes"))$("#customerReplyTimeoutMinutes").value=Number(s.customer_reply_timeout_minutes||5);
   if($("#conversationBotStatus")){$("#conversationBotStatus").className="pill "+(s.ai_enabled===false?"warning":"success");$("#conversationBotStatus").textContent=s.ai_enabled===false?"Desativado":"Ativo";}
   $("#welcomeMessage").value=s.welcome_message||"";
   $("#fallbackMessage").value=s.fallback_message||"";
@@ -2035,6 +2037,8 @@ $("#settingsForm").addEventListener("submit",async e=>{
       humanized_abbreviations:$("#humanizedAbbreviations")?.checked!==false,
       humanized_typing_min_ms:Math.max(800,Math.min(5000,Number($("#humanizedTypingMin")?.value||1800))),
       humanized_typing_max_ms:Math.max(800,Math.min(5000,Number($("#humanizedTypingMax")?.value||5000))),
+      auto_close_inactive_conversations:$("#autoCloseInactiveConversations")?.checked!==false,
+      customer_reply_timeout_minutes:Math.max(1,Math.min(60,Number($("#customerReplyTimeoutMinutes")?.value||5))),
       welcome_message:$("#welcomeMessage").value.trim(),
       ai_enabled:true,
       fallback_message:$("#fallbackMessage").value.trim(),

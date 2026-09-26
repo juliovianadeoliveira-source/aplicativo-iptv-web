@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-universal";
+const CACHE="jstech-atendimento-v11-panel-auth-refresh";
 const CORE=[
   "./",
   "./index.html",

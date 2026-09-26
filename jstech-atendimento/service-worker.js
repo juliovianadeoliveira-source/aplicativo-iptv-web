@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-connected-panels-first";
+const CACHE="jstech-atendimento-v11-auto-close-5m";
 const CORE=[
   "./",
   "./index.html",

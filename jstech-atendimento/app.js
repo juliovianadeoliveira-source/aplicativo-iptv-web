@@ -8,17 +8,55 @@ const USERNAME_LOGIN_URL = SUPABASE_URL + "/functions/v1/jstech-username-login";
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function panelAdmin(body){
-  const {data:{session}}=await sb.auth.getSession();
+  async function currentPanelSession(forceRefresh=false){
+    if(forceRefresh){
+      const {data,error}=await sb.auth.refreshSession();
+      if(error)throw error;
+      if(data?.session){
+        state.session=data.session;
+        return data.session;
+      }
+    }
+    const {data:{session},error}=await sb.auth.getSession();
+    if(error)throw error;
+    if(session){
+      state.session=session;
+      const expiresAt=Number(session.expires_at||0)*1000;
+      if(expiresAt&&expiresAt-Date.now()<60000){
+        const refreshed=await sb.auth.refreshSession();
+        if(refreshed.error)throw refreshed.error;
+        if(refreshed.data?.session){
+          state.session=refreshed.data.session;
+          return refreshed.data.session;
+        }
+      }
+      return session;
+    }
+    return null;
+  }
+
+  async function request(session){
+    return fetch(SUPABASE_URL+"/functions/v1/jstech-panel-admin",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "apikey":SUPABASE_KEY,
+        "Authorization":"Bearer "+session.access_token
+      },
+      body:JSON.stringify(body)
+    });
+  }
+
+  let session=await currentPanelSession(false);
   if(!session?.access_token)throw new Error("Sessão expirada. Entre novamente no painel.");
-  const res=await fetch(SUPABASE_URL+"/functions/v1/jstech-panel-admin",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "apikey":SUPABASE_KEY,
-      "Authorization":"Bearer "+session.access_token
-    },
-    body:JSON.stringify(body)
-  });
+
+  let res=await request(session);
+  if(res.status===401){
+    session=await currentPanelSession(true);
+    if(!session?.access_token)throw new Error("Sessão expirada. Entre novamente no painel.");
+    res=await request(session);
+  }
+
   const data=await res.json().catch(()=>({}));
   if(!res.ok||data?.error)throw new Error(data?.error||("HTTP "+res.status));
   return data;

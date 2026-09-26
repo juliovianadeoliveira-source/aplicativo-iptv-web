@@ -275,7 +275,7 @@ function pageMeta(page){
     contacts:["CRM","Clientes"],campaigns:["Marketing","Transmissão"],
     organic:["Captação","Divulgação grátis"],panels:["Integrações","Painéis automáticos"],
     automation:["Fluxos e regras","Automação"],
-    knowledge:["Conteúdo","Respostas prontas"],resellers:["Revenda","Revendedores"],settings:["Integrações","Configurações"]
+    knowledge:["Conteúdo","Respostas prontas"],resellers:["Revenda","Revendedores"],universal:["Multiempresa","Universal"],settings:["Integrações","Configurações"]
   })[page];
 }
 function goPage(page){
@@ -383,7 +383,7 @@ async function loadAll(showToast=false){
     renderAll(); applyBrandLogo(); showOnboardingIfNeeded(); if(showToast)toast("Painel atualizado.");
   }catch(err){console.error(err);toast(err.message||"Erro ao carregar o painel.","error")}
 }
-function renderAll(){renderDashboard();renderConversations();renderContacts();renderCampaigns();renderOrganicLinks();renderPanelConnectors();renderAutomations();renderKnowledge();renderSettings();}
+function renderAll(){renderDashboard();renderConversations();renderContacts();renderCampaigns();renderOrganicLinks();renderPanelConnectors();renderAutomations();renderKnowledge();renderUniversalProfile();renderSettings();}
 
 function renderDashboard(){
   const unread=state.conversations.reduce((n,c)=>n+(c.unread_count||0),0);
@@ -2081,6 +2081,103 @@ $("#saveElevenLabsKeyBtn")?.addEventListener("click",async()=>{
   }finally{
     btn.disabled=false;
     btn.textContent="Salvar chave da ElevenLabs";
+  }
+});
+
+
+function renderUniversalProfile(){
+  const s=state.settings||{};
+  const w=state.workspace||{};
+  if(!$("#universalProfileForm"))return;
+  $("#universalCompany").value=s.company_name||"";
+  $("#universalAgent").value=s.virtual_agent_name||(Number(w.tenant_level||0)===0?"Ana":"");
+  $("#universalBusinessType").value=w.business_type||"";
+  $("#universalAssistantRole").value=s.assistant_role||"secretária / atendente";
+  $("#universalProducts").value=s.products_and_services||"";
+  $("#universalBusinessDescription").value=s.business_description||w.business_description||"";
+  $("#universalPriceRules").value=s.price_rules||"";
+  $("#universalPaymentMethods").value=s.payment_methods||"";
+  $("#universalBusinessHours").value=s.business_hours||"";
+  $("#universalDeliveryInfo").value=s.delivery_info||"";
+  $("#universalServiceArea").value=s.service_area||"";
+  $("#universalPolicies").value=s.business_policies||"";
+  $("#universalFaq").value=s.faq_text||"";
+  $("#universalSalesObjective").value=s.sales_objective||"";
+  $("#universalTone").value=s.conversation_tone||"natural, direto e prestativo";
+  $("#universalNotes").value=s.universal_notes||"";
+  $("#universalEnabled").checked=s.universal_mode!==false;
+  $("#universalMedia").checked=s.media_understanding_enabled!==false;
+  $("#universalWeb").checked=s.web_research_enabled!==false;
+
+  const configured=!!(
+    String(w.business_type||"").trim()||
+    String(s.products_and_services||"").trim()||
+    String(s.business_description||"").trim()
+  );
+  const pill=$("#universalProfileStatus");
+  if(pill){
+    pill.className="pill "+(configured?"success":"warning");
+    pill.textContent=configured?"Negócio configurado":"Modo geral";
+  }
+}
+
+$("#universalProfileForm")?.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=e.submitter;
+  const msg=$("#universalProfileMsg");
+  if(btn)btn.disabled=true;
+  if(msg)msg.textContent="Salvando...";
+  try{
+    const company=$("#universalCompany")?.value.trim()||"";
+    const agent=$("#universalAgent")?.value.trim()||"";
+    const businessType=$("#universalBusinessType")?.value.trim()||"";
+    const description=$("#universalBusinessDescription")?.value.trim()||"";
+    const settingsPatch={
+      company_name:company,
+      virtual_agent_name:agent,
+      assistant_role:$("#universalAssistantRole")?.value.trim()||"secretária / atendente",
+      products_and_services:$("#universalProducts")?.value.trim()||"",
+      business_description:description,
+      price_rules:$("#universalPriceRules")?.value.trim()||"",
+      payment_methods:$("#universalPaymentMethods")?.value.trim()||"",
+      business_hours:$("#universalBusinessHours")?.value.trim()||"",
+      delivery_info:$("#universalDeliveryInfo")?.value.trim()||"",
+      service_area:$("#universalServiceArea")?.value.trim()||"",
+      business_policies:$("#universalPolicies")?.value.trim()||"",
+      faq_text:$("#universalFaq")?.value.trim()||"",
+      sales_objective:$("#universalSalesObjective")?.value.trim()||"",
+      conversation_tone:$("#universalTone")?.value.trim()||"natural, direto e prestativo",
+      universal_notes:$("#universalNotes")?.value.trim()||"",
+      universal_mode:$("#universalEnabled")?.checked!==false,
+      media_understanding_enabled:$("#universalMedia")?.checked!==false,
+      web_research_enabled:$("#universalWeb")?.checked!==false,
+      ai_enabled:true,
+      updated_at:new Date().toISOString()
+    };
+    const workspacePatch={
+      business_type:businessType||null,
+      business_description:description||null,
+      onboarding_completed:true,
+      updated_at:new Date().toISOString()
+    };
+    const [sr,wr]=await Promise.all([
+      sb.from("wa_settings").update(settingsPatch).eq("workspace_id",state.workspace.id).select().single(),
+      sb.from("wa_workspaces").update(workspacePatch).eq("id",state.workspace.id).select().single()
+    ]);
+    if(sr.error)throw sr.error;
+    if(wr.error)throw wr.error;
+    state.settings=sr.data;
+    state.workspace=wr.data;
+    renderUniversalProfile();
+    renderSettings();
+    if($("#sidebarCompanyName"))$("#sidebarCompanyName").textContent=sr.data.company_name||"Minha empresa";
+    if(msg)msg.textContent="Salvo. O bot desta conta já está usando esta pasta Universal.";
+    toast("Pasta Universal salva e aplicada no atendimento.");
+  }catch(err){
+    if(msg)msg.textContent=err.message||"Não foi possível salvar.";
+    toast(err.message||"Não foi possível salvar a pasta Universal.","error");
+  }finally{
+    if(btn)btn.disabled=false;
   }
 });
 

@@ -1626,7 +1626,21 @@ function selectPanelConnector(id){
   renderDeviceActivation();
   const list=$("#panelConnectorList");
   if(list){
-    $$("[data-panel-select]",list).forEach(el=>el.classList.toggle("active",el.dataset.panelSelect===p.id));
+    $("[data-panel-select]",list).forEach(el=>el.classList.toggle("active",el.dataset.panelSelect===p.id));
+  }
+
+  // Ao escolher um painel, o lado direito volta ao início das credenciais.
+  // Se ele estiver fora da área visível, traz o card para a tela automaticamente.
+  const detailCard=$("#panelCredentialCard");
+  if(detailCard){
+    detailCard.scrollTop=0;
+    requestAnimationFrame(()=>{
+      const rect=detailCard.getBoundingClientRect();
+      const visible=rect.top>=0 && rect.top<window.innerHeight-80;
+      if(!visible){
+        detailCard.scrollIntoView({behavior:"smooth",block:"start",inline:"nearest"});
+      }
+    });
   }
 }
 function renderPanelAppMappings(){

@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-panel-folders";
+const CACHE="jstech-atendimento-v11-panel-stable-connection";
 const CORE=[
   "./",
   "./index.html",

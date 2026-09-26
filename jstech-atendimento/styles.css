@@ -930,3 +930,64 @@ img,video,canvas,svg{max-width:100%}
     min-height:420px;
   }
 }
+
+
+/* Painéis sem espaço vazio + detalhe com rolagem própria */
+#page-panels > .settings-grid{
+  align-items:start;
+  gap:14px;
+}
+
+#page-panels #panelConnectorCard,
+#page-panels #panelCredentialCard{
+  height:calc(100vh - 135px);
+  min-height:520px;
+  max-height:calc(100vh - 135px);
+  align-self:start;
+}
+
+#page-panels #panelConnectorCard{
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+#page-panels #panelCredentialCard{
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+  scroll-behavior:smooth;
+  scrollbar-width:thin;
+  scrollbar-color:#168cff #0a1625;
+}
+
+#page-panels #panelCredentialCard::-webkit-scrollbar{
+  width:8px;
+}
+#page-panels #panelCredentialCard::-webkit-scrollbar-track{
+  background:#0a1625;
+  border-radius:999px;
+}
+#page-panels #panelCredentialCard::-webkit-scrollbar-thumb{
+  background:#168cff;
+  border-radius:999px;
+}
+
+#page-panels > .panel-automation-center{
+  margin-top:14px;
+}
+
+/* Em tela estreita continua normal, sem prender o formulário numa caixa pequena. */
+@media(max-width:700px){
+  #page-panels #panelConnectorCard{
+    height:62vh;
+    min-height:420px;
+    max-height:62vh;
+  }
+  #page-panels #panelCredentialCard{
+    height:auto;
+    min-height:0;
+    max-height:none;
+    overflow:visible;
+  }
+}

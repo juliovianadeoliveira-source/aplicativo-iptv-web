@@ -17,7 +17,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260926-panels-layout-v2">
+  <link rel="stylesheet" href="./styles.css?v=20260926-universal-v1">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -54,6 +54,7 @@
         <button class="nav-item" data-page="organic">◎ <span>Divulgação grátis</span></button>
         <button class="nav-item" data-page="panels">▣ <span>Painéis automáticos</span></button>
         <button class="nav-item" id="resellerNav" data-page="resellers">◆ <span>Revendas</span></button>
+        <button class="nav-item" data-page="universal">◎ <span>Universal</span></button>
         <button class="nav-item" data-page="automation">⌘ <span>Automação</span></button>
         <button class="nav-item" data-page="knowledge">✦ <span>Respostas / Conteúdo</span></button>
         <button class="nav-item" data-page="settings">⚙ <span>Configurações</span></button>
@@ -647,6 +648,132 @@
         </div>
       </section>
 
+      
+      <section id="page-universal" class="page">
+        <div class="universal-page-grid">
+          <article class="panel universal-main-card">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Pasta Universal</p>
+                <h3>Negócio desta conta</h3>
+              </div>
+              <span id="universalProfileStatus" class="pill warning">Modo geral</span>
+            </div>
+            <p class="muted">Cada revenda e sub-revenda preenche somente o próprio negócio. O bot usa estas informações automaticamente e nunca mistura dados de outra conta.</p>
+
+            <form id="universalProfileForm" class="stack">
+              <div class="universal-two-col">
+                <label>Nome da empresa / marca
+                  <input id="universalCompany" placeholder="Ex.: Perfumaria João, Coxinhas da Maria">
+                </label>
+                <label>Nome da secretária / atendente
+                  <input id="universalAgent" placeholder="Ex.: Carla, Bia, João. Pode deixar vazio.">
+                </label>
+              </div>
+
+              <div class="universal-two-col">
+                <label>Ramo / tipo de negócio
+                  <input id="universalBusinessType" placeholder="Ex.: perfumes, salgados, autopeças, assistência, loja, serviços">
+                </label>
+                <label>Papel da secretária
+                  <input id="universalAssistantRole" placeholder="Ex.: secretária de vendas e suporte">
+                </label>
+              </div>
+
+              <label>O que vende ou faz
+                <textarea id="universalProducts" rows="5" placeholder="Escreva os produtos, serviços, tamanhos, sabores, marcas, modelos ou tipos de atendimento. Se deixar vazio, o bot fica em modo geral."></textarea>
+              </label>
+
+              <label>Descrição do negócio
+                <textarea id="universalBusinessDescription" rows="4" placeholder="Explique como a empresa funciona, o que é importante e como costuma atender."></textarea>
+              </label>
+
+              <label>Preços, pacotes e regras de valor
+                <textarea id="universalPriceRules" rows="5" placeholder="Ex.: Perfume X R$ 120; coxinha tradicional R$ 8; entrega grátis acima de R$ 50. Pode escrever do jeito que você trabalha."></textarea>
+              </label>
+
+              <div class="universal-two-col">
+                <label>Formas de pagamento
+                  <textarea id="universalPaymentMethods" rows="4" placeholder="Ex.: PIX, dinheiro, cartão, link de pagamento"></textarea>
+                </label>
+                <label>Horários / disponibilidade
+                  <textarea id="universalBusinessHours" rows="4" placeholder="Ex.: seg a sáb 8h às 20h; atendimento WhatsApp 24h"></textarea>
+                </label>
+              </div>
+
+              <div class="universal-two-col">
+                <label>Entrega / retirada / prestação do serviço
+                  <textarea id="universalDeliveryInfo" rows="4" placeholder="Ex.: entrega em até 5 km; retirada no balcão; atendimento remoto"></textarea>
+                </label>
+                <label>Região atendida
+                  <textarea id="universalServiceArea" rows="4" placeholder="Ex.: todo Brasil; São Mateus e região; somente retirada local"></textarea>
+                </label>
+              </div>
+
+              <label>Políticas e regras importantes
+                <textarea id="universalPolicies" rows="5" placeholder="Troca, garantia, prazo, pedido mínimo, cancelamento, reserva, sinal, encomenda..."></textarea>
+              </label>
+
+              <label>Perguntas frequentes e respostas
+                <textarea id="universalFaq" rows="7" placeholder="Ex.: Tem entrega? Sim, até 5 km.&#10;Aceita cartão? Sim.&#10;Tem perfume importado? Liste aqui como você responde."></textarea>
+              </label>
+
+              <label>Objetivo do atendimento
+                <textarea id="universalSalesObjective" rows="3" placeholder="Ex.: entender o que o cliente procura, indicar a melhor opção e fechar a venda."></textarea>
+              </label>
+
+              <label>Tom da conversa
+                <input id="universalTone" placeholder="Ex.: natural, simpático, direto e sem repetir perguntas">
+              </label>
+
+              <label>Outras informações exclusivas desta conta
+                <textarea id="universalNotes" rows="5" placeholder="Qualquer informação que a secretária precisa saber para atender certo."></textarea>
+              </label>
+
+              <div class="universal-options">
+                <label class="toggle-line">
+                  <span><b>Modo universal ativo</b><small>Adapta o atendimento ao negócio configurado nesta conta.</small></span>
+                  <input id="universalEnabled" type="checkbox">
+                </label>
+                <label class="toggle-line">
+                  <span><b>Ler fotos e documentos</b><small>Usa a imagem recebida para continuar o atendimento.</small></span>
+                  <input id="universalMedia" type="checkbox">
+                </label>
+                <label class="toggle-line">
+                  <span><b>Pesquisar na internet quando precisar</b><small>Pesquisa informação pública quando a pergunta exigir algo externo ou atual.</small></span>
+                  <input id="universalWeb" type="checkbox">
+                </label>
+              </div>
+
+              <div class="row-actions">
+                <button id="saveUniversalProfileBtn" class="btn primary" type="submit">Salvar pasta Universal</button>
+                <button class="btn ghost" type="button" data-go="settings">Configurar WhatsApp e voz</button>
+              </div>
+              <p id="universalProfileMsg" class="form-msg"></p>
+            </form>
+          </article>
+
+          <article class="panel universal-side-card">
+            <p class="eyebrow">Como funciona</p>
+            <h3>Uma conta, um negócio</h3>
+            <div class="check-list">
+              <div><b>1</b><span>Revenda configura o que ela vende.</span></div>
+              <div><b>2</b><span>Sub-revenda configura o próprio negócio, independente da revenda.</span></div>
+              <div><b>3</b><span>O bot lê somente os dados do workspace daquela conta.</span></div>
+              <div><b>4</b><span>Se não houver ramo/produtos, atende em modo geral sem inventar.</span></div>
+              <div><b>5</b><span>Quando o dono muda a configuração, a próxima conversa já usa os dados novos.</span></div>
+            </div>
+            <div class="universal-example-box">
+              <b>Exemplo de isolamento</b>
+              <span>Master: IPTV/CS</span>
+              <span>Revenda: perfumes</span>
+              <span>Sub-revenda: coxinhas</span>
+              <small>Cada uma responde somente sobre o próprio negócio.</small>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <section id="page-settings" class="page">
         <div class="settings-grid">
           <article class="panel">
@@ -851,7 +978,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260926-panels-layout-v2"></script>
+  <script type="module" src="./app.js?v=20260926-universal-v1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260923-full-project-v2"></script>

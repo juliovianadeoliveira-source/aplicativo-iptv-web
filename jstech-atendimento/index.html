@@ -17,7 +17,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260924-panel-automation-v1">
+  <link rel="stylesheet" href="./styles.css?v=20260926-panel-folders-v1">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -559,6 +559,29 @@
           </div>
         </article>
 
+
+        <article class="panel panel-resource-folder">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Base real por servidor</p>
+              <h3>📁 Pasta dos Painéis</h3>
+            </div>
+            <button id="reloadPanelResourcesBtn" class="btn ghost compact" type="button">↻ Atualizar pasta</button>
+          </div>
+          <p class="muted">Cada painel guarda separado o que foi encontrado nele. Aplicativo comum não vira parceria. O status também registra o que funcionou ou falhou nos testes dos clientes.</p>
+
+          <div class="panel-resource-toolbar">
+            <label>Painel
+              <select id="panelResourcePanel"></select>
+            </label>
+            <div id="panelResourceSummary" class="panel-resource-summary"></div>
+          </div>
+
+          <div id="panelResourceSections" class="panel-resource-sections">
+            <p class="muted">Selecione um painel para ver a pasta dele.</p>
+          </div>
+        </article>
+
       </section>
 
       <section id="page-resellers" class="page">
@@ -828,7 +851,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260926-auto-close-5m-v1"></script>
+  <script type="module" src="./app.js?v=20260926-panel-folders-v1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260923-full-project-v2"></script>

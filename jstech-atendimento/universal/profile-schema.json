@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "scope": "workspace",
+  "fields": [
+    "company_name",
+    "virtual_agent_name",
+    "assistant_role",
+    "business_type",
+    "business_description",
+    "products_and_services",
+    "price_rules",
+    "payment_methods",
+    "business_hours",
+    "delivery_info",
+    "service_area",
+    "business_policies",
+    "faq_text",
+    "sales_objective",
+    "conversation_tone",
+    "universal_notes"
+  ],
+  "rules": [
+    "Cada workspace usa somente os próprios dados.",
+    "Se ramo/produtos estiverem vazios, usar modo geral sem inventar nicho.",
+    "Nunca herdar dados da conta pai automaticamente.",
+    "Mudanças passam a valer nas próximas respostas."
+  ]
+}

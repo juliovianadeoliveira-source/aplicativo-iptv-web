@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-panel-stable-connection";
+const CACHE="jstech-atendimento-v11-panel-real-status";
 const CORE=[
   "./",
   "./index.html",

@@ -28,7 +28,7 @@ const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const state = {
   session:null, workspace:null, settings:null, contacts:[], conversations:[], messages:[],
-  automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], panelJobs:[], activePanel:null, activeConversation:null, activeAutomation:null,
+  automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], panelJobs:[], panelResources:[], activePanel:null, activeConversation:null, activeAutomation:null,
   activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false, userRole:null,
   whatsappConnections:[], activeWhatsAppSlot:1,
   activeCampaignId:null, campaignFormCampaignId:null, campaignDeliveries:[], activeActivationAppId:null, nationalLeads:[], nationalLeadCount:0, voiceConfig:null
@@ -1254,6 +1254,7 @@ async function loadPanelConnectors(showToast=false){
     state.panelApps=data?.apps||[];
     state.panelMappings=data?.mappings||[];
     state.panelJobs=data?.jobs||[];
+    state.panelResources=data?.resources||[];
     state.panelLoadError=null;
     if(state.activePanel){
       state.activePanel=state.panels.find(x=>x.id===state.activePanel.id)||null;
@@ -1265,10 +1266,105 @@ async function loadPanelConnectors(showToast=false){
     state.panelApps=[];
     state.panelMappings=[];
     state.panelJobs=[];
+    state.panelResources=[];
     state.panelLoadError=err?.message||"Falha ao carregar os painéis";
     if(showToast)toast("Não foi possível carregar os painéis: "+state.panelLoadError,"error");
   }
 }
+
+
+const PANEL_RESOURCE_LABELS={
+  app:"Aplicativos",
+  partnership:"Parcerias reais",
+  dns:"DNS",
+  download:"Downloads",
+  m3u:"M3U",
+  hls:"HLS",
+  ssiptv:"SSIPTV",
+  checkout:"Checkout / Renovação",
+  webplayer:"WebPlayer",
+  store:"Loja de aplicativos",
+  provider:"Provedor",
+  other:"Outros"
+};
+const PANEL_RESOURCE_ORDER=["app","partnership","dns","download","store","m3u","hls","ssiptv","checkout","webplayer","provider","other"];
+function panelResourceStatusLabel(status){
+  return status==="working"?"Funcionando":status==="failed"?"Falhou":"Não testado";
+}
+function panelResourceStatusClass(status){
+  return status==="working"?"sent":status==="failed"?"failed":"queued";
+}
+function renderPanelResourceFolder(){
+  const sel=$("#panelResourcePanel");
+  const body=$("#panelResourceSections");
+  const summary=$("#panelResourceSummary");
+  if(!sel||!body||!summary)return;
+
+  const panels=state.panels||[];
+  const resources=state.panelResources||[];
+  const previous=sel.value;
+  sel.innerHTML=panels.length
+    ? panels.map(p=>'<option value="'+p.id+'">'+escapeHtml(p.name)+' • '+escapeHtml(panelStatusLabel(p))+'</option>').join("")
+    : '<option value="">Nenhum painel</option>';
+
+  const withResources=panels.find(p=>resources.some(r=>r.connector_id===p.id));
+  const chosen=(previous&&panels.some(p=>p.id===previous))
+    ?previous
+    :(state.activePanel?.id||withResources?.id||panels[0]?.id||"");
+  if(chosen)sel.value=chosen;
+
+  const panel=panels.find(p=>p.id===chosen);
+  const rows=resources.filter(r=>r.connector_id===chosen);
+  const working=rows.filter(r=>r.status==="working").length;
+  const failed=rows.filter(r=>r.status==="failed").length;
+  const unknown=rows.filter(r=>r.status!=="working"&&r.status!=="failed").length;
+
+  summary.innerHTML=
+    '<span class="campaign-wall-status sent">'+working+' funcionando</span>'+
+    '<span class="campaign-wall-status failed">'+failed+' falhou</span>'+
+    '<span class="campaign-wall-status queued">'+unknown+' não testado</span>';
+
+  if(!panel){
+    body.innerHTML='<p class="muted">Nenhum painel cadastrado.</p>';
+    return;
+  }
+  if(!rows.length){
+    body.innerHTML='<div class="panel-resource-empty"><b>'+escapeHtml(panel.name)+'</b><span>A pasta ainda está vazia. Ela é preenchida quando o robô entra no painel e lê um teste/recursos reais.</span></div>';
+    return;
+  }
+
+  body.innerHTML=PANEL_RESOURCE_ORDER.map(type=>{
+    const group=rows.filter(r=>r.resource_type===type);
+    if(!group.length)return "";
+    return '<section class="panel-resource-section">'
+      +'<div class="subhead"><b>'+escapeHtml(PANEL_RESOURCE_LABELS[type]||type)+'</b><span class="muted">'+group.length+' item'+(group.length===1?"":"s")+'</span></div>'
+      +'<div class="panel-resource-cards">'
+      +group.map(r=>{
+        const value=r.value?'<div class="panel-resource-value">'+escapeHtml(r.value)+'</div>':"";
+        const code=r.code?'<div class="panel-resource-code">Código/Provedor: <b>'+escapeHtml(r.code)+'</b></div>':"";
+        const counts=(Number(r.success_count||0)||Number(r.failure_count||0))
+          ?'<small>Funcionou '+Number(r.success_count||0)+'x • Falhou '+Number(r.failure_count||0)+'x</small>'
+          :"";
+        return '<article class="panel-resource-item">'
+          +'<div class="panel-resource-item-head"><b>'+escapeHtml(r.name||PANEL_RESOURCE_LABELS[type]||type)+'</b>'
+          +'<span class="campaign-wall-status '+panelResourceStatusClass(r.status)+'">'+escapeHtml(panelResourceStatusLabel(r.status))+'</span></div>'
+          +value+code+counts
+          +'</article>';
+      }).join("")
+      +'</div></section>';
+  }).join("");
+}
+$("#panelResourcePanel")?.addEventListener("change",renderPanelResourceFolder);
+$("#reloadPanelResourcesBtn")?.addEventListener("click",async()=>{
+  const btn=$("#reloadPanelResourcesBtn");
+  btn.disabled=true;
+  try{
+    await loadPanelConnectors(false);
+    renderPanelConnectors();
+    renderPanelResourceFolder();
+    toast("Pasta dos painéis atualizada.");
+  }finally{btn.disabled=false}
+});
 
 const PANEL_ACTION_LABELS={
   test:"Criar teste",
@@ -1481,6 +1577,7 @@ function panelStatusLabel(p){
 }
 function renderPanelConnectors(){
   renderPanelAutomationCenter();
+  renderPanelResourceFolder();
   const list=$("#panelConnectorList");
   if(!list)return;
   const q=($("#panelSearch")?.value||"").toLowerCase().trim();

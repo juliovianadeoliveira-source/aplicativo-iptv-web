@@ -1285,3 +1285,34 @@ body{margin:0}
   }
   .page.active .panel{max-height:none;height:auto;overflow:visible}
 }
+
+/* Settings 2114 identity block */
+#page-settings .settings-grid > .panel:first-child{overflow:visible}
+#page-settings #settingsForm{overflow:visible;max-height:none}
+#page-settings .settings-identity-block{
+  display:grid!important;
+  gap:12px;
+  width:100%;
+  visibility:visible!important;
+  opacity:1!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+#page-settings .settings-identity-block>label{
+  display:grid!important;
+  gap:7px;
+  visibility:visible!important;
+  opacity:1!important;
+  max-height:none!important;
+}
+#page-settings .settings-identity-block input,
+#page-settings .settings-identity-block textarea{
+  display:block!important;
+  width:100%;
+  visibility:visible!important;
+  opacity:1!important;
+}
+#page-settings .settings-identity-block small{
+  color:var(--muted);
+  line-height:1.35;
+}

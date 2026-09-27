@@ -1072,3 +1072,216 @@ img,video,canvas,svg{max-width:100%}
   height:auto;
   min-height:0;
 }
+
+
+/* ===== Layout de tela cheia + rolagem interna por bloco ===== */
+html,body{height:100%;min-height:100%;overflow:hidden}
+body{margin:0}
+.app-shell{height:100dvh;min-height:100dvh;overflow:hidden}
+.main{
+  height:100dvh;
+  min-height:0;
+  padding:0 28px 18px;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.topbar{
+  flex:0 0 90px;
+  height:90px;
+  min-height:90px;
+  margin-bottom:16px;
+}
+.page{
+  display:none;
+  flex:1 1 auto;
+  min-height:0;
+  overflow:hidden;
+}
+.page.active{
+  display:block;
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+}
+
+/* grids principais ocupam toda a altura restante */
+.page.active>.dashboard-grid,
+.page.active>.settings-grid,
+.page.active>.knowledge-grid,
+.page.active>.automation-grid,
+.page.active>.universal-page-grid,
+.page.active>.panels-grid,
+.page.active>.panel-layout,
+.page.active>.reseller-grid{
+  height:100%;
+  min-height:0;
+  align-items:stretch;
+}
+
+/* cada cartão sobe/desce por dentro sem empurrar a página */
+.page.active .panel{
+  min-height:0;
+  max-height:100%;
+  overflow-y:auto;
+  overflow-x:hidden;
+  scrollbar-gutter:stable;
+  overscroll-behavior:contain;
+}
+
+/* páginas com coluna de listas */
+.automation-grid,
+.knowledge-grid,
+.settings-grid,
+.universal-page-grid{
+  min-height:0;
+}
+.automations-panel,
+.builder-panel,
+.simulator-panel,
+.universal-main-card{
+  min-height:0;
+  overflow:auto;
+}
+.automation-list,
+.knowledge-list,
+.node-list,
+.simulator-messages,
+.panel-resource-sections,
+.panel-job-table-wrap{
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+
+/* Automação: cada coluna tem sua própria rolagem */
+#page-automation.active .automation-grid{
+  height:100%;
+  min-height:0;
+  overflow:hidden;
+}
+#page-automation .automations-panel,
+#page-automation .builder-panel,
+#page-automation .simulator-panel{
+  height:100%;
+  min-height:0;
+  overflow-y:auto;
+}
+#page-automation .builder-body{
+  min-height:0;
+}
+#page-automation .node-list-wrap,
+#page-automation .node-editor{
+  min-height:0;
+  overflow-y:auto;
+}
+
+/* Respostas / Conteúdo: lista e editor independentes */
+#page-knowledge.active .knowledge-grid{
+  height:100%;
+  min-height:0;
+  overflow:hidden;
+}
+#page-knowledge .knowledge-grid>.panel{
+  height:100%;
+  min-height:0;
+  overflow-y:auto;
+}
+
+/* Universal: rola somente dentro da área Universal */
+#page-universal.active{
+  overflow:hidden;
+}
+#page-universal .universal-page-grid{
+  height:100%;
+  min-height:0;
+  overflow:hidden;
+}
+#page-universal .universal-page-grid>.panel{
+  height:100%;
+  min-height:0;
+  overflow-y:auto;
+}
+
+/* Revendas */
+#page-resellers.active .settings-grid{
+  height:100%;
+  min-height:0;
+  overflow:hidden;
+}
+#page-resellers .settings-grid>.panel{
+  height:100%;
+  min-height:0;
+  overflow-y:auto;
+}
+
+/* Configurações */
+#page-settings.active .settings-grid{
+  height:100%;
+  min-height:0;
+  overflow:hidden;
+}
+#page-settings .settings-grid>.panel{
+  height:100%;
+  min-height:0;
+  overflow-y:auto;
+}
+
+/* Painéis automáticos: a própria aba rola por dentro */
+#page-panels.active{
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-right:4px;
+  scrollbar-gutter:stable;
+  overscroll-behavior:contain;
+}
+#page-panels .panel{
+  overflow:visible;
+  max-height:none;
+}
+
+/* Divulgação e demais páginas longas */
+#page-broadcast.active,
+#page-free-promotion.active,
+#page-clients.active,
+#page-dashboard.active{
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-right:4px;
+  scrollbar-gutter:stable;
+  overscroll-behavior:contain;
+}
+
+/* Conversas já têm rolagem própria; só encaixa na altura disponível */
+#page-conversations.active{overflow:hidden}
+#page-conversations .chat-layout{
+  height:100%;
+  min-height:0;
+}
+
+/* scrollbar discreta dentro de cada bloco */
+.page *::-webkit-scrollbar{width:8px;height:8px}
+.page *::-webkit-scrollbar-thumb{background:#29415d;border-radius:10px}
+.page *::-webkit-scrollbar-track{background:transparent}
+
+/* janelas menores: mantém cada bloco utilizável sem criar faixa vazia */
+@media(max-height:720px){
+  .main{padding-bottom:10px}
+  .topbar{flex-basis:68px;height:68px;min-height:68px;margin-bottom:10px}
+  .panel{padding:14px}
+}
+@media(max-width:900px){
+  html,body{overflow:auto}
+  .app-shell{height:auto;min-height:100dvh;overflow:visible}
+  .main{height:auto;min-height:100dvh;overflow:visible;padding:0 14px 18px}
+  .page.active{height:auto;overflow:visible}
+  .page.active>.dashboard-grid,
+  .page.active>.settings-grid,
+  .page.active>.knowledge-grid,
+  .page.active>.automation-grid,
+  .page.active>.universal-page-grid{
+    height:auto;
+    overflow:visible;
+  }
+  .page.active .panel{max-height:none;height:auto;overflow:visible}
+}

@@ -2030,14 +2030,23 @@ $("#clearPanelCredentialsBtn")?.addEventListener("click",async()=>{
 });
 
 function renderAutomations(){
-  const list=$("#automationList");list.innerHTML=state.automations.map(a=>'<div class="automation-item '+(state.activeAutomation?.id===a.id?"active":"")+'" data-auto="'+a.id+'"><b>'+escapeHtml(a.name)+'</b><span>'+(a.enabled?"Ativa":"Desativada")+' • '+(a.trigger_texts||[]).join(", ")+'</span></div>').join("");
-  $$("[data-auto]",list).forEach(x=>x.addEventListener("click",()=>selectAutomation(x.dataset.auto)));
+  const list=$("#automationList");
+  if(!list)return;
+  const autos=Array.isArray(state.automations)?state.automations:[];
+  list.innerHTML=autos.map(a=>{
+    const triggers=Array.isArray(a.trigger_texts)?a.trigger_texts:(typeof a.trigger_texts==="string"?a.trigger_texts.split(",").map(x=>x.trim()).filter(Boolean):[]);
+    return '<div class="automation-item '+(state.activeAutomation?.id===a.id?"active":"")+'" data-auto="'+a.id+'"><b>'+escapeHtml(a.name||"Automação")+'</b><span>'+(a.enabled?"Ativa":"Desativada")+' • '+escapeHtml(triggers.join(", "))+'</span></div>';
+  }).join("");
+  $("[data-auto]",list).forEach(x=>x.addEventListener("click",()=>selectAutomation(x.dataset.auto)));
   if(state.activeAutomation)renderBuilder();
 }
 function selectAutomation(id){const a=state.automations.find(x=>x.id===id);if(!a)return;state.activeAutomation=structuredClone(a);state.activeNode=a.flow?.start||Object.keys(a.flow?.nodes||{})[0]||null;state.simNode=null;renderAutomations();resetSimulator()}
 function renderBuilder(){
-  const a=state.activeAutomation;$("#automationTitle").textContent=a.name;$("#triggerTexts").value=(a.trigger_texts||[]).join(", ");
-  const nodes=a.flow?.nodes||{},nl=$("#nodeList");nl.innerHTML=Object.entries(nodes).map(([key,n])=>'<div class="node-item '+(state.activeNode===key?"active":"")+'" data-node="'+escapeHtml(key)+'"><b>'+escapeHtml(key)+'</b><span>'+escapeHtml((n.text||"").slice(0,36))+'</span></div>').join("");
+  const a=state.activeAutomation;
+  if(!a)return;
+  const triggers=Array.isArray(a.trigger_texts)?a.trigger_texts:(typeof a.trigger_texts==="string"?a.trigger_texts.split(",").map(x=>x.trim()).filter(Boolean):[]);
+  $("#automationTitle").textContent=a.name||"Automação";$("#triggerTexts").value=triggers.join(", ");
+  const nodes=(a.flow&&typeof a.flow==="object"&&a.flow.nodes&&typeof a.flow.nodes==="object")?a.flow.nodes:{},nl=$("#nodeList");nl.innerHTML=Object.entries(nodes).map(([key,n])=>'<div class="node-item '+(state.activeNode===key?"active":"")+'" data-node="'+escapeHtml(key)+'"><b>'+escapeHtml(key)+'</b><span>'+escapeHtml((n.text||"").slice(0,36))+'</span></div>').join("");
   $$("[data-node]",nl).forEach(x=>x.addEventListener("click",()=>{state.activeNode=x.dataset.node;renderBuilder()}));
   renderNodeEditor();
 }
@@ -2046,14 +2055,14 @@ function renderNodeEditor(){
   const keys=Object.keys(a.flow.nodes);
   box.innerHTML='<label>ID da etapa<input id="nodeId" value="'+escapeHtml(key)+'" disabled></label><label>Tipo<select id="nodeType"><option value="message" '+(node.type!=="handoff"?"selected":"")+'>Mensagem</option><option value="handoff" '+(node.type==="handoff"?"selected":"")+'>Transferir para atendente</option></select></label><label>Mensagem<textarea id="nodeText" rows="5">'+escapeHtml(node.text||"")+'</textarea></label><div class="subhead"><b>Botões / opções</b><button id="addOptionBtn" class="btn ghost compact">+ Opção</button></div><div id="optionsEditor"></div>';
   $("#nodeType").addEventListener("change",e=>node.type=e.target.value);$("#nodeText").addEventListener("input",e=>node.text=e.target.value);$("#addOptionBtn").addEventListener("click",()=>{node.options=node.options||[];node.options.push({key:String(node.options.length+1),label:"Nova opção",next:keys[0]||key});renderNodeEditor()});
-  const ob=$("#optionsEditor"),opts=node.options||[];ob.innerHTML=opts.map((o,i)=>'<div class="option-row"><input data-ok="'+i+'" value="'+escapeHtml(o.key||"")+'" placeholder="1"><input data-ol="'+i+'" value="'+escapeHtml(o.label||"")+'" placeholder="Texto do botão"><select data-on="'+i+'">'+keys.map(k=>'<option value="'+escapeHtml(k)+'" '+(o.next===k?"selected":"")+'>'+escapeHtml(k)+'</option>').join("")+'</select><button class="remove-option" data-or="'+i+'">×</button></div>').join("");
+  const ob=$("#optionsEditor"),opts=Array.isArray(node.options)?node.options:[];node.options=opts;ob.innerHTML=opts.map((o,i)=>'<div class="option-row"><input data-ok="'+i+'" value="'+escapeHtml(o.key||"")+'" placeholder="1"><input data-ol="'+i+'" value="'+escapeHtml(o.label||"")+'" placeholder="Texto do botão"><select data-on="'+i+'">'+keys.map(k=>'<option value="'+escapeHtml(k)+'" '+(o.next===k?"selected":"")+'>'+escapeHtml(k)+'</option>').join("")+'</select><button class="remove-option" data-or="'+i+'">×</button></div>').join("");
   $$("[data-ok]",ob).forEach(x=>x.addEventListener("input",e=>opts[+e.target.dataset.ok].key=e.target.value));$$("[data-ol]",ob).forEach(x=>x.addEventListener("input",e=>opts[+e.target.dataset.ol].label=e.target.value));$$("[data-on]",ob).forEach(x=>x.addEventListener("change",e=>opts[+e.target.dataset.on].next=e.target.value));$$("[data-or]",ob).forEach(x=>x.addEventListener("click",e=>{opts.splice(+e.currentTarget.dataset.or,1);renderNodeEditor()}));
 }
 $("#addNodeBtn").addEventListener("click",()=>{if(!state.activeAutomation)return;let base="etapa_"+String(Date.now()).slice(-5),key=base,i=1;while(state.activeAutomation.flow.nodes[key])key=base+"_"+i++;state.activeAutomation.flow.nodes[key]={type:"message",text:"Nova mensagem",options:[]};state.activeNode=key;renderBuilder()});
 $("#saveAutomationBtn").addEventListener("click",async()=>{const a=state.activeAutomation;if(!a)return;a.trigger_texts=$("#triggerTexts").value.split(",").map(x=>x.trim()).filter(Boolean);const {error}=await sb.from("wa_automations").update({trigger_texts:a.trigger_texts,flow:a.flow,updated_at:new Date().toISOString()}).eq("id",a.id);if(error)return toast(error.message,"error");const idx=state.automations.findIndex(x=>x.id===a.id);state.automations[idx]=structuredClone(a);toast("Fluxo salvo.");renderAutomations()});
 $("#newAutomationBtn").addEventListener("click",async()=>{const name=prompt("Nome da nova automação:","Novo atendimento");if(!name)return;const flow={start:"inicio",nodes:{inicio:{type:"message",text:"Olá! Como posso ajudar?",options:[]}}};const {data,error}=await sb.from("wa_automations").insert({workspace_id:state.workspace.id,name,trigger_texts:["oi"],flow,enabled:true}).select().single();if(error)return toast(error.message,"error");state.automations.push(data);selectAutomation(data.id);toast("Automação criada.")});
 
-function simAppend(kind,text,options=[]){const box=$("#simulatorMessages"),b=document.createElement("div");b.className="sim-bubble "+kind;b.textContent=text;box.appendChild(b);if(options.length){const wrap=document.createElement("div");wrap.className="sim-options";options.forEach(o=>{const btn=document.createElement("button");btn.type="button";btn.textContent=o.key+" - "+o.label;btn.onclick=()=>simGo(o.next,o.key);wrap.appendChild(btn)});box.appendChild(wrap)}box.scrollTop=box.scrollHeight}
+function simAppend(kind,text,options=[]){const box=$("#simulatorMessages"),b=document.createElement("div");b.className="sim-bubble "+kind;b.textContent=text;box.appendChild(b);const safeOptions=Array.isArray(options)?options:[];if(safeOptions.length){const wrap=document.createElement("div");wrap.className="sim-options";safeOptions.forEach(o=>{const btn=document.createElement("button");btn.type="button";btn.textContent=(o.key||"")+" - "+(o.label||"");btn.onclick=()=>simGo(o.next,o.key);wrap.appendChild(btn)});box.appendChild(wrap)}box.scrollTop=box.scrollHeight}
 function simGo(key,userLabel=null){const nodes=state.activeAutomation?.flow?.nodes||{},n=nodes[key];if(userLabel)simAppend("user",userLabel);if(!n)return;if(n.type==="handoff"){simAppend("bot",n.text||"Vou chamar um atendente.");state.simNode=null;return}state.simNode=key;simAppend("bot",n.text||"",n.options||[])}
 function resetSimulator(){const box=$("#simulatorMessages");box.innerHTML="";state.simNode=null;simAppend("bot","Simulador pronto. Digite “oi” para iniciar o fluxo.")}
 $("#resetSimulatorBtn").addEventListener("click",resetSimulator);

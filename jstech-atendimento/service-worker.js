@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-compact-layout";
+const CACHE="jstech-atendimento-v11-internal-scroll";
 const CORE=[
   "./",
   "./index.html",

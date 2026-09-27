@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-typing-0-10000";
+const CACHE="jstech-atendimento-v11-compact-layout";
 const CORE=[
   "./",
   "./index.html",

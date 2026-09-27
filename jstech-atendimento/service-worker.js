@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-fix-dollar";
+const CACHE="jstech-atendimento-v11-settings-prompt-protect";
 const CORE=[
   "./",
   "./index.html",

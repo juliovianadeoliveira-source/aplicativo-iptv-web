@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-contact-folders";
+const CACHE="jstech-atendimento-v13-current-only";
 const CORE=[
   "./",
   "./index.html",
@@ -20,11 +20,11 @@ self.addEventListener("install",event=>{
 });
 
 self.addEventListener("activate",event=>{
-  event.waitUntil(
-    caches.keys()
-      .then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))
-      .then(()=>self.clients.claim())
-  );
+  event.waitUntil((async()=>{
+    const keys=await caches.keys();
+    await Promise.all(keys.map(k=>k===CACHE?Promise.resolve(false):caches.delete(k)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener("fetch",event=>{

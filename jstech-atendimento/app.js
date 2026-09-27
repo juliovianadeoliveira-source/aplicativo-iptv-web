@@ -119,7 +119,7 @@ $("#installAppBtnLogin")?.addEventListener("click",requestAppInstall);
 $("#installAppBtnTop")?.addEventListener("click",requestAppInstall);
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("./service-worker.js",{scope:"./",updateViaCache:"none"}).then(reg=>reg.update()).catch(err=>console.warn("SW",err));
+    navigator.serviceWorker.register("./service-worker.js?v=13-current-only",{scope:"./",updateViaCache:"none"}).then(async reg=>{await reg.update(); if(reg.waiting)reg.waiting.postMessage({type:"SKIP_WAITING"});}).catch(err=>console.warn("SW",err));
     updateInstallButtons();
   });
 }

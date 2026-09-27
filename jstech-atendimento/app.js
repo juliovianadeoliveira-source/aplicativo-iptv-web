@@ -119,7 +119,7 @@ $("#installAppBtnLogin")?.addEventListener("click",requestAppInstall);
 $("#installAppBtnTop")?.addEventListener("click",requestAppInstall);
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("./service-worker.js?v=13-current-only",{scope:"./",updateViaCache:"none"}).then(async reg=>{await reg.update(); if(reg.waiting)reg.waiting.postMessage({type:"SKIP_WAITING"});}).catch(err=>console.warn("SW",err));
+    navigator.serviceWorker.register("./service-worker.js?v=14-ai-tools",{scope:"./",updateViaCache:"none"}).then(async reg=>{await reg.update(); if(reg.waiting)reg.waiting.postMessage({type:"SKIP_WAITING"});}).catch(err=>console.warn("SW",err));
     updateInstallButtons();
   });
 }
@@ -313,7 +313,7 @@ function pageMeta(page){
     contacts:["CRM","Clientes"],campaigns:["Marketing","Transmissão"],
     organic:["Captação","Divulgação grátis"],panels:["Integrações","Painéis automáticos"],
     automation:["Fluxos e regras","Automação"],
-    knowledge:["Conteúdo","Respostas prontas"],resellers:["Revenda","Revendedores"],universal:["Multiempresa","Universal"],settings:["Integrações","Configurações"]
+    knowledge:["Conteúdo","Respostas prontas"],aitools:["IA","Ferramentas IA"],resellers:["Revenda","Revendedores"],universal:["Multiempresa","Universal"],settings:["Integrações","Configurações"]
   })[page];
 }
 function goPage(page){

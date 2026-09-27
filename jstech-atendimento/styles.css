@@ -1344,3 +1344,16 @@ body{margin:0}
   max-height:none !important;
   overflow:visible !important;
 }
+
+/* Pastas automáticas de contatos */
+.contact-folder-bar{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 18px}
+.contact-folder-btn{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#0b1726;color:var(--text);border-radius:12px;padding:10px 12px;cursor:pointer;font:inherit}
+.contact-folder-btn:hover{border-color:#3a536f}
+.contact-folder-btn.active{border-color:#1acbb8;background:#0e2a30}
+.contact-folder-count{display:inline-flex;min-width:24px;height:24px;align-items:center;justify-content:center;padding:0 7px;border-radius:999px;background:#15283c;font-size:.75rem}
+.contact-folder-btn.active .contact-folder-count{background:#173f42}
+.contact-folder-chip{display:inline-flex;align-self:flex-start;border-radius:999px;padding:4px 8px;font-size:.68rem;border:1px solid var(--line);background:#101e2d}
+.contact-folder-chip.cliente_iptv,.contact-folder-chip.revenda_iptv{border-color:#1d6c8a}
+.contact-folder-chip.cliente_cs,.contact-folder-chip.revenda_cs{border-color:#6657a8}
+.contact-folder-chip.nao_classificado{opacity:.7}
+@media(max-width:650px){.contact-folder-bar{display:grid;grid-template-columns:1fr 1fr}.contact-folder-btn{justify-content:space-between}}

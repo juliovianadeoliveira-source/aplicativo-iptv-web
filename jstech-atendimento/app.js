@@ -2442,7 +2442,7 @@ function renderSettings(){
   if($("#mediaUnderstandingEnabled"))$("#mediaUnderstandingEnabled").checked=s.media_understanding_enabled!==false;
   if($("#webResearchEnabled"))$("#webResearchEnabled").checked=s.web_research_enabled!==false;
   if($("#botDisclosure"))$("#botDisclosure").checked=s.bot_disclosure!==false;
-  if($("#conversationEngine"))$("#conversationEngine").value=s.conversation_engine||"arena";
+  if($("#conversationEngine"))$("#conversationEngine").value=s.conversation_engine||"agent";
   if($("#aiInstructions"))$("#aiInstructions").value=s.ai_instructions||"";
   if($("#humanizedMode"))$("#humanizedMode").checked=s.humanized_mode!==false;
   if($("#humanizedSplitMessages"))$("#humanizedSplitMessages").checked=s.humanized_split_messages!==false;

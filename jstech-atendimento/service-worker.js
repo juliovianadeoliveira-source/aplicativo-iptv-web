@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-automation-fix";
+const CACHE="jstech-atendimento-v11-sidebar-scroll";
 const CORE=[
   "./",
   "./index.html",

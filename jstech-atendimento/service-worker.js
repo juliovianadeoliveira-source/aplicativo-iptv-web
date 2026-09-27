@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-foreach-fix-v3";
+const CACHE="jstech-atendimento-v12-panel-credentials-restore";
 const CORE=[
   "./",
   "./index.html",

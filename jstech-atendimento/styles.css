@@ -1003,3 +1003,36 @@ img,video,canvas,svg{max-width:100%}
 .universal-example-box small{color:var(--muted);line-height:1.45;margin-top:4px}
 @media(max-width:1000px){.universal-page-grid{grid-template-columns:1fr}.universal-side-card{position:static}}
 @media(max-width:650px){.universal-two-col{grid-template-columns:1fr}}
+
+/* Mídia das conversas */
+.message-text{white-space:pre-wrap;overflow-wrap:anywhere}
+.message-media-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  margin:8px 0 3px;
+  padding:8px 12px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:10px;
+  background:rgba(255,255,255,.07);
+  color:inherit;
+  cursor:pointer;
+  font:inherit;
+}
+.message-media-btn:hover{background:rgba(255,255,255,.12)}
+.message-media-btn:disabled{opacity:.6;cursor:wait}
+.message-media-dialog{width:min(900px,94vw)}
+.message-media-stage{min-height:180px;padding:18px}
+.message-media-image{
+  display:block;
+  max-width:100%;
+  max-height:76vh;
+  object-fit:contain;
+  margin:auto;
+  border-radius:12px;
+}
+.message-media-audio{
+  display:block;
+  width:min(680px,90vw);
+  margin:auto;
+}

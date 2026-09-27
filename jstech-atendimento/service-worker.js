@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-internal-scroll";
+const CACHE="jstech-atendimento-v11-settings-restore";
 const CORE=[
   "./",
   "./index.html",

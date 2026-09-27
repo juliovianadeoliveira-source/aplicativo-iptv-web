@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v12-settings-2114";
+const CACHE="jstech-atendimento-v11-settings-reference";
 const CORE=[
   "./",
   "./index.html",

@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-media-viewer";
+const CACHE="jstech-atendimento-v12-media-viewer-fix";
 const CORE=[
   "./",
   "./index.html",

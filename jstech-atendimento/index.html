@@ -17,7 +17,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260927-internal-scroll-v1">
+  <link rel="stylesheet" href="./styles.css?v=20260927-settings-2114-v2">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -779,12 +779,23 @@
           <article class="panel">
             <p class="eyebrow">Empresa e atendimento</p><h3>Comportamento do atendimento</h3>
             <form id="settingsForm" class="stack">
-              <label>Nome da empresa<input id="companyName"></label>
-              <label>Logotipo da empresa<input id="brandLogoFile" type="file" accept="image/png,image/jpeg,image/webp"><small>Opcional. A imagem fica exclusiva nesta conta.</small></label>
-              <div id="brandLogoPreviewWrap" class="brand-logo-preview-wrap hidden"><img id="brandLogoPreview" alt="Logotipo"></div>
-              <label>Nome do atendente virtual<input id="virtualAgentName" placeholder="Ex.: Ana"></label>
-              <label>Tipo de negócio<input id="businessType" placeholder="Ex.: peças, assistência, estética, loja, serviços"></label>
-              <label>O que sua empresa vende ou faz<textarea id="productsAndServices" rows="5" placeholder="Descreva produtos, serviços, público e diferenciais. Esta informação é exclusiva desta conta."></textarea></label>
+              <div class="settings-identity-block">
+                <label>Nome da empresa<input id="companyName"></label>
+                <label>Logotipo da empresa
+                  <input id="brandLogoFile" type="file" accept="image/png,image/jpeg,image/webp">
+                  <small>Opcional. A imagem fica exclusiva nesta conta.</small>
+                </label>
+                <div id="brandLogoPreviewWrap" class="brand-logo-preview-wrap hidden"><img id="brandLogoPreview" alt="Logotipo"></div>
+                <label>Nome da secretária / atendente virtual <small>(opcional)</small>
+                  <input id="virtualAgentName" placeholder="Ex.: Ana. Se deixar vazio, atende sem usar nome.">
+                </label>
+                <label>Tipo de negócio <small>(opcional)</small>
+                  <input id="businessType" placeholder="Ex.: peças, assistência, estética, loja, serviços. Vazio = modo geral.">
+                </label>
+                <label>O que sua empresa vende ou faz <small>(opcional)</small>
+                  <textarea id="productsAndServices" rows="5" placeholder="Esta informação é exclusiva desta conta. Se deixar vazio, a IA não assume nenhum produto ou serviço."></textarea>
+                </label>
+              </div>
               <label>Descrição da empresa<textarea id="businessDescription" rows="4" placeholder="Conte a história, região atendida e como funciona o atendimento."></textarea></label>
               <label>Objetivo das conversas<textarea id="salesObjective" rows="3" placeholder="Ex.: entender a necessidade, tirar dúvidas, preparar proposta e fechar a venda."></textarea></label>
               <label>Região atendida<input id="serviceArea" placeholder="Ex.: todo Brasil ou até 300 km de Vitória-ES"></label>
@@ -995,7 +1006,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260927-settings-restore-v1"></script>
+  <script type="module" src="./app.js?v=20260927-settings-2114-v2"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260923-full-project-v2"></script>

@@ -2378,7 +2378,12 @@ $("#settingsForm").addEventListener("submit",async e=>{
       web_research_enabled:$("#webResearchEnabled")?.checked!==false,
       bot_disclosure:$("#botDisclosure")?.checked!==false,
       conversation_engine:$("#conversationEngine")?.value||"openai",
-      ai_instructions:$("#aiInstructions")?.value||"",
+      ai_instructions:(()=>{
+        const el=$("#aiInstructions");
+        const typed=String(el?.value||"");
+        const current=String(state.settings?.ai_instructions||"");
+        return typed.trim()?typed:current;
+      })(),
       humanized_mode:$("#humanizedMode")?.checked!==false,
       humanized_split_messages:$("#humanizedSplitMessages")?.checked!==false,
       humanized_emojis:$("#humanizedEmojis")?.checked!==false,

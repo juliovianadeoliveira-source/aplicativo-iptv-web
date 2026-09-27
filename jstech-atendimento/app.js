@@ -119,7 +119,7 @@ $("#installAppBtnLogin")?.addEventListener("click",requestAppInstall);
 $("#installAppBtnTop")?.addEventListener("click",requestAppInstall);
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("./service-worker.js",{scope:"./"}).catch(err=>console.warn("SW",err));
+    navigator.serviceWorker.register("./service-worker.js",{scope:"./",updateViaCache:"none"}).then(reg=>reg.update()).catch(err=>console.warn("SW",err));
     updateInstallButtons();
   });
 }
@@ -1382,16 +1382,17 @@ async function loadPanelConnectors(showToast=false){
   if(!state.workspace?.id)return;
   try{
     const data=await panelAdmin({action:"list",workspace_id:state.workspace.id});
-    state.panels=(data?.panels||[]).slice().sort((a,b)=>{
+    const panels=Array.isArray(data?.panels)?data.panels:[];
+    state.panels=panels.slice().sort((a,b)=>{
       const aConnected=a.last_status==="driver_ready"?0:1;
       const bConnected=b.last_status==="driver_ready"?0:1;
       if(aConnected!==bConnected)return aConnected-bConnected;
       return String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base"});
     });
-    state.panelApps=data?.apps||[];
-    state.panelMappings=data?.mappings||[];
-    state.panelJobs=data?.jobs||[];
-    state.panelResources=data?.resources||[];
+    state.panelApps=Array.isArray(data?.apps)?data.apps:[];
+    state.panelMappings=Array.isArray(data?.mappings)?data.mappings:[];
+    state.panelJobs=Array.isArray(data?.jobs)?data.jobs:[];
+    state.panelResources=Array.isArray(data?.resources)?data.resources:[];
     state.panelLoadError=null;
     if(state.activePanel){
       state.activePanel=state.panels.find(x=>x.id===state.activePanel.id)||null;
@@ -1437,8 +1438,8 @@ function renderPanelResourceFolder(){
   const summary=$("#panelResourceSummary");
   if(!sel||!body||!summary)return;
 
-  const panels=state.panels||[];
-  const resources=state.panelResources||[];
+  const panels=Array.isArray(state.panels)?state.panels:[];
+  const resources=Array.isArray(state.panelResources)?state.panelResources:[];
   const previous=sel.value;
   sel.innerHTML=panels.length
     ? panels.map(p=>'<option value="'+p.id+'">'+escapeHtml(p.name)+' • '+escapeHtml(panelStatusLabel(p))+'</option>').join("")
@@ -1541,7 +1542,7 @@ function supportedPanelActions(panel){
 function renderPanelAutomationAppOptions(panelId){
   const sel=$("#panelAutomationApp");
   if(!sel)return;
-  const maps=(state.panelMappings||[]).filter(m=>m.connector_id===panelId&&m.enabled!==false);
+  const maps=(Array.isArray(state.panelMappings)?state.panelMappings:[]).filter(m=>m.connector_id===panelId&&m.enabled!==false);
   if(!maps.length){
     sel.innerHTML='<option value="">Nenhum aplicativo mapeado neste painel</option>';
     return;
@@ -1581,11 +1582,11 @@ function renderPanelAutomationCenter(){
   const panelSel=$("#panelAutomationPanel");
   if(!panelSel)return;
 
-  const panels=state.panels||[];
+  const panels=Array.isArray(state.panels)?state.panels:[];
   const ready=panels.filter(p=>p.has_credentials&&p.last_status==="driver_ready").length;
   const saved=panels.filter(p=>p.has_credentials&&p.last_status!=="driver_ready").length;
   const withoutCredentials=panels.filter(p=>!p.has_credentials).length;
-  const jobs=state.panelJobs||[];
+  const jobs=Array.isArray(state.panelJobs)?state.panelJobs:[];
   const realJobs=jobs.filter(j=>j.action_type!=="probe_login");
   const pending=realJobs.filter(j=>["pending","processing","waiting_setup"].includes(j.status)).length;
   const done=realJobs.filter(j=>j.status==="done").length;
@@ -1716,42 +1717,69 @@ function panelStatusLabel(p){
   return "Aguardando acesso";
 }
 function renderPanelConnectors(){
-  renderPanelAutomationCenter();
-  renderPanelResourceFolder();
   const list=$("#panelConnectorList");
   if(!list)return;
+
+  const panels=Array.isArray(state.panels)?state.panels:[];
   const q=($("#panelSearch")?.value||"").toLowerCase().trim();
-  const rows=state.panels.filter(p=>!q||(p.name||"").toLowerCase().includes(q)||(p.base_url||"").toLowerCase().includes(q));
+  const rows=panels.filter(p=>!q||(p.name||"").toLowerCase().includes(q)||(p.base_url||"").toLowerCase().includes(q));
+
   if(!rows.length){
-    list.innerHTML='<p class="muted">'+(state.panels.length?"Nenhum painel encontrado.":state.panelLoadError?("Erro ao carregar: "+escapeHtml(state.panelLoadError)):"Nenhum painel carregado.")+'</p>';
+    list.innerHTML='<p class="muted">'+(panels.length?"Nenhum painel encontrado.":state.panelLoadError?("Erro ao carregar: "+escapeHtml(state.panelLoadError)):"Nenhum painel carregado.")+'</p>';
+    $("#panelCredentialForm")?.classList.add("hidden");
+    $("#panelCredentialTitle").textContent="Escolha um painel";
+    $("#panelCredentialHint").textContent="Selecione um painel na lista para cadastrar o acesso dele.";
+    try{renderPanelAutomationCenter()}catch(err){console.error("panel automation render",err)}
+    try{renderPanelResourceFolder()}catch(err){console.error("panel resource render",err)}
     return;
   }
+
   list.innerHTML=rows.map(p=>{
     const status=panelStatusLabel(p);
     return '<div class="knowledge-item panel-connector-item '+(state.activePanel?.id===p.id?"active":"")+'" data-panel-select="'+p.id+'">'
       +'<div class="knowledge-item-head"><div><b>'+escapeHtml(p.name)+'</b><p>'+escapeHtml(p.base_url||"Endereço ainda não identificado")+'</p></div>'
       +'<span class="pill '+(p.last_status==="driver_ready"?"success":"warning")+'">'+escapeHtml(status)+'</span></div>'
-      +'<p>'+escapeHtml((p.capabilities||[]).join(" • ")||"teste • criar usuário • renovar")+'</p></div>';
+      +'<p>'+escapeHtml((Array.isArray(p.capabilities)?p.capabilities:[]).join(" • ")||"teste • criar usuário • renovar")+'</p></div>';
   }).join("");
-  $$("[data-panel-select]",list).forEach(el=>el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect)));
-  if(!state.activePanel && rows.length)selectPanelConnector(rows[0].id);
+
+  [...list.querySelectorAll("[data-panel-select]")].forEach(el=>{
+    el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect));
+  });
+
+  const activeStillVisible=state.activePanel&&rows.some(p=>p.id===state.activePanel.id);
+  const selectedId=activeStillVisible?state.activePanel.id:rows[0].id;
+  selectPanelConnector(selectedId);
+
+  try{renderPanelAutomationCenter()}catch(err){console.error("panel automation render",err)}
+  try{renderPanelResourceFolder()}catch(err){console.error("panel resource render",err)}
 }
+
 function selectPanelConnector(id){
-  const p=state.panels.find(x=>x.id===id);if(!p)return;
+  const panels=Array.isArray(state.panels)?state.panels:[];
+  const p=panels.find(x=>x.id===id);
+  if(!p)return;
+
   state.activePanel=p;
-  if($("#panelAutomationPanel")){
-    $("#panelAutomationPanel").value=p.id;
-    renderPanelAutomationActions(p.id);
-  }
-  $("#panelCredentialTitle").textContent=p.name;
-  $("#panelCredentialHint").textContent=p.has_credentials
+
+  // O bloco de credenciais é prioridade. Ele aparece mesmo se qualquer área extra falhar.
+  const title=$("#panelCredentialTitle");
+  const hint=$("#panelCredentialHint");
+  const connectorId=$("#panelConnectorId");
+  const baseUrl=$("#panelBaseUrl");
+  const username=$("#panelUsername");
+  const password=$("#panelPassword");
+  const form=$("#panelCredentialForm");
+
+  if(title)title.textContent=p.name||"Painel";
+  if(hint)hint.textContent=p.has_credentials
     ?"Este painel já tem credenciais próprias salvas. Digite novas credenciais somente se quiser substituir o acesso."
     :"Cadastre o usuário e a senha específicos deste painel.";
-  $("#panelConnectorId").value=p.id;
-  $("#panelBaseUrl").value=p.base_url||"";
-  $("#panelUsername").value="";
-  $("#panelPassword").value="";
-  $("#panelCredentialForm").classList.remove("hidden");
+  if(connectorId)connectorId.value=p.id||"";
+  if(baseUrl)baseUrl.value=p.base_url||"";
+  if(username)username.value="";
+  if(password)password.value="";
+  form?.classList.remove("hidden");
+
   const botBtn=$("#togglePanelBotBtn");
   if(botBtn){
     const ready=p.last_status==="driver_ready"&&p.has_credentials;
@@ -1759,27 +1787,32 @@ function selectPanelConnector(id){
     botBtn.classList.toggle("primary",!!(ready&&p.enabled));
     botBtn.disabled=!ready;
   }
-  renderPanelAppMappings();
-  renderDeviceActivation();
+
   const list=$("#panelConnectorList");
   if(list){
-    $$("[data-panel-select]",list).forEach(el=>el.classList.toggle("active",el.dataset.panelSelect===p.id));
+    [...list.querySelectorAll("[data-panel-select]")].forEach(el=>{
+      el.classList.toggle("active",el.dataset.panelSelect===p.id);
+    });
   }
 
-  // Ao escolher um painel, o lado direito volta ao início das credenciais.
-  // Se ele estiver fora da área visível, traz o card para a tela automaticamente.
+  // Áreas extras ficam isoladas: erro nelas não apaga Endereço/Usuário/Senha.
+  try{
+    const automationPanel=$("#panelAutomationPanel");
+    if(automationPanel){
+      automationPanel.value=p.id;
+      renderPanelAutomationActions(p.id);
+    }
+  }catch(err){console.error("panel automation actions",err)}
+
+  try{renderPanelAppMappings()}catch(err){console.error("panel app mappings",err)}
+  try{renderDeviceActivation()}catch(err){console.error("device activation",err)}
+
   const detailCard=$("#panelCredentialCard");
   if(detailCard){
     detailCard.scrollTop=0;
-    requestAnimationFrame(()=>{
-      const rect=detailCard.getBoundingClientRect();
-      const visible=rect.top>=0 && rect.top<window.innerHeight-80;
-      if(!visible){
-        detailCard.scrollIntoView({behavior:"smooth",block:"start",inline:"nearest"});
-      }
-    });
   }
 }
+
 function renderPanelAppMappings(){
   const select=$("#panelAppSelect"),box=$("#panelAppMappings");
   if(!select||!box)return;
@@ -1789,13 +1822,15 @@ function renderPanelAppMappings(){
     box.innerHTML='<p class="muted">Selecione um painel.</p>';
     return;
   }
-  const used=new Set(state.panelMappings.filter(m=>m.connector_id===p.id&&m.enabled).map(m=>m.app_catalog_id));
-  const available=state.panelApps.filter(a=>!used.has(a.id));
+  const mappingsAll=Array.isArray(state.panelMappings)?state.panelMappings:[];
+  const appsAll=Array.isArray(state.panelApps)?state.panelApps:[];
+  const used=new Set(mappingsAll.filter(m=>m.connector_id===p.id&&m.enabled).map(m=>m.app_catalog_id));
+  const available=appsAll.filter(a=>!used.has(a.id));
   select.innerHTML=available.length
     ? available.map(a=>'<option value="'+a.id+'">'+escapeHtml(a.name)+'</option>').join("")
     : '<option value="">Todos os aplicativos já foram associados</option>';
 
-  const mappings=state.panelMappings.filter(m=>m.connector_id===p.id&&m.enabled);
+  const mappings=(Array.isArray(state.panelMappings)?state.panelMappings:[]).filter(m=>m.connector_id===p.id&&m.enabled);
   if(!mappings.length){
     box.innerHTML='<p class="muted">Nenhum aplicativo associado a este painel ainda.</p>';
     return;
@@ -1830,7 +1865,7 @@ function updateDeviceActivationDriverUi(){
 function renderDeviceActivation(){
   const sel=$("#deviceActivationAppSelect");
   if(!sel)return;
-  const apps=(state.panelApps||[]).slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));
+  const apps=(Array.isArray(state.panelApps)?state.panelApps:[]).slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));
   if(!apps.length){
     sel.innerHTML='<option value="">Nenhum aplicativo cadastrado</option>';
     return;

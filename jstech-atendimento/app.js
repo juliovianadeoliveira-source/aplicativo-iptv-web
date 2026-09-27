@@ -740,6 +740,10 @@ function renderContacts(){
   }));
 }
 $("#contactSearch").addEventListener("input",renderContacts);
+$("[data-contact-folder]").forEach(btn=>btn.addEventListener("click",()=>{
+  state.activeContactFolder=btn.dataset.contactFolder||"all";
+  renderContacts();
+}));
 async function toggleContactBot(id){const c=state.contacts.find(x=>x.id===id);if(!c)return;const value=!c.bot_enabled;const durable={...(c.memory_context||{}),...(c.bot_context||{})};const ctx=value?{...durable,manual_pause:false,human_takeover_until:null}:{...durable,manual_pause:true,human_takeover_until:null};const {error}=await sb.from("wa_contacts").update({bot_enabled:value,bot_context:ctx,updated_at:new Date().toISOString()}).eq("id",id);if(error)return toast(error.message,"error");c.bot_enabled=value;c.bot_context=ctx;renderContacts();renderDashboard()}
 async function setTransmissionContact(id,value){
   const c=state.contacts.find(x=>x.id===id);if(!c)return false;

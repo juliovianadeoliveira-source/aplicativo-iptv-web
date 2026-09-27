@@ -1357,3 +1357,12 @@ body{margin:0}
 .contact-folder-chip.cliente_cs,.contact-folder-chip.revenda_cs{border-color:#6657a8}
 .contact-folder-chip.nao_classificado{opacity:.7}
 @media(max-width:650px){.contact-folder-bar{display:grid;grid-template-columns:1fr 1fr}.contact-folder-btn{justify-content:space-between}}
+
+.ai-tools-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:18px}
+.ai-tool-card{display:grid;gap:8px;min-height:150px;padding:18px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(160deg,#0f1d2e,#0a1625);color:#e9f2fb;text-decoration:none;transition:.18s ease}
+.ai-tool-card:hover{transform:translateY(-2px);border-color:#3c6d91;background:#11243a}
+.ai-tool-card b{font-size:1rem}
+.ai-tool-card span{color:#aebdd0;font-size:.84rem;line-height:1.45}
+.ai-tool-card small{margin-top:auto;color:#6be3b2;font-size:.73rem}
+@media(max-width:1100px){.ai-tools-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.ai-tools-grid{grid-template-columns:1fr}}

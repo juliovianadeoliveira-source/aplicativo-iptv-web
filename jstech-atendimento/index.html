@@ -17,7 +17,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260927-settings-ref-2114">
+  <link rel="stylesheet" href="./styles.css?v=20260927-contact-folders-v1">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -152,7 +152,15 @@
             <div><p class="eyebrow">CRM</p><h3>Clientes sincronizados</h3></div>
             <input id="contactSearch" class="inline-search" placeholder="Buscar nome, telefone ou e-mail">
           </div>
-          <p class="muted">Os contatos do WhatsApp e da agenda do e-mail aparecem juntos nesta conta. A foto é mostrada quando estiver disponível. Use o quadradinho para incluir ou remover da transmissão.</p>
+          <p class="muted">Os contatos do WhatsApp e da agenda do e-mail aparecem juntos nesta conta. O bot separa automaticamente clientes e revendas por IPTV/CS usando nome e conversa.</p>
+          <div id="contactFolderBar" class="contact-folder-bar">
+            <button class="contact-folder-btn active" type="button" data-contact-folder="all"><span>Todos</span><b class="contact-folder-count">0</b></button>
+            <button class="contact-folder-btn" type="button" data-contact-folder="cliente_iptv"><span>Clientes IPTV</span><b class="contact-folder-count">0</b></button>
+            <button class="contact-folder-btn" type="button" data-contact-folder="cliente_cs"><span>Clientes CS</span><b class="contact-folder-count">0</b></button>
+            <button class="contact-folder-btn" type="button" data-contact-folder="revenda_iptv"><span>Revendas IPTV</span><b class="contact-folder-count">0</b></button>
+            <button class="contact-folder-btn" type="button" data-contact-folder="revenda_cs"><span>Revendas CS</span><b class="contact-folder-count">0</b></button>
+            <button class="contact-folder-btn" type="button" data-contact-folder="nao_classificado"><span>Não classificados</span><b class="contact-folder-count">0</b></button>
+          </div>
           <div id="contactsGrid" class="wa-contact-grid"></div>
         </article>
       </section>
@@ -1006,7 +1014,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260927-settings-2114-v2"></script>
+  <script type="module" src="./app.js?v=20260927-contact-folders-v1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260923-full-project-v2"></script>

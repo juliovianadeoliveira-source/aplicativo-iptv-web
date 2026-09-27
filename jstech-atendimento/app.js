@@ -1733,7 +1733,7 @@ function renderPanelConnectors(){
       +'<span class="pill '+(p.last_status==="driver_ready"?"success":"warning")+'">'+escapeHtml(status)+'</span></div>'
       +'<p>'+escapeHtml((p.capabilities||[]).join(" • ")||"teste • criar usuário • renovar")+'</p></div>';
   }).join("");
-  $("[data-panel-select]",list).forEach(el=>el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect)));
+  $$("[data-panel-select]",list).forEach(el=>el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect)));
   if(!state.activePanel && rows.length)selectPanelConnector(rows[0].id);
 }
 function selectPanelConnector(id){
@@ -2037,7 +2037,7 @@ function renderAutomations(){
     const triggers=Array.isArray(a.trigger_texts)?a.trigger_texts:(typeof a.trigger_texts==="string"?a.trigger_texts.split(",").map(x=>x.trim()).filter(Boolean):[]);
     return '<div class="automation-item '+(state.activeAutomation?.id===a.id?"active":"")+'" data-auto="'+a.id+'"><b>'+escapeHtml(a.name||"Automação")+'</b><span>'+(a.enabled?"Ativa":"Desativada")+' • '+escapeHtml(triggers.join(", "))+'</span></div>';
   }).join("");
-  $("[data-auto]",list).forEach(x=>x.addEventListener("click",()=>selectAutomation(x.dataset.auto)));
+  $$("[data-auto]",list).forEach(x=>x.addEventListener("click",()=>selectAutomation(x.dataset.auto)));
   if(state.activeAutomation)renderBuilder();
 }
 function selectAutomation(id){const a=state.automations.find(x=>x.id===id);if(!a)return;state.activeAutomation=structuredClone(a);state.activeNode=a.flow?.start||Object.keys(a.flow?.nodes||{})[0]||null;state.simNode=null;renderAutomations();resetSimulator()}

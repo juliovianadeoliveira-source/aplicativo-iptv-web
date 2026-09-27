@@ -1733,7 +1733,7 @@ function renderPanelConnectors(){
       +'<span class="pill '+(p.last_status==="driver_ready"?"success":"warning")+'">'+escapeHtml(status)+'</span></div>'
       +'<p>'+escapeHtml((p.capabilities||[]).join(" • ")||"teste • criar usuário • renovar")+'</p></div>';
   }).join("");
-  $$$("[data-panel-select]",list).forEach(el=>el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect)));
+  $("[data-panel-select]",list).forEach(el=>el.addEventListener("click",()=>selectPanelConnector(el.dataset.panelSelect)));
   if(!state.activePanel && rows.length)selectPanelConnector(rows[0].id);
 }
 function selectPanelConnector(id){

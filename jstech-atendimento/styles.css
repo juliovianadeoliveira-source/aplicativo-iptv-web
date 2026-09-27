@@ -1053,3 +1053,22 @@ img,video,canvas,svg{max-width:100%}
 .sidebar::-webkit-scrollbar-thumb:hover{background:#7e9aba}
 .sidebar nav{flex:0 0 auto}
 .sidebar-bottom{flex:0 0 auto}
+
+
+/* Compactação visual: cards usam somente a altura do próprio conteúdo.
+   Não altera funções, textos ou estrutura das páginas. */
+.dashboard-grid,
+.settings-grid,
+.knowledge-grid,
+.automation-grid{
+  align-items:start;
+}
+
+.dashboard-grid > .panel,
+.settings-grid > .panel,
+.knowledge-grid > .panel,
+.automation-grid > .panel{
+  align-self:start;
+  height:auto;
+  min-height:0;
+}

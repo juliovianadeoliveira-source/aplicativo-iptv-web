@@ -69,7 +69,7 @@ const state = {
   automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], panelJobs:[], panelResources:[], activePanel:null, activeConversation:null, activeAutomation:null,
   activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false, userRole:null,
   whatsappConnections:[], activeWhatsAppSlot:1,
-  activeCampaignId:null, campaignFormCampaignId:null, campaignDeliveries:[], activeActivationAppId:null, nationalLeads:[], nationalLeadCount:0, voiceConfig:null, messageMediaCache:new Map()
+  activeCampaignId:null, campaignFormCampaignId:null, campaignDeliveries:[], activeActivationAppId:null, nationalLeads:[], nationalLeadCount:0, voiceConfig:null, activeContactFolder:"all", messageMediaCache:new Map()
 };
 
 function toast(msg, type="success"){
@@ -379,6 +379,22 @@ async function ensureWorkspace(){
   state.workspace=newWs;
   await sb.from("wa_settings").insert({workspace_id:newWs.id,company_name:"JSTech"});
 }
+async function fetchAllContacts(workspaceId){
+  const all=[];
+  const pageSize=1000;
+  for(let from=0;;from+=pageSize){
+    const res=await sb.from("wa_contacts").select("*")
+      .eq("workspace_id",workspaceId)
+      .order("updated_at",{ascending:false})
+      .range(from,from+pageSize-1);
+    if(res.error)return {data:null,error:res.error};
+    const rows=res.data||[];
+    all.push(...rows);
+    if(rows.length<pageSize)break;
+  }
+  return {data:all,error:null};
+}
+
 async function loadAll(showToast=false){
   try{
     await ensureWorkspace();
@@ -389,7 +405,7 @@ async function loadAll(showToast=false){
       : Promise.resolve({data:[],error:null,count:0});
     const [settings,contacts,convs,autos,knowledge,campaigns,campaignDeliveries,nationalLeads]=await Promise.all([
       sb.from("wa_settings").select("*").eq("workspace_id",id).single(),
-      sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),
+      fetchAllContacts(id),
       sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url,profile_photo_preview_url,profile_photo_hd_url,bot_context,memory_context)").eq("workspace_id",id).order("last_message_at",{ascending:false}),
       sb.from("wa_automations").select("*").eq("workspace_id",id).order("created_at"),
       sb.from("wa_knowledge").select("*").eq("workspace_id",id).order("title"),
@@ -664,27 +680,54 @@ $("#toggleBotBtn").addEventListener("click",async()=>{
   toast(value?"IA reativada nesta conversa.":"Você assumiu o atendimento. A IA foi pausada.");
 });
 
+const CONTACT_FOLDER_LABELS={
+  cliente_iptv:"Cliente IPTV",
+  cliente_cs:"Cliente CS",
+  revenda_iptv:"Revenda IPTV",
+  revenda_cs:"Revenda CS",
+  nao_classificado:"Não classificado"
+};
+
 function renderContacts(){
   const q=($("#contactSearch")?.value||"").toLowerCase().trim();
   const grid=$("#contactsGrid");
   if(!grid)return;
+
+  const counts={all:state.contacts.length,cliente_iptv:0,cliente_cs:0,revenda_iptv:0,revenda_cs:0,nao_classificado:0};
+  state.contacts.forEach(c=>{
+    const key=String(c.contact_folder||"nao_classificado");
+    if(counts[key]!==undefined)counts[key]++;
+  });
+
+  $$("[data-contact-folder]").forEach(btn=>{
+    const key=btn.dataset.contactFolder||"all";
+    btn.classList.toggle("active",key===state.activeContactFolder);
+    const badge=btn.querySelector(".contact-folder-count");
+    if(badge)badge.textContent=String(counts[key]??0);
+  });
+
+  const active=state.activeContactFolder||"all";
   const rows=state.contacts
+    .filter(c=>active==="all"||String(c.contact_folder||"nao_classificado")===active)
     .filter(c=>!q||(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q)||(c.email||"").toLowerCase().includes(q))
     .slice()
     .sort((a,b)=>String(a.name||a.phone||"").localeCompare(String(b.name||b.phone||""),"pt-BR"));
 
   if(!rows.length){
-    grid.innerHTML='<p class="muted">Nenhum contato encontrado.</p>';
+    grid.innerHTML='<p class="muted">Nenhum contato nesta pasta.</p>';
     return;
   }
 
   grid.innerHTML=rows.map(c=>{
     const selected=!!(c.marketing_opt_in&&!c.marketing_opt_out_at);
+    const folder=String(c.contact_folder||"nao_classificado");
+    const folderLabel=CONTACT_FOLDER_LABELS[folder]||"Não classificado";
     return '<article class="wa-contact-card '+(selected?"selected":"")+'">'
       +'<input class="wa-contact-check" type="checkbox" data-marketing="'+c.id+'" '+(selected?"checked":"")+' title="Adicionar ou remover da transmissão">'
       +contactAvatarHtml(c)
       +'<b class="wa-contact-name">'+escapeHtml(c.name||"Sem nome")+'</b>'
       +'<span class="wa-contact-phone">'+escapeHtml(c.phone||"")+(c.email?'<small class="wa-contact-email">'+escapeHtml(c.email)+'</small>':'')+'</span>'
+      +'<span class="contact-folder-chip '+escapeHtml(folder)+'">'+escapeHtml(folderLabel)+'</span>'
       +'<div class="wa-contact-meta"><button class="wa-contact-bot '+(c.bot_enabled?"on":"")+'" data-contact-bot="'+c.id+'">'+(c.bot_enabled?"IA ativa":"IA pausada")+'</button></div>'
       +'</article>';
   }).join("");
@@ -1229,7 +1272,7 @@ $("#sendTransmissionNowBtn")?.addEventListener("click",async()=>{
 async function refreshSyncedContacts(){
   const id=state.workspace.id;
   const [contacts,settings]=await Promise.all([
-    sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),
+    fetchAllContacts(id),
     sb.from("wa_settings").select("*").eq("workspace_id",id).single()
   ]);
   if(contacts.error)throw contacts.error;
@@ -2673,7 +2716,7 @@ function subscribeRealtime(){
     .on("postgres_changes",{event:"*",schema:"public",table:"wa_contacts",filter:"workspace_id=eq."+state.workspace.id},refreshConversationData)
     .subscribe();
 }
-let refreshTimer=null;function refreshConversationData(){clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{const id=state.workspace.id;const [contacts,convs]=await Promise.all([sb.from("wa_contacts").select("*").eq("workspace_id",id).order("updated_at",{ascending:false}),sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url,profile_photo_preview_url,profile_photo_hd_url,bot_context,memory_context)").eq("workspace_id",id).order("last_message_at",{ascending:false})]);if(!contacts.error)state.contacts=contacts.data||[];if(!convs.error)state.conversations=convs.data||[];if(state.activeConversation){const fresh=state.conversations.find(x=>x.id===state.activeConversation.id);if(fresh)state.activeConversation=fresh}renderDashboard();renderContacts();renderConversations()},250)}
+let refreshTimer=null;function refreshConversationData(){clearTimeout(refreshTimer);refreshTimer=setTimeout(async()=>{const id=state.workspace.id;const [contacts,convs]=await Promise.all([fetchAllContacts(id),sb.from("wa_conversations").select("*,wa_contacts(id,name,phone,email,status,bot_enabled,notes,profile_photo_url,profile_photo_preview_url,profile_photo_hd_url,bot_context,memory_context)").eq("workspace_id",id).order("last_message_at",{ascending:false})]);if(!contacts.error)state.contacts=contacts.data||[];if(!convs.error)state.conversations=convs.data||[];if(state.activeConversation){const fresh=state.conversations.find(x=>x.id===state.activeConversation.id);if(fresh)state.activeConversation=fresh}renderDashboard();renderContacts();renderConversations()},250)}
 boot();
 $("#campaignDdd27")?.addEventListener("change",renderCampaigns);
 $("#campaignDdd28")?.addEventListener("change",renderCampaigns);

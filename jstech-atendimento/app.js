@@ -421,7 +421,23 @@ async function loadAll(showToast=false){
     renderAll(); applyBrandLogo(); showOnboardingIfNeeded(); if(showToast)toast("Painel atualizado.");
   }catch(err){console.error(err);toast(err.message||"Erro ao carregar o painel.","error")}
 }
-function renderAll(){renderDashboard();renderConversations();renderContacts();renderCampaigns();renderOrganicLinks();renderPanelConnectors();renderAutomations();renderKnowledge();renderUniversalProfile();renderSettings();}
+function safeRenderSection(name,fn){
+  try{fn()}
+  catch(err){console.error("render "+name,err)}
+}
+function renderAll(){
+  // Configurações e regras carregam primeiro e nunca dependem da tela de painéis.
+  safeRenderSection("settings",renderSettings);
+  safeRenderSection("universal",renderUniversalProfile);
+  safeRenderSection("knowledge",renderKnowledge);
+  safeRenderSection("automations",renderAutomations);
+  safeRenderSection("dashboard",renderDashboard);
+  safeRenderSection("conversations",renderConversations);
+  safeRenderSection("contacts",renderContacts);
+  safeRenderSection("campaigns",renderCampaigns);
+  safeRenderSection("organic-links",renderOrganicLinks);
+  safeRenderSection("panels",renderPanelConnectors);
+}
 
 function renderDashboard(){
   const unread=state.conversations.reduce((n,c)=>n+(c.unread_count||0),0);
@@ -2426,7 +2442,8 @@ $("#settingsForm").addEventListener("submit",async e=>{
         const el=$("#aiInstructions");
         const typed=String(el?.value||"");
         const current=String(state.settings?.ai_instructions||"");
-        return typed.trim()?typed:current;
+        if(!typed.trim()&&current.trim())return current;
+        return typed;
       })(),
       humanized_mode:$("#humanizedMode")?.checked!==false,
       humanized_split_messages:$("#humanizedSplitMessages")?.checked!==false,

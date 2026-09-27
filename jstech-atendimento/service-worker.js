@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v13-current-only";
+const CACHE="jstech-atendimento-v14-ai-tools";
 const CORE=[
   "./",
   "./index.html",

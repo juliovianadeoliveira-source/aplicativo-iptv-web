@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v11-sidebar-scroll";
+const CACHE="jstech-atendimento-v11-foreach-fix-v3";
 const CORE=[
   "./",
   "./index.html",

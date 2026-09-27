@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v13-settings-rules-protection";
+const CACHE="jstech-atendimento-v11-typing-0-10000";
 const CORE=[
   "./",
   "./index.html",

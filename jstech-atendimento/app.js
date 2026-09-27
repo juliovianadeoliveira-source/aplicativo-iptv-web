@@ -69,7 +69,7 @@ const state = {
   automations:[], knowledge:[], campaigns:[], panels:[], panelApps:[], panelMappings:[], panelJobs:[], panelResources:[], activePanel:null, activeConversation:null, activeAutomation:null,
   activeNode:null, editingKnowledge:null, channel:null, simNode:null, panelLoadError:null, bridgeManagedLocally:false, bridgeHosted:false, userRole:null,
   whatsappConnections:[], activeWhatsAppSlot:1,
-  activeCampaignId:null, campaignFormCampaignId:null, campaignDeliveries:[], activeActivationAppId:null, nationalLeads:[], nationalLeadCount:0, voiceConfig:null
+  activeCampaignId:null, campaignFormCampaignId:null, campaignDeliveries:[], activeActivationAppId:null, nationalLeads:[], nationalLeadCount:0, voiceConfig:null, messageMediaCache:new Map()
 };
 
 function toast(msg, type="success"){
@@ -491,15 +491,114 @@ async function loadMessages(conversationId){
   const {data,error}=await sb.from("wa_messages").select("*").eq("conversation_id",conversationId).order("created_at");
   if(error){toast(error.message,"error");return}state.messages=data||[];renderMessages();
 }
+function messageMediaButton(m){
+  const type=String(m?.message_type||"").toLowerCase();
+  const hasMedia=!!m?.metadata?.has_media||["image","audio","ptt"].includes(type);
+  if(!hasMedia)return "";
+  if(type==="image"){
+    return '<button class="message-media-btn" type="button" data-message-media="'+m.id+'" data-media-kind="image">🖼 Abrir imagem</button>';
+  }
+  if(type==="audio"||type==="ptt"){
+    return '<button class="message-media-btn" type="button" data-message-media="'+m.id+'" data-media-kind="audio">▶ Ouvir áudio</button>';
+  }
+  return "";
+}
 function renderMessages(){
   const box=$("#messageList");
   box.innerHTML=state.messages.map(m=>{
     const cls=m.direction==="in"?"in":"out "+(m.sender_type==="ai"?"ai":"");
     const who=m.direction==="in"?"Cliente":m.sender_type==="human"?"Atendente":m.sender_type==="ai"?"IA":"Automático";
-    return '<div class="message '+cls+'">'+escapeHtml(m.content)+'<small>'+escapeHtml(who)+' • '+fmtDate(m.created_at)+'</small></div>';
+    const media=messageMediaButton(m);
+    const body=String(m.content||"").trim();
+    return '<div class="message '+cls+'">'+
+      (body?'<div class="message-text">'+escapeHtml(body)+'</div>':"")+
+      media+
+      '<small>'+escapeHtml(who)+' • '+fmtDate(m.created_at)+'</small></div>';
   }).join("");
+  $("[data-message-media]",box).forEach(btn=>btn.addEventListener("click",()=>openMessageMedia(btn.dataset.messageMedia,btn)));
   box.scrollTop=box.scrollHeight;
 }
+
+function closeMessageMedia(){
+  const modal=$("#messageMediaModal");
+  if(!modal)return;
+  modal.classList.add("hidden");
+  $("#messageMediaImage")?.removeAttribute("src");
+  const audio=$("#messageMediaAudio");
+  if(audio){
+    audio.pause();
+    audio.removeAttribute("src");
+    audio.load();
+  }
+  $("#messageMediaImage")?.classList.add("hidden");
+  $("#messageMediaAudio")?.classList.add("hidden");
+  document.body.classList.remove("photo-modal-open");
+}
+function showMessageMedia(result,message){
+  const modal=$("#messageMediaModal");
+  const image=$("#messageMediaImage");
+  const audio=$("#messageMediaAudio");
+  if(!modal||!result?.data_uri)return;
+  const kind=String(result.kind||message?.message_type||"").toLowerCase();
+  $("#messageMediaTitle").textContent=kind==="audio"?"Áudio da conversa":"Imagem da conversa";
+  $("#messageMediaInfo").textContent=fmtDate(message?.created_at);
+  if(kind==="audio"){
+    image?.classList.add("hidden");
+    audio.src=result.data_uri;
+    audio.classList.remove("hidden");
+    audio.load();
+  }else{
+    audio?.classList.add("hidden");
+    image.src=result.data_uri;
+    image.classList.remove("hidden");
+  }
+  modal.classList.remove("hidden");
+  document.body.classList.add("photo-modal-open");
+}
+async function openMessageMedia(messageId,button=null){
+  const message=state.messages.find(x=>x.id===messageId);
+  if(!message)return;
+  const cached=state.messageMediaCache.get(messageId);
+  if(cached){
+    showMessageMedia(cached,message);
+    return;
+  }
+  const original=button?.textContent||"";
+  if(button){button.disabled=true;button.textContent="Carregando...";}
+  try{
+    const slot=Number(message.connection_slot||message.metadata?.connection_slot||1);
+    const queued=await bridgeInvoke("get_media",{message_id:messageId,slot});
+    if(!queued?.command_id)throw new Error("Não foi possível pedir esta mídia à VPS.");
+    let result=null;
+    let lastError="";
+    for(let i=0;i<30;i++){
+      await new Promise(resolve=>setTimeout(resolve,500));
+      const status=await bridgeInvoke("get_media_status",{command_id:queued.command_id,slot});
+      if(status?.status==="done"&&status?.result?.data_uri){
+        result=status.result;
+        break;
+      }
+      if(status?.status==="failed"){
+        lastError=status.error||"Falha ao abrir a mídia.";
+        break;
+      }
+    }
+    if(!result)throw new Error(lastError||"A mídia demorou para carregar. Tente novamente.");
+    state.messageMediaCache.set(messageId,result);
+    showMessageMedia(result,message);
+  }catch(err){
+    toast(err.message||"Não foi possível abrir a mídia.","error");
+  }finally{
+    if(button){button.disabled=false;button.textContent=original;}
+  }
+}
+$("#closeMessageMediaBtn")?.addEventListener("click",closeMessageMedia);
+$("#messageMediaModal")?.addEventListener("click",e=>{
+  if(e.target.closest("[data-close-message-media]"))closeMessageMedia();
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&!$("#messageMediaModal")?.classList.contains("hidden"))closeMessageMedia();
+});
 function renderContactDetails(ct,c){
   const mode=ct.bot_enabled?"IA/automação ativa":"Atendimento humano";
   $("#contactDetails").innerHTML='<div class="contact-card"><div class="contact-row"><span>Nome</span><b>'+escapeHtml(ct.name||"Não informado")+'</b></div><div class="contact-row"><span>Telefone</span><b>'+escapeHtml(ct.phone||"-")+'</b></div>'+(ct.email?'<div class="contact-row"><span>E-mail</span><b>'+escapeHtml(ct.email)+'</b></div>':'')+'<div class="contact-row"><span>Status</span><b>'+escapeHtml(c.status||ct.status||"aberta")+'</b></div><div class="contact-row"><span>Modo atual</span><b>'+mode+'</b></div></div>';

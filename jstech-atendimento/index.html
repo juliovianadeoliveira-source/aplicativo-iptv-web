@@ -17,7 +17,7 @@
   <meta http-equiv="Expires" content="0">
   <title>JSTech Atendimento</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./styles.css?v=20260926-universal-v1">
+  <link rel="stylesheet" href="./styles.css?v=20260926-media-viewer-v1">
   <link rel="stylesheet" href="./crm.css">
   <link rel="stylesheet" href="./sync-sources.css">
 </head>
@@ -955,6 +955,23 @@
   </div>
 
 
+  <div id="messageMediaModal" class="contact-photo-modal hidden" role="dialog" aria-modal="true" aria-label="Mídia da conversa">
+    <div class="contact-photo-backdrop" data-close-message-media></div>
+    <div class="contact-photo-dialog message-media-dialog">
+      <div class="contact-photo-header">
+        <div class="contact-photo-info">
+          <strong id="messageMediaTitle">Mídia da conversa</strong>
+          <span id="messageMediaInfo"></span>
+        </div>
+        <button id="closeMessageMediaBtn" class="contact-photo-close" type="button" aria-label="Fechar">×</button>
+      </div>
+      <div class="contact-photo-stage message-media-stage">
+        <img id="messageMediaImage" class="message-media-image hidden" alt="Imagem recebida na conversa">
+        <audio id="messageMediaAudio" class="message-media-audio hidden" controls preload="metadata"></audio>
+      </div>
+    </div>
+  </div>
+
   <div id="onboardingWizard" class="onboarding-wizard hidden" role="dialog" aria-modal="true">
     <div class="onboarding-card">
       <p class="eyebrow">Configuração inicial</p>
@@ -978,7 +995,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app.js?v=20260926-panel-auth-refresh-v1"></script>
+  <script type="module" src="./app.js?v=20260926-media-viewer-v1"></script>
   <script type="module" src="./crm.js?v=20260921-13"></script>
   <script type="module" src="./sync-sources.js?v=20260921-13"></script>
   <script type="module" src="./resellers.js?v=20260923-full-project-v2"></script>

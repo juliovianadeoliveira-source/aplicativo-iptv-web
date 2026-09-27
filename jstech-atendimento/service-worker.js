@@ -1,4 +1,4 @@
-const CACHE="jstech-atendimento-v12-panel-credentials-restore";
+const CACHE="jstech-atendimento-v13-settings-rules-protection";
 const CORE=[
   "./",
   "./index.html",

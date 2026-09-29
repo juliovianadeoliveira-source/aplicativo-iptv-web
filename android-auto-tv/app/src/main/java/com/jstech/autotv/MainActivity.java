@@ -2,7 +2,6 @@ package com.jstech.autotv;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
@@ -13,9 +12,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -42,12 +43,17 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private static final String API = "https://atendimento.51-79-39-182.sslip.io/auto-tv-api/config";
-    private static final int BG = Color.rgb(5, 9, 19);
-    private static final int PANEL = Color.rgb(13, 22, 39);
-    private static final int PANEL2 = Color.rgb(20, 31, 50);
-    private static final int TEXT = Color.rgb(238, 242, 255);
-    private static final int MUTED = Color.rgb(148, 163, 184);
-    private static final int ACCENT = Color.rgb(37, 99, 235);
+
+    private static final int BG = Color.rgb(6, 10, 18);
+    private static final int PANEL = Color.rgb(11, 18, 31);
+    private static final int PANEL2 = Color.rgb(17, 28, 46);
+    private static final int PANEL3 = Color.rgb(24, 37, 59);
+    private static final int TEXT = Color.rgb(245, 247, 255);
+    private static final int MUTED = Color.rgb(146, 159, 181);
+    private static final int BLUE = Color.rgb(31, 111, 235);
+    private static final int CYAN = Color.rgb(29, 199, 210);
+    private static final int PURPLE = Color.rgb(124, 77, 255);
+    private static final int ORANGE = Color.rgb(255, 145, 46);
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -59,17 +65,20 @@ public class MainActivity extends Activity {
     private LinearLayout channelList;
     private TextView serverLabel;
     private TextView expiryLabel;
-    private ProgressBar loading;
     private Button renewButton;
+    private ProgressBar loading;
 
     private String activeServerId = "";
     private int configVersion = 0;
     private long trialExpires = 0L;
-    private boolean insidePlayer = false;
+    private boolean trialReady = false;
+    private Screen screen = Screen.START;
+
+    enum Screen { START, HOME, LIVE }
 
     private final Runnable pollTask = new Runnable() {
         @Override public void run() {
-            if (insidePlayer) fetchConfig(true);
+            if (trialReady) fetchConfig(true);
             ui.postDelayed(this, 20000);
         }
     };
@@ -81,8 +90,7 @@ public class MainActivity extends Activity {
         }
     };
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         prefs = getSharedPreferences("jstech_auto_tv", MODE_PRIVATE);
         immersive();
@@ -104,64 +112,109 @@ public class MainActivity extends Activity {
         );
     }
 
-    private TextView text(String value, int sp, int color, boolean bold) {
+    private int dp(float v) {
+        return (int)(v * getResources().getDisplayMetrics().density + .5f);
+    }
+
+    private GradientDrawable round(int color, float radius) {
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(color);
+        d.setCornerRadius(dp(radius));
+        return d;
+    }
+
+    private GradientDrawable gradient(int c1, int c2, float radius) {
+        GradientDrawable d = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{c1, c2}
+        );
+        d.setCornerRadius(dp(radius));
+        return d;
+    }
+
+    private TextView label(String text, int size, int color, boolean bold) {
         TextView t = new TextView(this);
-        t.setText(value);
-        t.setTextSize(sp);
+        t.setText(text);
+        t.setTextSize(size);
         t.setTextColor(color);
         if (bold) t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         return t;
     }
 
-    private GradientDrawable rounded(int color, float radiusDp) {
-        GradientDrawable d = new GradientDrawable();
-        d.setColor(color);
-        d.setCornerRadius(dp(radiusDp));
-        return d;
-    }
-
-    private int dp(float v) {
-        return (int) (v * getResources().getDisplayMetrics().density + 0.5f);
+    private void applyFocusable(View v, int normal, int focused, float radius) {
+        v.setFocusable(true);
+        v.setClickable(true);
+        v.setBackground(round(normal, radius));
+        v.setOnFocusChangeListener((view, hasFocus) -> {
+            view.setBackground(round(hasFocus ? focused : normal, radius));
+            view.animate().scaleX(hasFocus ? 1.035f : 1f).scaleY(hasFocus ? 1.035f : 1f).setDuration(110).start();
+        });
     }
 
     private void showStartScreen() {
-        insidePlayer = false;
+        releasePlayer();
+        screen = Screen.START;
+        trialReady = false;
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(BG);
-        root.setPadding(dp(24), dp(24), dp(24), dp(24));
+        FrameLayout root = new FrameLayout(this);
+        root.setBackground(gradient(Color.rgb(4, 8, 16), Color.rgb(10, 23, 42), 0));
 
-        TextView title = text("JSTech Auto TV Play+", 30, TEXT, true);
+        LinearLayout center = new LinearLayout(this);
+        center.setOrientation(LinearLayout.VERTICAL);
+        center.setGravity(Gravity.CENTER);
+        center.setPadding(dp(28), dp(28), dp(28), dp(28));
+
+        TextView logo = label("JSTech", 20, CYAN, true);
+        logo.setGravity(Gravity.CENTER);
+        center.addView(logo);
+
+        TextView title = label("Auto TV Play+", 38, TEXT, true);
         title.setGravity(Gravity.CENTER);
-        root.addView(title, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        titleLp.topMargin = dp(2);
+        center.addView(title, titleLp);
 
-        TextView sub = text("Auto Atendimento", 15, MUTED, false);
+        TextView sub = label("AUTO ATENDIMENTO", 12, MUTED, true);
         sub.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        subLp.topMargin = dp(6);
-        root.addView(sub, subLp);
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        subLp.topMargin = dp(7);
+        center.addView(sub, subLp);
 
         Button generate = new Button(this);
         generate.setText("Gerar teste");
-        generate.setTextSize(22);
-        generate.setTextColor(Color.WHITE);
         generate.setAllCaps(false);
+        generate.setTextSize(21);
+        generate.setTextColor(Color.WHITE);
         generate.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        generate.setBackground(rounded(ACCENT, 16));
-        LinearLayout.LayoutParams bLp = new LinearLayout.LayoutParams(dp(280), dp(70));
-        bLp.topMargin = dp(58);
-        root.addView(generate, bLp);
+        generate.setBackground(gradient(BLUE, Color.rgb(23, 77, 173), 18));
+        generate.setFocusable(true);
+        LinearLayout.LayoutParams bLp = new LinearLayout.LayoutParams(dp(280), dp(68));
+        bLp.topMargin = dp(54);
+        center.addView(generate, bLp);
 
         loading = new ProgressBar(this);
         loading.setVisibility(View.GONE);
-        LinearLayout.LayoutParams loadLp = new LinearLayout.LayoutParams(dp(42), dp(42));
-        loadLp.topMargin = dp(20);
-        root.addView(loading, loadLp);
+        LinearLayout.LayoutParams lLp = new LinearLayout.LayoutParams(dp(38), dp(38));
+        lLp.topMargin = dp(18);
+        center.addView(loading, lLp);
+
+        FrameLayout.LayoutParams cLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        cLp.gravity = Gravity.CENTER;
+        root.addView(center, cLp);
+
+        TextView foot = label("JSTech • Android TV", 11, Color.rgb(78, 93, 115), false);
+        FrameLayout.LayoutParams fLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        fLp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+        fLp.bottomMargin = dp(22);
+        root.addView(foot, fLp);
+
+        generate.setOnFocusChangeListener((v, hasFocus) ->
+                v.animate().scaleX(hasFocus ? 1.06f : 1f).scaleY(hasFocus ? 1.06f : 1f).setDuration(100).start());
 
         generate.setOnClickListener(v -> {
             generate.setEnabled(false);
@@ -171,16 +224,17 @@ public class MainActivity extends Activity {
         });
 
         setContentView(root);
+        generate.requestFocus();
     }
 
     private void fetchConfigForTrial(Button generate) {
         io.execute(() -> {
             try {
                 JSONObject cfg = getJson(API + "?ts=" + System.currentTimeMillis());
-                if (!cfg.optBoolean("ok", false)) throw new Exception("sem servidor ativo");
+                if (!cfg.optBoolean("ok", false)) throw new Exception("sem servidor");
 
                 JSONObject server = cfg.getJSONObject("server");
-                activeServerId = cfg.getString("active_server_id");
+                activeServerId = cfg.optString("active_server_id", "");
                 configVersion = cfg.optInt("version", 0);
                 int hours = Math.max(1, server.optInt("trial_hours", 6));
                 trialExpires = System.currentTimeMillis() + hours * 3600000L;
@@ -194,7 +248,8 @@ public class MainActivity extends Activity {
 
                 applyChannels(cfg.optJSONArray("channels"));
                 String serverName = server.optString("name", "Servidor");
-                ui.post(() -> showPlayerScreen(serverName));
+                trialReady = true;
+                ui.post(() -> showHomeScreen(serverName));
             } catch (Exception e) {
                 ui.post(() -> {
                     loading.setVisibility(View.GONE);
@@ -206,135 +261,260 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void showPlayerScreen(String serverName) {
-        insidePlayer = true;
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
-
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(BG);
-
+    private LinearLayout topBar(String serverName, boolean showBack) {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        top.setPadding(dp(16), dp(10), dp(16), dp(10));
-        top.setBackgroundColor(PANEL);
+        top.setPadding(dp(24), dp(14), dp(24), dp(14));
+        top.setBackgroundColor(Color.rgb(7, 12, 22));
+
+        if (showBack) {
+            TextView back = label("‹", 36, TEXT, true);
+            back.setGravity(Gravity.CENTER);
+            applyFocusable(back, PANEL2, BLUE, 13);
+            back.setOnClickListener(v -> showHomeScreen(serverName));
+            top.addView(back, new LinearLayout.LayoutParams(dp(50), dp(50)));
+        }
 
         LinearLayout brandBox = new LinearLayout(this);
         brandBox.setOrientation(LinearLayout.VERTICAL);
-        TextView brand = text("JSTech Auto TV Play+", 20, TEXT, true);
-        serverLabel = text(serverName, 12, MUTED, false);
+        TextView brand = label("JSTech Auto TV Play+", 19, TEXT, true);
+        TextView server = label(serverName, 11, MUTED, false);
         brandBox.addView(brand);
-        brandBox.addView(serverLabel);
-        top.addView(brandBox, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        brandBox.addView(server);
+        LinearLayout.LayoutParams brandLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        brandLp.leftMargin = showBack ? dp(12) : 0;
+        top.addView(brandBox, brandLp);
 
-        expiryLabel = text("", 13, TEXT, true);
-        expiryLabel.setGravity(Gravity.END);
+        expiryLabel = label("", 13, TEXT, true);
+        expiryLabel.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         top.addView(expiryLabel);
 
         renewButton = new Button(this);
         renewButton.setText("Renovar");
         renewButton.setAllCaps(false);
         renewButton.setTextColor(Color.WHITE);
-        renewButton.setBackground(rounded(ACCENT, 12));
+        renewButton.setBackground(round(BLUE, 12));
         renewButton.setVisibility(View.GONE);
-        LinearLayout.LayoutParams renewLp = new LinearLayout.LayoutParams(dp(110), dp(48));
-        renewLp.leftMargin = dp(10);
-        top.addView(renewButton, renewLp);
+        LinearLayout.LayoutParams rLp = new LinearLayout.LayoutParams(dp(105), dp(44));
+        rLp.leftMargin = dp(12);
+        top.addView(renewButton, rLp);
         renewButton.setOnClickListener(v -> showRenewalDialog());
 
-        root.addView(top, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return top;
+    }
 
-        boolean landscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(landscape ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
-        content.setPadding(dp(10), dp(10), dp(10), dp(10));
+    private void showHomeScreen(String serverName) {
+        releasePlayer();
+        screen = Screen.HOME;
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 
-        LinearLayout listPanel = new LinearLayout(this);
-        listPanel.setOrientation(LinearLayout.VERTICAL);
-        listPanel.setPadding(dp(10), dp(10), dp(10), dp(10));
-        listPanel.setBackground(rounded(PANEL, 14));
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackground(gradient(Color.rgb(6, 10, 18), Color.rgb(8, 18, 34), 0));
+        root.addView(topBar(serverName, false));
 
-        TextView liveTitle = text("TV AO VIVO", 18, TEXT, true);
-        listPanel.addView(liveTitle);
+        LinearLayout body = new LinearLayout(this);
+        body.setOrientation(LinearLayout.VERTICAL);
+        body.setPadding(dp(26), dp(18), dp(26), dp(24));
+
+        LinearLayout hero = new LinearLayout(this);
+        hero.setOrientation(LinearLayout.VERTICAL);
+        hero.setPadding(dp(28), dp(22), dp(28), dp(22));
+        hero.setGravity(Gravity.CENTER_VERTICAL);
+        hero.setBackground(gradient(Color.rgb(20, 59, 106), Color.rgb(11, 28, 52), 22));
+
+        TextView heroSmall = label("BEM-VINDO AO JSTech", 12, Color.rgb(164, 205, 255), true);
+        hero.addView(heroSmall);
+        TextView heroTitle = label("Seu entretenimento em um só lugar", 30, TEXT, true);
+        LinearLayout.LayoutParams htLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        htLp.topMargin = dp(5);
+        hero.addView(heroTitle, htLp);
+        TextView heroSub = label("Escolha uma opção abaixo para começar.", 15, Color.rgb(193, 207, 225), false);
+        LinearLayout.LayoutParams hsLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        hsLp.topMargin = dp(6);
+        hero.addView(heroSub, hsLp);
+
+        body.addView(hero, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+
+        TextView section = label("NAVEGAR", 12, MUTED, true);
+        LinearLayout.LayoutParams secLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        secLp.topMargin = dp(22);
+        secLp.bottomMargin = dp(10);
+        body.addView(section, secLp);
+
+        LinearLayout cards = new LinearLayout(this);
+        cards.setOrientation(LinearLayout.HORIZONTAL);
+        cards.setWeightSum(4f);
+
+        View live = homeCard("TV AO VIVO", channels.size() + " canais", BLUE, () -> showLiveScreen(serverName));
+        View movies = homeCard("FILMES", "Catálogo do servidor", PURPLE, () -> placeholder("Filmes"));
+        View series = homeCard("SÉRIES", "Temporadas e episódios", CYAN, () -> placeholder("Séries"));
+        View favorites = homeCard("FAVORITOS", "Acesso rápido", ORANGE, () -> placeholder("Favoritos"));
+
+        addWeighted(cards, live, 1f, 0);
+        addWeighted(cards, movies, 1f, 12);
+        addWeighted(cards, series, 1f, 12);
+        addWeighted(cards, favorites, 1f, 12);
+
+        body.addView(cards, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        root.addView(body, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        setContentView(root);
+        updateExpiry();
+        live.requestFocus();
+    }
+
+    private View homeCard(String title, String subtitle, int accent, Runnable action) {
+        LinearLayout c = new LinearLayout(this);
+        c.setOrientation(LinearLayout.VERTICAL);
+        c.setGravity(Gravity.BOTTOM);
+        c.setPadding(dp(20), dp(20), dp(20), dp(20));
+        c.setBackground(gradient(Color.rgb(16, 26, 43), Color.rgb(9, 16, 28), 19));
+        c.setFocusable(true);
+        c.setClickable(true);
+
+        TextView mark = label("●", 22, accent, true);
+        LinearLayout.LayoutParams markLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, 0, 1f);
+        c.addView(mark, markLp);
+
+        TextView t = label(title, 22, TEXT, true);
+        c.addView(t);
+        TextView s = label(subtitle, 12, MUTED, false);
+        LinearLayout.LayoutParams sLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        sLp.topMargin = dp(4);
+        c.addView(s, sLp);
+
+        c.setOnFocusChangeListener((v, hasFocus) -> {
+            ((LinearLayout)v).setBackground(hasFocus
+                    ? gradient(accent, Color.rgb(12, 24, 44), 19)
+                    : gradient(Color.rgb(16, 26, 43), Color.rgb(9, 16, 28), 19));
+            v.animate().scaleX(hasFocus ? 1.045f : 1f).scaleY(hasFocus ? 1.045f : 1f).setDuration(120).start();
+        });
+        c.setOnClickListener(v -> action.run());
+        return c;
+    }
+
+    private void addWeighted(LinearLayout parent, View child, float weight, int leftMargin) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, weight);
+        lp.leftMargin = dp(leftMargin);
+        parent.addView(child, lp);
+    }
+
+    private void placeholder(String name) {
+        Toast.makeText(this, name + ": aguardando conteúdo deste servidor.", Toast.LENGTH_SHORT).show();
+    }
+
+    private void showLiveScreen(String serverName) {
+        releasePlayer();
+        screen = Screen.LIVE;
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(BG);
+        root.addView(topBar(serverName, true));
+
+        LinearLayout body = new LinearLayout(this);
+        body.setOrientation(LinearLayout.HORIZONTAL);
+        body.setPadding(dp(16), dp(14), dp(16), dp(16));
+
+        LinearLayout side = new LinearLayout(this);
+        side.setOrientation(LinearLayout.VERTICAL);
+        side.setPadding(dp(12), dp(12), dp(12), dp(12));
+        side.setBackground(round(PANEL, 18));
+
+        TextView liveTitle = label("TV AO VIVO", 17, TEXT, true);
+        side.addView(liveTitle);
+        TextView liveSub = label(channels.size() + " canais", 11, MUTED, false);
+        side.addView(liveSub);
 
         ScrollView scroll = new ScrollView(this);
         channelList = new LinearLayout(this);
         channelList.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(channelList);
-        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
-        scrollLp.topMargin = dp(8);
-        listPanel.addView(scroll, scrollLp);
+        slp.topMargin = dp(10);
+        side.addView(scroll, slp);
 
-        LinearLayout playerPanel = new LinearLayout(this);
-        playerPanel.setOrientation(LinearLayout.VERTICAL);
-        playerPanel.setPadding(dp(10), dp(10), dp(10), dp(10));
-        playerPanel.setBackground(rounded(Color.BLACK, 14));
+        LinearLayout main = new LinearLayout(this);
+        main.setOrientation(LinearLayout.VERTICAL);
+        main.setPadding(dp(12), dp(12), dp(12), dp(12));
+        main.setBackground(round(Color.BLACK, 18));
 
         playerView = new PlayerView(this);
         playerView.setUseController(true);
         playerView.setBackgroundColor(Color.BLACK);
-        playerPanel.addView(playerView, new LinearLayout.LayoutParams(
+        main.addView(playerView, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        if (landscape) {
-            content.addView(listPanel, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 0.34f));
-            LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 0.66f);
-            pp.leftMargin = dp(10);
-            content.addView(playerPanel, pp);
-        } else {
-            content.addView(playerPanel, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(260)));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
-            lp.topMargin = dp(10);
-            content.addView(listPanel, lp);
-        }
+        LinearLayout.LayoutParams sideLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, .30f);
+        LinearLayout.LayoutParams mainLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, .70f);
+        mainLp.leftMargin = dp(14);
 
-        root.addView(content, new LinearLayout.LayoutParams(
+        body.addView(side, sideLp);
+        body.addView(main, mainLp);
+
+        root.addView(body, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
         setContentView(root);
 
         player = new ExoPlayer.Builder(this).build();
         playerView.setPlayer(player);
-        renderChannels();
+        renderChannels(serverName);
         updateExpiry();
 
-        if (!channels.isEmpty()) playChannel(channels.get(0));
+        if (!channels.isEmpty()) {
+            playChannel(channels.get(0));
+            if (channelList.getChildCount() > 0) channelList.getChildAt(1 < channelList.getChildCount() ? 1 : 0).requestFocus();
+        }
     }
 
-    private void renderChannels() {
+    private void renderChannels(String serverName) {
         if (channelList == null) return;
         channelList.removeAllViews();
-
         String lastGroup = null;
+
         for (Channel c : channels) {
             if (!c.group.equals(lastGroup)) {
-                TextView group = text(c.group.toUpperCase(Locale.ROOT), 12, MUTED, true);
-                group.setPadding(dp(8), dp(14), dp(8), dp(6));
-                channelList.addView(group);
+                TextView g = label(c.group.toUpperCase(Locale.ROOT), 11, MUTED, true);
+                g.setPadding(dp(8), dp(12), dp(8), dp(7));
+                channelList.addView(g);
                 lastGroup = c.group;
             }
 
-            TextView row = text(c.name, 16, TEXT, true);
-            row.setGravity(Gravity.CENTER_VERTICAL);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.VERTICAL);
             row.setPadding(dp(14), dp(12), dp(14), dp(12));
-            row.setBackground(rounded(PANEL2, 11));
-            row.setFocusable(true);
-            row.setClickable(true);
+
+            TextView name = label(c.name, 15, TEXT, true);
+            TextView group = label(c.group, 10, MUTED, false);
+            row.addView(name);
+            row.addView(group);
+
+            applyFocusable(row, PANEL2, BLUE, 12);
+            row.setOnClickListener(v -> playChannel(c));
+
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             lp.bottomMargin = dp(7);
             channelList.addView(row, lp);
-            row.setOnClickListener(v -> playChannel(c));
-            row.setOnFocusChangeListener((v, hasFocus) -> {
-                v.setBackground(rounded(hasFocus ? ACCENT : PANEL2, 11));
-            });
         }
 
         if (channels.isEmpty()) {
-            TextView empty = text("Nenhum canal disponível neste servidor.", 15, MUTED, false);
-            empty.setPadding(dp(10), dp(20), dp(10), dp(20));
+            TextView empty = label("Nenhum canal disponível.", 15, MUTED, false);
+            empty.setPadding(dp(12), dp(20), dp(12), dp(20));
             channelList.addView(empty);
         }
     }
@@ -360,6 +540,7 @@ public class MainActivity extends Activity {
                 String sid = cfg.optString("active_server_id", "");
                 int version = cfg.optInt("version", 0);
                 JSONObject server = cfg.getJSONObject("server");
+                String serverName = server.optString("name", "Servidor");
                 boolean changed = !activeServerId.isEmpty() &&
                         (!sid.equals(activeServerId) || version != configVersion);
 
@@ -369,11 +550,9 @@ public class MainActivity extends Activity {
 
                 if (switchIfChanged && changed) {
                     ui.post(() -> {
-                        if (serverLabel != null) serverLabel.setText(server.optString("name", "Servidor"));
-                        renderChannels();
-                        stopPlayback();
-                        if (!channels.isEmpty()) playChannel(channels.get(0));
-                        Toast.makeText(this, "Servidor atualizado automaticamente.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Servidor atualizado.", Toast.LENGTH_SHORT).show();
+                        if (screen == Screen.HOME) showHomeScreen(serverName);
+                        else if (screen == Screen.LIVE) showLiveScreen(serverName);
                     });
                 }
             } catch (Exception ignored) {}
@@ -399,11 +578,11 @@ public class MainActivity extends Activity {
     }
 
     private JSONObject getJson(String address) throws Exception {
-        HttpURLConnection c = (HttpURLConnection) new URL(address).openConnection();
+        HttpURLConnection c = (HttpURLConnection)new URL(address).openConnection();
         c.setConnectTimeout(12000);
         c.setReadTimeout(12000);
-        c.setRequestProperty("User-Agent", "JSTechAutoTV-Native/1.1");
         c.setUseCaches(false);
+        c.setRequestProperty("User-Agent", "JSTechAutoTV-Native/1.2");
         try (BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream()))) {
             StringBuilder b = new StringBuilder();
             String line;
@@ -415,27 +594,33 @@ public class MainActivity extends Activity {
     }
 
     private void updateExpiry() {
-        if (!insidePlayer || expiryLabel == null || trialExpires <= 0) return;
+        if (!trialReady || expiryLabel == null || trialExpires <= 0) return;
         long left = trialExpires - System.currentTimeMillis();
+
         if (left <= 0) {
             expiryLabel.setText("TESTE ENCERRADO");
             expiryLabel.setTextColor(Color.rgb(248, 113, 113));
-            renewButton.setVisibility(View.VISIBLE);
+            if (renewButton != null) renewButton.setVisibility(View.VISIBLE);
             stopPlayback();
             return;
         }
-        long totalSeconds = left / 1000;
-        long h = totalSeconds / 3600;
-        long m = (totalSeconds % 3600) / 60;
-        long s = totalSeconds % 60;
-        expiryLabel.setText(String.format(Locale.getDefault(), "Teste %02d:%02d:%02d", h, m, s));
-        if (left <= 10 * 60 * 1000L) renewButton.setVisibility(View.VISIBLE);
+
+        long total = left / 1000;
+        long h = total / 3600;
+        long m = (total % 3600) / 60;
+        long s = total % 60;
+        expiryLabel.setText(String.format(Locale.getDefault(), "%02d:%02d:%02d", h, m, s));
+        expiryLabel.setTextColor(TEXT);
+
+        if (renewButton != null) {
+            renewButton.setVisibility(left <= 10 * 60 * 1000L ? View.VISIBLE : View.GONE);
+        }
     }
 
     private void showRenewalDialog() {
         new AlertDialog.Builder(this)
                 .setTitle("Renovar acesso")
-                .setMessage("Seu teste está terminando. A próxima etapa liga este botão ao pagamento e à renovação automática do servidor.")
+                .setMessage("O teste está terminando. O módulo de pagamento e renovação automática será conectado aqui.")
                 .setPositiveButton("OK", null)
                 .show();
     }
@@ -447,33 +632,44 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void releasePlayer() {
+        if (player != null) {
+            player.release();
+            player = null;
+        }
+        playerView = null;
+        channelList = null;
+    }
+
     private String randomCode(int n) {
         String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         SecureRandom r = new SecureRandom();
         StringBuilder b = new StringBuilder();
-        for (int i = 0; i < n; i++) b.append(chars.charAt(r.nextInt(chars.length())));
+        for (int i=0;i<n;i++) b.append(chars.charAt(r.nextInt(chars.length())));
         return b.toString();
     }
 
-    @Override
-    protected void onDestroy() {
-        ui.removeCallbacksAndMessages(null);
-        io.shutdownNow();
-        if (player != null) player.release();
-        super.onDestroy();
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (insidePlayer) {
+    @Override public void onBackPressed() {
+        if (screen == Screen.LIVE) {
+            showHomeScreen(serverLabel != null ? serverLabel.getText().toString() : "Servidor");
+            return;
+        }
+        if (screen == Screen.HOME) {
             new AlertDialog.Builder(this)
                     .setTitle("Sair do aplicativo?")
                     .setNegativeButton("Cancelar", null)
-                    .setPositiveButton("Sair", (d, w) -> finish())
+                    .setPositiveButton("Sair", (d,w) -> finish())
                     .show();
-        } else {
-            super.onBackPressed();
+            return;
         }
+        super.onBackPressed();
+    }
+
+    @Override protected void onDestroy() {
+        ui.removeCallbacksAndMessages(null);
+        io.shutdownNow();
+        releasePlayer();
+        super.onDestroy();
     }
 
     static class Channel {

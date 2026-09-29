@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07101f">
+<title>JSTech M3U Manager</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<header>
+  <div><strong>JSTech M3U Manager</strong><small>Agregador e deduplicador de listas autorizadas</small></div>
+  <button id="logoutBtn" class="ghost hidden">Sair</button>
+</header>
+
+<main>
+<section id="loginCard" class="card login">
+  <h1>Acesso ao painel</h1>
+  <p class="muted">A chave fica salva somente neste navegador.</p>
+  <label>Chave administrativa<input id="adminKey" type="password" autocomplete="off"></label>
+  <button id="loginBtn">Entrar</button>
+  <p id="loginError" class="error"></p>
+</section>
+
+<div id="app" class="hidden">
+<section class="stats">
+  <div class="stat"><span>Total final</span><b id="total">0</b></div>
+  <div class="stat"><span>TV ao vivo</span><b id="live">0</b></div>
+  <div class="stat"><span>Filmes</span><b id="movie">0</b></div>
+  <div class="stat"><span>Séries</span><b id="series">0</b></div>
+</section>
+
+<section class="card">
+  <div class="row between"><div><h2>Lista final</h2><p class="muted">Uma única M3U sem duplicados.</p></div></div>
+  <label>Token da lista final<input id="outputToken" type="password" autocomplete="off" placeholder="Cole o token de saída"></label>
+  <div class="urlbox"><input id="finalUrl" readonly><button id="copyUrl">Copiar</button></div>
+  <div class="actions">
+    <button class="secondary kind" data-kind="">Tudo</button>
+    <button class="secondary kind" data-kind="live">TV</button>
+    <button class="secondary kind" data-kind="movie">Filmes</button>
+    <button class="secondary kind" data-kind="series">Séries</button>
+  </div>
+</section>
+
+<section class="card">
+  <div class="row between"><div><h2>Fontes M3U</h2><p class="muted">Cadastre somente fontes que você tem autorização para usar.</p></div><button id="syncAll">Sincronizar todas</button></div>
+  <form id="sourceForm" class="grid">
+    <input id="sourceId" type="hidden">
+    <label>Nome<input id="sourceName" required placeholder="Servidor 1"></label>
+    <label>Prioridade<input id="sourcePriority" type="number" value="100" min="1" max="9999"></label>
+    <label class="wide">URL M3U<input id="sourceUrl" required type="url" placeholder="https://servidor/lista.m3u"></label>
+    <label class="check"><input id="sourceEnabled" type="checkbox" checked> Fonte ativa</label>
+    <div class="actions wide"><button type="submit">Salvar fonte</button><button id="cancelEdit" type="button" class="ghost hidden">Cancelar edição</button></div>
+  </form>
+  <div id="sources" class="source-list"></div>
+</section>
+
+<section class="card">
+  <div class="row between"><div><h2>Prévia</h2><p class="muted">Primeiros itens da lista final.</p></div><button id="refreshPreview" class="secondary">Atualizar</button></div>
+  <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>Nome</th><th>Categoria</th><th>Fonte</th><th>Qualidade</th></tr></thead><tbody id="previewBody"></tbody></table></div>
+</section>
+
+<div id="toast" class="toast"></div>
+</div>
+</main>
+<script src="./app.js"></script>
+</body></html>

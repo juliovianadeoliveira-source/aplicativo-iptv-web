@@ -1,10 +1,11 @@
 <resources>
-    <style name="Theme.JSTechAutoTV" parent="@android:style/Theme.Material.Light.NoActionBar">
+    <style name="Theme.JSTechAutoTV" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowFullscreen">true</item>
         <item name="android:fontFamily">sans</item>
         <item name="android:colorAccent">#2563EB</item>
         <item name="android:navigationBarColor">#050913</item>
         <item name="android:statusBarColor">#050913</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">#050913</item>
     </style>
 </resources>

@@ -34,13 +34,27 @@ $('outputToken').oninput=updateUrl;
 document.querySelectorAll('.kind').forEach(b=>b.onclick=()=>{selectedKind=b.dataset.kind||'';updateUrl();toast(selectedKind?'Filtro: '+b.textContent:'Lista completa')});
 $('copyUrl').onclick=async()=>{await navigator.clipboard.writeText($('finalUrl').value);toast('URL copiada')};
 
+function buildXtreamUrl(){
+  let base=$('serverBase').value.trim().replace(/\/$/,'');
+  const user=$('serverUser').value.trim();
+  const pass=$('serverPass').value;
+  const output=$('serverOutput').value||'mpegts';
+  if(base && !/^https?:\/\//i.test(base)) base='http://'+base;
+  if(!base||!user||!pass){$('sourceUrl').value='';return ''}
+  const u=base+'/get.php?username='+encodeURIComponent(user)+'&password='+encodeURIComponent(pass)+'&type=m3u_plus&output='+encodeURIComponent(output);
+  $('sourceUrl').value=u;
+  return u;
+}
+['serverBase','serverUser','serverPass','serverOutput'].forEach(id=>$(id).addEventListener('input',buildXtreamUrl));
+
 $('sourceForm').onsubmit=async e=>{
  e.preventDefault();
- const body={id:$('sourceId').value||undefined,name:$('sourceName').value.trim(),url:$('sourceUrl').value.trim(),priority:Number($('sourcePriority').value||100),enabled:$('sourceEnabled').checked};
+ const built=buildXtreamUrl();
+ const body={id:$('sourceId').value||undefined,name:$('sourceName').value.trim(),url:built,priority:Number($('sourcePriority').value||100),enabled:$('sourceEnabled').checked};
  try{await api('save-source',{method:'POST',body:JSON.stringify(body)});resetForm();await refresh();toast('Fonte salva')}
  catch(e){alert(e.message)}
 };
-function resetForm(){$('sourceForm').reset();$('sourceId').value='';$('sourcePriority').value='100';$('sourceEnabled').checked=true;$('cancelEdit').classList.add('hidden')}
+function resetForm(){$('sourceForm').reset();$('sourceId').value='';$('sourcePriority').value='100';$('sourceEnabled').checked=true;$('serverOutput').value='mpegts';$('sourceUrl').value='';$('cancelEdit').classList.add('hidden')}
 $('cancelEdit').onclick=resetForm;
 
 function renderSources(){
@@ -53,7 +67,14 @@ function renderSources(){
 }
 function editSource(id){
  const s=state.sources.find(x=>x.id===id);if(!s)return;
- $('sourceId').value=s.id;$('sourceName').value=s.name;$('sourceUrl').value=s.url;$('sourcePriority').value=s.priority;$('sourceEnabled').checked=s.enabled;$('cancelEdit').classList.remove('hidden');scrollTo({top:$('sourceForm').offsetTop-120,behavior:'smooth'});
+ $('sourceId').value=s.id;$('sourceName').value=s.name;$('sourcePriority').value=s.priority;$('sourceEnabled').checked=s.enabled;
+ const u=new URL(s.url);
+ $('serverBase').value=u.origin;
+ $('serverUser').value=u.searchParams.get('username')||'';
+ $('serverPass').value=u.searchParams.get('password')||'';
+ $('serverOutput').value=u.searchParams.get('output')||'mpegts';
+ buildXtreamUrl();
+ $('cancelEdit').classList.remove('hidden');scrollTo({top:$('sourceForm').offsetTop-120,behavior:'smooth'});
 }
 async function delSource(id){if(!confirm('Excluir esta fonte e os itens importados dela?'))return;await api('delete-source',{method:'POST',body:JSON.stringify({id})});await refresh();await preview();toast('Fonte excluída')}
 async function sync(id,btn){

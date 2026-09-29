@@ -48,7 +48,11 @@
     <input id="sourceId" type="hidden">
     <label>Nome<input id="sourceName" required placeholder="Servidor 1"></label>
     <label>Prioridade<input id="sourcePriority" type="number" value="100" min="1" max="9999"></label>
-    <label class="wide">URL M3U<input id="sourceUrl" required type="url" placeholder="https://servidor/lista.m3u"></label>
+    <label class="wide">Servidor / IP<input id="serverBase" required placeholder="http://IP:PORTA"></label>
+    <label>Usuário<input id="serverUser" required placeholder="usuario"></label>
+    <label>Senha<input id="serverPass" required placeholder="senha"></label>
+    <label>Saída<select id="serverOutput"><option value="mpegts">mpegts</option><option value="hls">hls</option><option value="ts">ts</option></select></label>
+    <label class="wide">URL gerada<input id="sourceUrl" readonly></label>
     <label class="check"><input id="sourceEnabled" type="checkbox" checked> Fonte ativa</label>
     <div class="actions wide"><button type="submit">Salvar fonte</button><button id="cancelEdit" type="button" class="ghost hidden">Cancelar edição</button></div>
   </form>

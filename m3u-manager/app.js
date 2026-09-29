@@ -1,12 +1,27 @@
 const API='https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/m3u-manager';
+const AUTH='https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/m3u-panel-auth';
 const $=id=>document.getElementById(id);
-let key=localStorage.getItem('jstech_m3u_admin')||'',outputToken=localStorage.getItem('jstech_m3u_output')||'',state={sources:[],total:0,kinds:{}},previewItems=[],selectedKind='',contentFilter='';
-$('adminKey').value=key;$('outputToken').value=outputToken;
+let session=localStorage.getItem('jstech_m3u_session')||'',outputToken=localStorage.getItem('jstech_m3u_output')||'',state={sources:[],total:0,kinds:{}},previewItems=[],selectedKind='',contentFilter='';
+$('outputToken').value=outputToken;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function toast(m){$('toast').textContent=m;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2200)}
-async function api(action,opt={}){const r=await fetch(API+'?action='+encodeURIComponent(action),{...opt,headers:{'x-admin-key':key,'content-type':'application/json',...(opt.headers||{})},cache:'no-store'});const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{d={error:t}}if(!r.ok||d.ok===false)throw new Error(d.error||'Falha na operação');return d}
-async function login(){key=$('adminKey').value.trim();$('loginError').textContent='';try{const d=await api('status');localStorage.setItem('jstech_m3u_admin',key);$('loginView').classList.add('hidden');$('panel').classList.remove('hidden');applyStatus(d);await preview()}catch(e){$('loginError').textContent=e.message==='unauthorized'?'Chave inválida.':e.message}}
-$('loginBtn').onclick=login;$('logoutBtn').onclick=()=>{localStorage.removeItem('jstech_m3u_admin');location.reload()};if(key)login();
+async function api(action,opt={}){const u=new URL(API);u.searchParams.set('action',action);if(session)u.searchParams.set('session',session);const r=await fetch(u,{...opt,headers:{'content-type':'application/json',...(opt.headers||{})},cache:'no-store'});const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{d={error:t}}if(!r.ok||d.ok===false)throw new Error(d.error||'Falha na operação');return d}
+async function login(){
+ const username=$('loginUser').value.trim().toLowerCase(),password=$('loginPassword').value;
+ $('loginError').textContent='';
+ try{
+  const r=await fetch(AUTH,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username,password})});
+  const d=await r.json();
+  if(!r.ok||!d.ok)throw new Error('Usuário ou senha incorretos.');
+  session=d.token;localStorage.setItem('jstech_m3u_session',session);
+  const status=await api('status');
+  $('loginView').classList.add('hidden');$('panel').classList.remove('hidden');applyStatus(status);await preview();
+ }catch(e){$('loginError').textContent=e.message||'Não foi possível entrar.'}
+}
+$('loginBtn').onclick=login;
+$('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+$('logoutBtn').onclick=()=>{localStorage.removeItem('jstech_m3u_session');location.reload()};
+if(session){api('status').then(async d=>{$('loginView').classList.add('hidden');$('panel').classList.remove('hidden');applyStatus(d);await preview()}).catch(()=>localStorage.removeItem('jstech_m3u_session'))};
 const titles={dashboard:'Dashboard',servers:'Servidores',content:'Conteúdo',sync:'Sincronização',output:'Lista final'};
 function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+p));document.querySelectorAll('.nav[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===p));$('pageTitle').textContent=titles[p]||'Painel'}
 document.querySelectorAll('.nav[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));

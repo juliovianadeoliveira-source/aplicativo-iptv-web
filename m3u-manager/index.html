@@ -1,71 +1,21 @@
 <!doctype html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#07101f">
-<title>JSTech M3U Manager</title>
-<link rel="stylesheet" href="./styles.css">
-</head>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JSTech M3U Manager</title><link rel="stylesheet" href="./styles.css?v=panel2"></head>
 <body>
-<header>
-  <div><strong>JSTech M3U Manager</strong><small>Agregador e deduplicador de listas autorizadas</small></div>
-  <button id="logoutBtn" class="ghost hidden">Sair</button>
-</header>
-
-<main>
-<section id="loginCard" class="card login">
-  <h1>Acesso ao painel</h1>
-  <p class="muted">A chave fica salva somente neste navegador.</p>
-  <label>Chave administrativa<input id="adminKey" type="password" autocomplete="off"></label>
-  <button id="loginBtn">Entrar</button>
-  <p id="loginError" class="error"></p>
+<div id="loginView" class="login-view"><div class="login-card"><div class="brand"><div class="logo">JS</div><div><b>JSTech</b><span>M3U Manager</span></div></div><p class="eyebrow">Painel administrativo</p><h1>Entrar no painel</h1><p class="muted">Gerencie servidores e gere uma lista M3U consolidada.</p><label>Chave administrativa<input id="adminKey" type="password"></label><button id="loginBtn" class="primary full">Entrar</button><p id="loginError" class="error"></p></div></div>
+<div id="panel" class="panel hidden">
+<aside class="sidebar"><div class="brand"><div class="logo">JS</div><div><b>JSTech</b><span>M3U Manager</span></div></div><nav>
+<button class="nav active" data-page="dashboard">▦ <span>Dashboard</span></button><button class="nav" data-page="servers">◉ <span>Servidores</span></button><button class="nav" data-page="content">▶ <span>Conteúdo</span></button><button class="nav" data-page="sync">↻ <span>Sincronização</span></button><button class="nav" data-page="output">⌁ <span>Lista final</span></button></nav><button id="logoutBtn" class="nav logout">↪ <span>Sair</span></button></aside>
+<section class="workspace"><header class="topbar"><div><p class="eyebrow">JSTech M3U Manager</p><h2 id="pageTitle">Dashboard</h2></div><div class="top-actions"><span class="badge">Online</span><button id="topSyncAll" class="primary">Sincronizar tudo</button></div></header>
+<main class="content">
+<section id="page-dashboard" class="page active">
+<div class="stats"><article><span>Total final</span><b id="total">0</b><small>itens únicos</small></article><article><span>TV ao vivo</span><b id="live">0</b><small>canais únicos</small></article><article><span>Filmes</span><b id="movie">0</b><small>filmes únicos</small></article><article><span>Séries</span><b id="series">0</b><small>episódios únicos</small></article></div>
+<div class="dashgrid"><article class="card"><div class="head"><div><h3>Servidores</h3><p>Resumo das fontes cadastradas.</p></div><button class="ghost" data-go="servers">Gerenciar</button></div><div id="serverSummary" class="summary"></div></article><article class="card"><div class="head"><div><h3>Lista final</h3><p>URL única consolidada.</p></div><button class="ghost" data-go="output">Abrir</button></div><div class="output-mini"><span class="dot"></span><div><b>Lista ativa</b><small id="finalCountText">0 itens</small></div></div></article></div>
+<article class="card"><div class="head"><div><h3>Prévia</h3><p>Itens finais depois da deduplicação.</p></div><button id="dashboardRefresh" class="ghost">Atualizar</button></div><div class="tablewrap"><table><thead><tr><th>Tipo</th><th>Nome</th><th>Categoria</th><th>Fonte</th><th>Qualidade</th></tr></thead><tbody id="dashboardPreview"></tbody></table></div></article>
 </section>
-
-<div id="app" class="hidden">
-<section class="stats">
-  <div class="stat"><span>Total final</span><b id="total">0</b></div>
-  <div class="stat"><span>TV ao vivo</span><b id="live">0</b></div>
-  <div class="stat"><span>Filmes</span><b id="movie">0</b></div>
-  <div class="stat"><span>Séries</span><b id="series">0</b></div>
-</section>
-
-<section class="card">
-  <div class="row between"><div><h2>Lista final</h2><p class="muted">Uma única M3U sem duplicados.</p></div></div>
-  <label>Token da lista final<input id="outputToken" type="password" autocomplete="off" placeholder="Cole o token de saída"></label>
-  <div class="urlbox"><input id="finalUrl" readonly><button id="copyUrl">Copiar</button></div>
-  <div class="actions">
-    <button class="secondary kind" data-kind="">Tudo</button>
-    <button class="secondary kind" data-kind="live">TV</button>
-    <button class="secondary kind" data-kind="movie">Filmes</button>
-    <button class="secondary kind" data-kind="series">Séries</button>
-  </div>
-</section>
-
-<section class="card">
-  <div class="row between"><div><h2>Fontes M3U</h2><p class="muted">Cadastre somente fontes que você tem autorização para usar.</p></div><button id="syncAll">Sincronizar todas</button></div>
-  <form id="sourceForm" class="grid">
-    <input id="sourceId" type="hidden">
-    <label>Nome<input id="sourceName" required placeholder="Servidor 1"></label>
-    <label>Prioridade<input id="sourcePriority" type="number" value="100" min="1" max="9999"></label>
-    <label class="wide">Servidor / IP<input id="serverBase" required placeholder="http://IP:PORTA"></label>
-    <label>Usuário<input id="serverUser" required placeholder="usuario"></label>
-    <label>Senha<input id="serverPass" required placeholder="senha"></label>
-    <label>Saída<select id="serverOutput"><option value="mpegts">mpegts</option><option value="hls">hls</option><option value="ts">ts</option></select></label>
-    <label class="wide">URL gerada<input id="sourceUrl" readonly></label>
-    <label class="check"><input id="sourceEnabled" type="checkbox" checked> Fonte ativa</label>
-    <div class="actions wide"><button type="submit">Salvar fonte</button><button id="cancelEdit" type="button" class="ghost hidden">Cancelar edição</button></div>
-  </form>
-  <div id="sources" class="source-list"></div>
-</section>
-
-<section class="card">
-  <div class="row between"><div><h2>Prévia</h2><p class="muted">Primeiros itens da lista final.</p></div><button id="refreshPreview" class="secondary">Atualizar</button></div>
-  <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>Nome</th><th>Categoria</th><th>Fonte</th><th>Qualidade</th></tr></thead><tbody id="previewBody"></tbody></table></div>
-</section>
-
-<div id="toast" class="toast"></div>
-</div>
-</main>
-<script src="./app.js"></script>
-</body></html>
+<section id="page-servers" class="page"><div class="pagehead"><div><h3>Servidores</h3><p>Cadastre fontes Xtream/Get.php.</p></div><button id="newServerBtn" class="primary">+ Novo servidor</button></div>
+<article id="serverFormCard" class="card hidden"><div class="head"><div><h3 id="serverFormTitle">Novo servidor</h3><p>A URL get.php é montada automaticamente.</p></div><button id="closeServerForm" class="icon">×</button></div><form id="sourceForm" class="formgrid"><input id="sourceId" type="hidden"><label>Nome<input id="sourceName" required placeholder="Servidor Principal"></label><label>Prioridade<input id="sourcePriority" type="number" value="100"></label><label class="wide">Servidor / IP / Porta<input id="serverBase" required placeholder="http://IP:PORTA"></label><label>Usuário<input id="serverUser" required></label><label>Senha<input id="serverPass" required></label><label>Saída<select id="serverOutput"><option value="mpegts">mpegts</option><option value="hls">hls</option><option value="ts">ts</option></select></label><label class="check"><input id="sourceEnabled" type="checkbox" checked> Servidor ativo</label><label class="wide">URL gerada<input id="sourceUrl" readonly></label><div class="actions wide"><button class="primary" type="submit">Salvar servidor</button><button id="cancelEdit" class="ghost" type="button">Cancelar</button></div></form></article><div id="sources" class="servergrid"></div></section>
+<section id="page-content" class="page"><div class="pagehead"><div><h3>Conteúdo</h3><p>Resultado consolidado e sem duplicados.</p></div><button id="refreshPreview" class="ghost">Atualizar</button></div><div class="filters"><button class="filter active" data-filter="">Tudo</button><button class="filter" data-filter="live">TV</button><button class="filter" data-filter="movie">Filmes</button><button class="filter" data-filter="series">Séries</button></div><article class="card"><div class="tablewrap"><table><thead><tr><th>Tipo</th><th>Nome</th><th>Categoria</th><th>Fonte</th><th>Qualidade</th></tr></thead><tbody id="previewBody"></tbody></table></div></article></section>
+<section id="page-sync" class="page"><div class="pagehead"><div><h3>Sincronização</h3><p>Atualize uma ou todas as fontes.</p></div><button id="syncAll" class="primary">Sincronizar todas</button></div><article class="card"><div id="syncList" class="summary"></div></article></section>
+<section id="page-output" class="page"><div class="pagehead"><div><h3>Lista final</h3><p>URL única para player ou aplicativo.</p></div></div><article class="card"><label>Token da lista final<input id="outputToken" type="password"></label><div class="outputbox"><code id="finalUrl"></code><button id="copyUrl" class="primary">Copiar URL</button></div><div class="filters"><button class="kind active" data-kind="">Tudo</button><button class="kind" data-kind="live">TV</button><button class="kind" data-kind="movie">Filmes</button><button class="kind" data-kind="series">Séries</button></div></article></section>
+</main></section></div><div id="toast" class="toast"></div><script src="./app.js?v=panel2"></script></body></html>

@@ -5,23 +5,62 @@ let session=localStorage.getItem('jstech_m3u_session')||'',outputToken=localStor
 $('outputToken').value=outputToken;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function toast(m){$('toast').textContent=m;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2200)}
-async function api(action,opt={}){const u=new URL(API);u.searchParams.set('action',action);if(session)u.searchParams.set('session',session);const r=await fetch(u,{...opt,headers:{'content-type':'application/json',...(opt.headers||{})},cache:'no-store'});const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{d={error:t}}if(!r.ok||d.ok===false)throw new Error(d.error||'Falha na operação');return d}
+async function api(action,opt={}){
+ const u=new URL(API);u.searchParams.set('action',action);if(session)u.searchParams.set('session',session);
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),15000);
+ try{
+  const r=await fetch(u,{...opt,headers:{'content-type':'application/json',...(opt.headers||{})},cache:'no-store',signal:controller.signal});
+  const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{d={error:t}}
+  if(!r.ok||d.ok===false)throw new Error(d.error||'Falha na operação');
+  return d;
+ }catch(e){
+  if(e?.name==='AbortError')throw new Error('O painel demorou para carregar os dados.');
+  throw e;
+ }finally{clearTimeout(timer)}
+}
 async function login(){
  const username=$('loginUser').value.trim().toLowerCase(),password=$('loginPassword').value;
- $('loginError').textContent='';
+ const err=$('loginError'),btn=$('loginBtn');
+ err.textContent='';
+ const old=btn.textContent;btn.disabled=true;btn.textContent='Entrando...';
  try{
-  const r=await fetch(AUTH,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username,password})});
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),15000);
+  let r;
+  try{
+    r=await fetch(AUTH,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username,password}),signal:controller.signal,cache:'no-store'});
+  } finally { clearTimeout(timer) }
   const d=await r.json();
   if(!r.ok||!d.ok)throw new Error('Usuário ou senha incorretos.');
-  session=d.token;localStorage.setItem('jstech_m3u_session',session);
-  const status=await api('status');
-  $('loginView').classList.add('hidden');$('panel').classList.remove('hidden');applyStatus(status);await preview();
- }catch(e){$('loginError').textContent=e.message||'Não foi possível entrar.'}
+  session=d.token;
+  localStorage.setItem('jstech_m3u_session',session);
+
+  // Entra imediatamente; os dados carregam depois.
+  $('loginView').classList.add('hidden');
+  $('panel').classList.remove('hidden');
+  btn.disabled=false;btn.textContent=old;
+
+  try{
+    const status=await api('status');
+    applyStatus(status);
+    await preview();
+  }catch(loadErr){
+    toast(loadErr.message||'Entrou, mas os dados ainda não carregaram.');
+  }
+ }catch(e){
+  err.textContent=e?.name==='AbortError'?'O login demorou demais. Tente novamente.':(e.message||'Não foi possível entrar.');
+  btn.disabled=false;btn.textContent=old;
+ }
 }
 $('loginBtn').onclick=login;
 $('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
 $('logoutBtn').onclick=()=>{localStorage.removeItem('jstech_m3u_session');location.reload()};
-if(session){api('status').then(async d=>{$('loginView').classList.add('hidden');$('panel').classList.remove('hidden');applyStatus(d);await preview()}).catch(()=>localStorage.removeItem('jstech_m3u_session'))};
+if(session){
+ $('loginView').classList.add('hidden');
+ $('panel').classList.remove('hidden');
+ api('status').then(async d=>{applyStatus(d);await preview()}).catch(e=>toast(e.message||'Falha ao carregar dados'));
+}
 const titles={dashboard:'Dashboard',servers:'Listaes',content:'Conteúdo',sync:'Sincronização',output:'Lista final'};
 function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+p));document.querySelectorAll('.nav[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===p));$('pageTitle').textContent=titles[p]||'Painel'}
 document.querySelectorAll('.nav[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));

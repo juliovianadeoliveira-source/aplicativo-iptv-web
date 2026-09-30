@@ -111,9 +111,15 @@ async function loadSourcesFast(){
   }catch(e){}
 }
 async function refresh(){await loadSourcesFast();applyStatus(await api('status'))}
-function statusClass(s){return s==='ok'?'ok':s==='error'?'bad':'never'}
-function renderSummary(){const a=state.sources||[];$('serverSummary').innerHTML=a.length?a.slice(0,6).map(s=>`<div class="summary-row"><div><b>${esc(s.name)}</b><small>${s.item_count||0} itens • prioridade ${s.priority}</small></div><span class="status ${statusClass(s.last_status)}">${esc(s.last_status||'never')}</span></div>`).join(''):'<p class="muted">Nenhum lista cadastrado.</p>'}
-function renderSync(){const a=state.sources||[];$('syncList').innerHTML=a.length?a.map(s=>`<div class="summary-row"><div><b>${esc(s.name)}</b><small>${s.last_sync_at?new Date(s.last_sync_at).toLocaleString('pt-BR'):'Nunca sincronizado'} • ${s.item_count||0} itens</small>${s.last_error?`<small style="color:#fb7185">${esc(s.last_error)}</small>`:''}</div><div class="server-actions"><span class="status ${statusClass(s.last_status)}">${esc(s.last_status||'never')}</span><button data-sync="${s.id}" class="ghost">Sincronizar</button></div></div>`).join(''):'<p class="muted">Nenhum lista cadastrado.</p>';document.querySelectorAll('#syncList [data-sync]').forEach(b=>b.onclick=()=>sync(b.dataset.sync,b))}
+function statusClass(s){return s==='ok'?'ok':s==='error'?'bad':s==='processing'?'processing':'never'}
+function statusLabel(s,count=0){
+  if(s==='processing')return 'Processando: '+Number(count||0).toLocaleString('pt-BR')+' itens';
+  if(s==='ok')return 'Concluído';
+  if(s==='error')return 'Erro';
+  return 'Aguardando';
+}
+function renderSummary(){const a=state.sources||[];$('serverSummary').innerHTML=a.length?a.slice(0,6).map(s=>`<div class="summary-row"><div><b>${esc(s.name)}</b><small>${s.item_count||0} itens • prioridade ${s.priority}</small></div><span class="status ${statusClass(s.last_status)}">${esc(statusLabel(s.last_status,s.item_count))}</span></div>`).join(''):'<p class="muted">Nenhum lista cadastrado.</p>'}
+function renderSync(){const a=state.sources||[];$('syncList').innerHTML=a.length?a.map(s=>`<div class="summary-row"><div><b>${esc(s.name)}</b><small>${s.last_sync_at?new Date(s.last_sync_at).toLocaleString('pt-BR'):'Nunca sincronizado'} • ${s.item_count||0} itens</small>${s.last_error?`<small style="color:#fb7185">${esc(s.last_error)}</small>`:''}</div><div class="server-actions"><span class="status ${statusClass(s.last_status)}">${esc(statusLabel(s.last_status,s.item_count))}</span><button data-sync="${s.id}" class="ghost">Sincronizar</button></div></div>`).join(''):'<p class="muted">Nenhum lista cadastrado.</p>';document.querySelectorAll('#syncList [data-sync]').forEach(b=>b.onclick=()=>sync(b.dataset.sync,b))}
 function maskUrl(raw){
   try{
     const u=new URL(raw);
@@ -128,7 +134,7 @@ function maskUrl(raw){
     return label+(extras.length?' • '+extras.join(' • '):'')+' • credenciais protegidas';
   }catch{return 'URL cadastrada • credenciais protegidas'}
 }
-function renderServers(){const a=state.sources||[];$('sources').innerHTML=a.length?a.map(s=>`<article class="server-card"><div class="head"><div><h4>${esc(s.name)}</h4><p>${esc(maskUrl(s.url))}</p></div><span class="status ${statusClass(s.last_status)}">${esc(s.last_status||'never')}</span></div><div class="server-meta"><span class="chip">${s.item_count||0} itens</span><span class="chip">Prioridade ${s.priority}</span><span class="chip">${s.enabled?'Ativo':'Inativo'}</span></div><div class="server-actions"><button class="ghost" data-edit="${s.id}">Editar</button><button class="primary" data-sync="${s.id}">Sincronizar</button><button class="ghost" data-del="${s.id}">Excluir</button></div></article>`).join(''):'<article class="card"><p class="muted">Nenhum lista cadastrado.</p></article>';document.querySelectorAll('#sources [data-edit]').forEach(b=>b.onclick=()=>editSource(b.dataset.edit));document.querySelectorAll('#sources [data-sync]').forEach(b=>b.onclick=()=>sync(b.dataset.sync,b));document.querySelectorAll('#sources [data-del]').forEach(b=>b.onclick=()=>delSource(b.dataset.del))}
+function renderServers(){const a=state.sources||[];$('sources').innerHTML=a.length?a.map(s=>`<article class="server-card"><div class="head"><div><h4>${esc(s.name)}</h4><p>${esc(maskUrl(s.url))}</p></div><span class="status ${statusClass(s.last_status)}">${esc(statusLabel(s.last_status,s.item_count))}</span></div><div class="server-meta"><span class="chip">${s.item_count||0} itens</span><span class="chip">Prioridade ${s.priority}</span><span class="chip">${s.enabled?'Ativo':'Inativo'}</span></div><div class="server-actions"><button class="ghost" data-edit="${s.id}">Editar</button><button class="primary" data-sync="${s.id}">Sincronizar</button><button class="ghost" data-del="${s.id}">Excluir</button></div></article>`).join(''):'<article class="card"><p class="muted">Nenhum lista cadastrado.</p></article>';document.querySelectorAll('#sources [data-edit]').forEach(b=>b.onclick=()=>editSource(b.dataset.edit));document.querySelectorAll('#sources [data-sync]').forEach(b=>b.onclick=()=>sync(b.dataset.sync,b));document.querySelectorAll('#sources [data-del]').forEach(b=>b.onclick=()=>delSource(b.dataset.del))}
 function openForm(edit=false){$('serverFormCard').classList.remove('hidden');$('serverFormTitle').textContent=edit?'Editar lista M3U':'Nova lista M3U';setTimeout(()=>$('serverFormCard').scrollIntoView({behavior:'smooth',block:'start'}),50)}
 function closeForm(){resetForm();$('serverFormCard').classList.add('hidden')}
 $('newServerBtn').onclick=()=>{resetForm();openForm(false)};$('closeServerForm').onclick=closeForm;$('cancelEdit').onclick=closeForm;
@@ -282,3 +288,21 @@ function renderPreview(err=''){const a=contentFilter?previewItems.filter(i=>i.ki
 $('refreshPreview').onclick=preview;$('dashboardRefresh').onclick=preview;document.querySelectorAll('.filter').forEach(b=>b.onclick=async()=>{document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');contentFilter=b.dataset.filter||'';await preview(contentFilter)});
 function updateUrl(){outputToken=$('outputToken').value.trim();localStorage.setItem('jstech_m3u_output',outputToken);const u=new URL(API);u.searchParams.set('action','playlist');if(outputToken)u.searchParams.set('token',outputToken);if(selectedKind)u.searchParams.set('kind',selectedKind);$('finalUrl').textContent=u.href}
 $('outputToken').oninput=updateUrl;document.querySelectorAll('.kind').forEach(b=>b.onclick=()=>{document.querySelectorAll('.kind').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedKind=b.dataset.kind||'';updateUrl()});$('copyUrl').onclick=async()=>{await navigator.clipboard.writeText($('finalUrl').textContent);toast('URL copiada')};
+let statusPollTimer=null;
+function startStatusPolling(){
+  if(statusPollTimer)return;
+  statusPollTimer=setInterval(async()=>{
+    try{
+      const d=await api('sources');
+      state.sources=d.sources||[];
+      localStorage.setItem('jstech_m3u_state',JSON.stringify(state));
+      renderServers();renderSummary();renderSync();
+      const anyProcessing=state.sources.some(s=>s.last_status==='processing');
+      if(!anyProcessing){
+        const st=await api('status').catch(()=>null);
+        if(st)applyStatus(st);
+      }
+    }catch(e){}
+  },5000);
+}
+startStatusPolling();

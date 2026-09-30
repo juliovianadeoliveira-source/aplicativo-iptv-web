@@ -131,23 +131,65 @@ $('bulkImportBtn').onclick=async()=>{
    let name='',url=line;
    const pipe=line.indexOf('|');
    if(pipe>0 && !/^https?:\/\//i.test(line.slice(0,pipe))){
-     name=line.slice(0,pipe).trim();url=line.slice(pipe+1).trim();
+     name=line.slice(0,pipe).trim();
+     url=line.slice(pipe+1).trim();
    }
    if(!/^https?:\/\//i.test(url))continue;
-   items.push({name:name||('Lista '+String(n).padStart(3,'0')),url,priority:100+n,enabled:true});n++;
+   items.push({
+     name:name||('Lista '+String(n).padStart(3,'0')),
+     url,
+     priority:100+n,
+     enabled:true
+   });
+   n++;
  }
  if(!items.length)return alert('Nenhuma URL válida encontrada.');
- $('bulkImportBtn').disabled=true;$('bulkStatus').textContent='Importando 0 de '+items.length+'...';
- let ok=0,fail=0;
- for(let i=0;i<items.length;i+=10){
-   const batch=items.slice(i,i+10);
-   const results=await Promise.allSettled(batch.map(body=>api('save-source',{method:'POST',body:JSON.stringify(body)})));
-   for(const r of results){if(r.status==='fulfilled')ok++;else fail++}
-   $('bulkStatus').textContent='Importando '+Math.min(i+10,items.length)+' de '+items.length+'...';
+
+ const btn=$('bulkImportBtn'),status=$('bulkStatus');
+ btn.disabled=true;
+ let saved=0,synced=0,failed=0;
+ const created=[];
+
+ try{
+   // 1) salva as fontes
+   for(let i=0;i<items.length;i++){
+     status.textContent='Salvando '+(i+1)+'/'+items.length+'...';
+     try{
+       const d=await api('save-source',{method:'POST',body:JSON.stringify(items[i])});
+       if(d?.source?.id){
+         created.push(d.source);
+         saved++;
+       }else{
+         failed++;
+       }
+     }catch(e){
+       failed++;
+     }
+   }
+
+   // 2) lê cada M3U imediatamente
+   for(let i=0;i<created.length;i++){
+     const s=created[i];
+     status.textContent='Lendo '+(i+1)+'/'+created.length+' • '+s.name+'...';
+     try{
+       const d=await api('sync',{method:'POST',body:JSON.stringify({source_id:s.id})});
+       const r=(d.results||[])[0];
+       if(r?.ok)synced++;else failed++;
+     }catch(e){
+       failed++;
+     }
+     await refresh().catch(()=>{});
+   }
+
+   await preview().catch(()=>{});
+   $('bulkUrls').value='';
+   status.textContent=synced+' lista(s) lida(s)'+(failed?' • '+failed+' com erro':'');
+   toast('Importação concluída');
+ }finally{
+   btn.disabled=false;
  }
- $('bulkImportBtn').disabled=false;$('bulkStatus').textContent=ok+' importadas'+(fail?' • '+fail+' com erro':'');
- $('bulkUrls').value='';await refresh();toast('Importação concluída');
 }
+
 async function delSource(id){if(!confirm('Excluir esta lista e os itens importados dela?'))return;await api('delete-source',{method:'POST',body:JSON.stringify({id})});await refresh();await preview();toast('Lista excluída')}
 async function sync(id,btn){
  const old=btn?.textContent;

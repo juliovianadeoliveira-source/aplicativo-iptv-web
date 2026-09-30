@@ -14,14 +14,15 @@ function toast(m){$('toast').textContent=m;$('toast').classList.add('show');setT
 async function api(action,opt={}){
  const u=new URL(API);u.searchParams.set('action',action);if(session)u.searchParams.set('session',session);
  const controller=new AbortController();
- const timer=setTimeout(()=>controller.abort(),15000);
+ const timeoutMs=action==='sync'?135000:30000;
+ const timer=setTimeout(()=>controller.abort(),timeoutMs);
  try{
   const r=await fetch(u,{...opt,headers:{'content-type':'application/json',...(opt.headers||{})},cache:'no-store',signal:controller.signal});
   const t=await r.text();let d={};try{d=t?JSON.parse(t):{}}catch{d={error:t}}
   if(!r.ok||d.ok===false)throw new Error(d.error||'Falha na operação');
   return d;
  }catch(e){
-  if(e?.name==='AbortError')throw new Error('O painel demorou para carregar os dados.');
+  if(e?.name==='AbortError')throw new Error(action==='sync'?'A lista continua processando; aguarde o status atualizar.':'O painel demorou para carregar os dados.');
   throw e;
  }finally{clearTimeout(timer)}
 }

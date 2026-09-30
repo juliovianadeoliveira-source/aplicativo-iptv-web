@@ -113,7 +113,7 @@ app.whenReady().then(() => {
     callback({ requestHeaders: headers });
   });
   browserSession.on('will-download', (event) => { event.preventDefault(); dialog.showMessageBox(win, { type: 'info', message: 'Downloads estão bloqueados nesta versão privada.' }); });
-  win = new BrowserWindow({ width: 1280, height: 850, minWidth: 700, minHeight: 480, title: 'Aurora', backgroundColor: '#101827', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false } });
+  win = new BrowserWindow({ width: 1280, height: 850, minWidth: 700, minHeight: 480, title: 'Aurora', icon: path.join(__dirname, 'icon.png'), backgroundColor: '#101827', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false } });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', event => event.preventDefault());
   win.on('resize', arrange);

@@ -257,18 +257,27 @@ async function syncAllSequential(btn){
 }
 $('syncAll').onclick=()=>syncAllSequential($('syncAll'));
 $('topSyncAll').onclick=()=>syncAllSequential($('topSyncAll'));
-async function preview(){
+async function preview(kind=contentFilter){
  try{
-  const d=await api('preview');
+  const actionKind=kind||'';
+  const u=new URL(API);
+  u.searchParams.set('action','preview');
+  if(session)u.searchParams.set('session',session);
+  if(actionKind)u.searchParams.set('kind',actionKind);
+  const r=await fetch(u,{cache:'no-store'});
+  const t=await r.text();
+  let d={};try{d=t?JSON.parse(t):{}}catch{d={error:t}}
+  if(!r.ok||d.ok===false)throw new Error(d.error||'Falha ao carregar conteúdo');
   previewItems=d.items||[];
-  localStorage.setItem('jstech_m3u_preview',JSON.stringify(previewItems));
+  localStorage.setItem('jstech_m3u_preview_'+(actionKind||'all'),JSON.stringify(previewItems));
   renderPreview();
  }catch(e){
-  if(previewItems.length) renderPreview();
-  else renderPreview(e.message);
+  const cachedKey='jstech_m3u_preview_'+(kind||'all');
+  try{previewItems=JSON.parse(localStorage.getItem(cachedKey)||'[]')}catch{previewItems=[]}
+  if(previewItems.length)renderPreview();else renderPreview(e.message);
  }
 }
 function renderPreview(err=''){const a=contentFilter?previewItems.filter(i=>i.kind===contentFilter):previewItems;const rows=err?`<tr><td colspan="5" style="color:#fb7185">${esc(err)}</td></tr>`:(a.map(i=>`<tr><td><span class="pill">${esc(i.kind)}</span></td><td>${esc(i.title)}</td><td>${esc(i.group_title)}</td><td>${esc(i.source_name)}</td><td>${i.quality_score||0}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">Nenhum item sincronizado.</td></tr>');$('previewBody').innerHTML=rows;$('dashboardPreview').innerHTML=rows}
-$('refreshPreview').onclick=preview;$('dashboardRefresh').onclick=preview;document.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');contentFilter=b.dataset.filter||'';renderPreview()});
+$('refreshPreview').onclick=preview;$('dashboardRefresh').onclick=preview;document.querySelectorAll('.filter').forEach(b=>b.onclick=async()=>{document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');contentFilter=b.dataset.filter||'';await preview(contentFilter)});
 function updateUrl(){outputToken=$('outputToken').value.trim();localStorage.setItem('jstech_m3u_output',outputToken);const u=new URL(API);u.searchParams.set('action','playlist');if(outputToken)u.searchParams.set('token',outputToken);if(selectedKind)u.searchParams.set('kind',selectedKind);$('finalUrl').textContent=u.href}
 $('outputToken').oninput=updateUrl;document.querySelectorAll('.kind').forEach(b=>b.onclick=()=>{document.querySelectorAll('.kind').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedKind=b.dataset.kind||'';updateUrl()});$('copyUrl').onclick=async()=>{await navigator.clipboard.writeText($('finalUrl').textContent);toast('URL copiada')};

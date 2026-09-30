@@ -1,8 +1,14 @@
 const API='https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/m3u-manager';
 const AUTH='https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/m3u-panel-auth';
 const $=id=>document.getElementById(id);
-let session=localStorage.getItem('jstech_m3u_session')||'',outputToken=localStorage.getItem('jstech_m3u_output')||'',state={sources:[],total:0,kinds:{}},previewItems=[],selectedKind='',contentFilter='';
+let session=localStorage.getItem('jstech_m3u_session')||'',
+outputToken=localStorage.getItem('jstech_m3u_output')||'',
+state=(()=>{try{return JSON.parse(localStorage.getItem('jstech_m3u_state')||'null')||{sources:[],total:0,kinds:{}}}catch{return {sources:[],total:0,kinds:{}}}})(),
+previewItems=(()=>{try{return JSON.parse(localStorage.getItem('jstech_m3u_preview')||'[]')}catch{return []}})(),
+selectedKind='',contentFilter='';
 $('outputToken').value=outputToken;
+if($('bulkUrls')) $('bulkUrls').value=localStorage.getItem('jstech_m3u_bulk_draft')||'';
+if($('bulkUrls')) $('bulkUrls').addEventListener('input',()=>localStorage.setItem('jstech_m3u_bulk_draft',$('bulkUrls').value));
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function toast(m){$('toast').textContent=m;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2200)}
 async function api(action,opt={}){
@@ -71,6 +77,12 @@ $('loginBtn').onclick=login;
 $('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
 $('logoutBtn').onclick=()=>{localStorage.removeItem('jstech_m3u_session');location.reload()};
 if(session){
+  $('loginView').style.display='none';
+  $('panel').classList.remove('hidden');
+  if(state?.sources?.length || state?.total){
+    applyStatus(state);
+    if(previewItems.length)renderPreview();
+  }
   api('status').then(async d=>{
     $('loginView').style.display='none';
     $('panel').classList.remove('hidden');
@@ -84,7 +96,7 @@ if(session){
 const titles={dashboard:'Dashboard',servers:'Listaes',content:'Conteúdo',sync:'Sincronização',output:'Lista final'};
 function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+p));document.querySelectorAll('.nav[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===p));$('pageTitle').textContent=titles[p]||'Painel'}
 document.querySelectorAll('.nav[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
-function applyStatus(d){state=d;$('total').textContent=d.total||0;$('live').textContent=d.kinds?.live||0;$('movie').textContent=d.kinds?.movie||0;$('series').textContent=d.kinds?.series||0;$('finalCountText').textContent=(d.total||0)+' itens';renderServers();renderSummary();renderSync();updateUrl()}
+function applyStatus(d){state=d;localStorage.setItem('jstech_m3u_state',JSON.stringify(d));$('total').textContent=d.total||0;$('live').textContent=d.kinds?.live||0;$('movie').textContent=d.kinds?.movie||0;$('series').textContent=d.kinds?.series||0;$('finalCountText').textContent=(d.total||0)+' itens';renderServers();renderSummary();renderSync();updateUrl()}
 async function refresh(){applyStatus(await api('status'))}
 function statusClass(s){return s==='ok'?'ok':s==='error'?'bad':'never'}
 function renderSummary(){const a=state.sources||[];$('serverSummary').innerHTML=a.length?a.slice(0,6).map(s=>`<div class="summary-row"><div><b>${esc(s.name)}</b><small>${s.item_count||0} itens • prioridade ${s.priority}</small></div><span class="status ${statusClass(s.last_status)}">${esc(s.last_status||'never')}</span></div>`).join(''):'<p class="muted">Nenhum lista cadastrado.</p>'}
@@ -182,7 +194,7 @@ $('bulkImportBtn').onclick=async()=>{
    }
 
    await preview().catch(()=>{});
-   $('bulkUrls').value='';
+   localStorage.setItem('jstech_m3u_bulk_draft',$('bulkUrls').value);
    status.textContent=synced+' lista(s) lida(s)'+(failed?' • '+failed+' com erro':'');
    toast('Importação concluída');
  }finally{
@@ -233,7 +245,17 @@ async function syncAllSequential(btn){
 }
 $('syncAll').onclick=()=>syncAllSequential($('syncAll'));
 $('topSyncAll').onclick=()=>syncAllSequential($('topSyncAll'));
-async function preview(){try{const d=await api('preview');previewItems=d.items||[];renderPreview()}catch(e){previewItems=[];renderPreview(e.message)}}
+async function preview(){
+ try{
+  const d=await api('preview');
+  previewItems=d.items||[];
+  localStorage.setItem('jstech_m3u_preview',JSON.stringify(previewItems));
+  renderPreview();
+ }catch(e){
+  if(previewItems.length) renderPreview();
+  else renderPreview(e.message);
+ }
+}
 function renderPreview(err=''){const a=contentFilter?previewItems.filter(i=>i.kind===contentFilter):previewItems;const rows=err?`<tr><td colspan="5" style="color:#fb7185">${esc(err)}</td></tr>`:(a.map(i=>`<tr><td><span class="pill">${esc(i.kind)}</span></td><td>${esc(i.title)}</td><td>${esc(i.group_title)}</td><td>${esc(i.source_name)}</td><td>${i.quality_score||0}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">Nenhum item sincronizado.</td></tr>');$('previewBody').innerHTML=rows;$('dashboardPreview').innerHTML=rows}
 $('refreshPreview').onclick=preview;$('dashboardRefresh').onclick=preview;document.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');contentFilter=b.dataset.filter||'';renderPreview()});
 function updateUrl(){outputToken=$('outputToken').value.trim();localStorage.setItem('jstech_m3u_output',outputToken);const u=new URL(API);u.searchParams.set('action','playlist');if(outputToken)u.searchParams.set('token',outputToken);if(selectedKind)u.searchParams.set('kind',selectedKind);$('finalUrl').textContent=u.href}

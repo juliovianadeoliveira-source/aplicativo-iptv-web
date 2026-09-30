@@ -4,7 +4,7 @@
 <body>
 <div id="loginView" class="login-view"><div class="login-card"><div class="brand"><div class="logo">JS</div><div><b>JSTech</b><span>M3U Manager</span></div></div><p class="eyebrow">Painel administrativo</p><h1>Entrar no painel</h1><p class="muted">Gerencie listas M3U e gere uma lista M3U consolidada.</p><label>Usuário<input id="loginUser" type="text" autocomplete="username" value="admin"></label>
 <label>Senha<input id="loginPassword" type="password" autocomplete="current-password"></label>
-<button id="loginBtn" class="primary full">Entrar</button><p id="loginError" class="error"></p></div></div>
+<button id="loginBtn" type="button" class="primary full">Entrar</button><p id="loginError" class="error"></p></div></div>
 <div id="panel" class="panel hidden">
 <aside class="sidebar"><div class="brand"><div class="logo">JS</div><div><b>JSTech</b><span>M3U Manager</span></div></div><nav>
 <button class="nav active" data-page="dashboard">▦ <span>Dashboard</span></button><button class="nav" data-page="servers">◉ <span>Listas M3U</span></button><button class="nav" data-page="content">▶ <span>Conteúdo</span></button><button class="nav" data-page="sync">↻ <span>Sincronização</span></button><button class="nav" data-page="output">⌁ <span>Lista final</span></button></nav><button id="logoutBtn" class="nav logout">↪ <span>Sair</span></button></aside>
@@ -33,32 +33,46 @@
 <section id="page-content" class="page"><div class="pagehead"><div><h3>Conteúdo</h3><p>Uma única M3U contendo uma cópia de cada item por lista de origem.</p></div><button id="refreshPreview" class="ghost">Atualizar</button></div><div class="filters"><button class="filter active" data-filter="">Tudo</button><button class="filter" data-filter="live">TV</button><button class="filter" data-filter="movie">Filmes</button><button class="filter" data-filter="series">Séries</button></div><article class="card"><div class="tablewrap"><table><thead><tr><th>Tipo</th><th>Nome</th><th>Categoria</th><th>Fonte</th><th>Qualidade</th></tr></thead><tbody id="previewBody"></tbody></table></div></article></section>
 <section id="page-sync" class="page"><div class="pagehead"><div><h3>Sincronização</h3><p>Atualize uma ou todas as listas.</p></div><button id="syncAll" class="primary">Sincronizar todas</button></div><article class="card"><div id="syncList" class="summary"></div></article></section>
 <section id="page-output" class="page"><div class="pagehead"><div><h3>Lista final</h3><p>URL única para player ou aplicativo.</p></div></div><article class="card"><label>Token da lista final<input id="outputToken" type="password"></label><div class="outputbox"><code id="finalUrl"></code><button id="copyUrl" class="primary">Copiar URL</button></div><div class="filters"><button class="kind active" data-kind="">Tudo</button><button class="kind" data-kind="live">TV</button><button class="kind" data-kind="movie">Filmes</button><button class="kind" data-kind="series">Séries</button></div></article></section>
-</main></section></div><div id="toast" class="toast"></div><script src="./app.js?v=login-hard-fix-20260930-0028"></script><script>
-window.addEventListener('load',function(){
-  const btn=document.getElementById('loginBtn');
-  const user=document.getElementById('loginUser');
-  const pass=document.getElementById('loginPassword');
-  const err=document.getElementById('loginError');
-  if(!btn||!user||!pass||!err)return;
-  if(btn.dataset.fallbackBound==='1')return;
-  btn.dataset.fallbackBound='1';
-
-  btn.addEventListener('click',async function fallbackLogin(){
-    if(window.__m3uPrimaryLoginWorking)return;
-    err.textContent='Entrando...';
+</main></section></div><div id="toast" class="toast"></div><script>
+(function(){
+  const AUTH='https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/m3u-panel-auth';
+  function el(id){return document.getElementById(id)}
+  async function hardLogin(ev){
+    if(ev){ev.preventDefault();ev.stopPropagation()}
+    const btn=el('loginBtn'), user=el('loginUser'), pass=el('loginPassword'), err=el('loginError');
+    if(!btn||!user||!pass||!err)return false;
+    const username=user.value.trim().toLowerCase();
+    const password=pass.value;
+    if(!username||!password){err.textContent='Digite usuário e senha.';return false}
+    btn.disabled=true;
+    const old=btn.textContent;
+    btn.textContent='Entrando...';
+    err.textContent='';
     try{
-      const r=await fetch('https://fvttsguxeocisqvcrbqh.supabase.co/functions/v1/m3u-panel-auth',{
+      const res=await fetch(AUTH,{
         method:'POST',
-        headers:{'content-type':'application/json'},
-        body:JSON.stringify({username:user.value.trim().toLowerCase(),password:pass.value})
+        mode:'cors',
+        cache:'no-store',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({username,password})
       });
-      const d=await r.json();
-      if(!r.ok||!d.ok)throw new Error('Usuário ou senha incorretos.');
-      localStorage.setItem('jstech_m3u_session',d.token);
-      location.reload();
+      const txt=await res.text();
+      let data={}; try{data=txt?JSON.parse(txt):{}}catch{}
+      if(!res.ok||!data.ok)throw new Error(data.error==='invalid_credentials'?'Usuário ou senha incorretos.':'Falha no login.');
+      localStorage.setItem('jstech_m3u_session',data.token);
+      location.replace(location.pathname+'?login=ok&t='+Date.now());
+      return false;
     }catch(e){
-      err.textContent=e.message||'Não foi possível entrar.';
+      err.textContent=(e&&e.message)||'Não foi possível entrar.';
+      btn.disabled=false;btn.textContent=old;
+      return false;
     }
+  }
+  window.hardLogin=hardLogin;
+  document.addEventListener('DOMContentLoaded',function(){
+    const btn=el('loginBtn'), pass=el('loginPassword');
+    if(btn)btn.onclick=hardLogin;
+    if(pass)pass.onkeydown=function(e){if(e.key==='Enter')hardLogin(e)};
   });
-});
-</script></body></html>
+})();
+</script><script src="./app.js?v=after-hard-login-20260930"></script></body></html>

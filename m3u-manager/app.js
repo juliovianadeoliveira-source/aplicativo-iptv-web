@@ -77,8 +77,43 @@ $('bulkImportBtn').onclick=async()=>{
  $('bulkUrls').value='';await refresh();toast('Importação concluída');
 }
 async function delSource(id){if(!confirm('Excluir esta lista e os itens importados dela?'))return;await api('delete-source',{method:'POST',body:JSON.stringify({id})});await refresh();await preview();toast('Lista excluída')}
-async function sync(id,btn){const old=btn?.textContent;if(btn){btn.disabled=true;btn.textContent='Sincronizando...'}try{const d=await api('sync',{method:'POST',body:JSON.stringify(id?{source_id:id}:{})});const bad=(d.results||[]).filter(x=>!x.ok);toast(bad.length?bad.length+' lista(s) com erro':'Sincronização concluída');await refresh();await preview()}catch(e){alert(e.message)}finally{if(btn){btn.disabled=false;btn.textContent=old}}}
-$('syncAll').onclick=()=>sync('',$('syncAll'));$('topSyncAll').onclick=()=>sync('',$('topSyncAll'));
+async function sync(id,btn){
+ const old=btn?.textContent;
+ if(btn){btn.disabled=true;btn.textContent='Sincronizando...'}
+ try{
+   const d=await api('sync',{method:'POST',body:JSON.stringify({source_id:id})});
+   const r=(d.results||[])[0];
+   if(r && !r.ok)throw new Error(r.error||'Falha ao sincronizar esta lista.');
+   toast('Lista sincronizada');
+   await refresh();await preview();
+ }catch(e){alert(e.message||'Falha ao sincronizar esta lista.')}
+ finally{if(btn){btn.disabled=false;btn.textContent=old}}
+}
+async function syncAllSequential(btn){
+ const old=btn?.textContent;
+ const sources=(state.sources||[]).filter(s=>s.enabled);
+ if(!sources.length)return alert('Nenhuma lista ativa cadastrada.');
+ btn.disabled=true;
+ let ok=0,fail=0;
+ try{
+   for(let i=0;i<sources.length;i++){
+     const s=sources[i];
+     btn.textContent='Sincronizando '+(i+1)+'/'+sources.length;
+     try{
+       const d=await api('sync',{method:'POST',body:JSON.stringify({source_id:s.id})});
+       const r=(d.results||[])[0];
+       if(r && r.ok)ok++; else fail++;
+     }catch(e){fail++}
+     await refresh();
+   }
+   await preview();
+   toast(ok+' lista(s) sincronizada(s)'+(fail?' • '+fail+' com erro':''));
+ }finally{
+   btn.disabled=false;btn.textContent=old;
+ }
+}
+$('syncAll').onclick=()=>syncAllSequential($('syncAll'));
+$('topSyncAll').onclick=()=>syncAllSequential($('topSyncAll'));
 async function preview(){try{const d=await api('preview');previewItems=d.items||[];renderPreview()}catch(e){previewItems=[];renderPreview(e.message)}}
 function renderPreview(err=''){const a=contentFilter?previewItems.filter(i=>i.kind===contentFilter):previewItems;const rows=err?`<tr><td colspan="5" style="color:#fb7185">${esc(err)}</td></tr>`:(a.map(i=>`<tr><td><span class="pill">${esc(i.kind)}</span></td><td>${esc(i.title)}</td><td>${esc(i.group_title)}</td><td>${esc(i.source_name)}</td><td>${i.quality_score||0}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">Nenhum item sincronizado.</td></tr>');$('previewBody').innerHTML=rows;$('dashboardPreview').innerHTML=rows}
 $('refreshPreview').onclick=preview;$('dashboardRefresh').onclick=preview;document.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');contentFilter=b.dataset.filter||'';renderPreview()});

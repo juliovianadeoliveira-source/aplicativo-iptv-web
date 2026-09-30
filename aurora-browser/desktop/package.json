@@ -1,0 +1,29 @@
+{
+  "name": "aurora-browser",
+  "productName": "Aurora",
+  "version": "0.1.0",
+  "description": "Navegador Aurora com abas e protecao basica contra rastreadores",
+  "author": "Aurora",
+  "license": "MIT",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test ../tests/policy.test.cjs",
+    "dist": "electron-builder --win nsis portable --x64"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "com.aurora.browser",
+    "productName": "Aurora",
+    "asar": true,
+    "files": ["*.cjs", "*.html", "*.css", "*.js", "trackers.txt"],
+    "directories": {"output": "dist"},
+    "win": {"target": ["nsis", "portable"]},
+    "nsis": {"oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "artifactName": "Aurora-Setup-${version}.exe"},
+    "portable": {"artifactName": "Aurora-Portable-${version}.exe"},
+    "publish": null
+  }
+}

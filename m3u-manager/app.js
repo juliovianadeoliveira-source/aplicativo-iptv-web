@@ -30,7 +30,20 @@ async function refresh(){applyStatus(await api('status'))}
 function statusClass(s){return s==='ok'?'ok':s==='error'?'bad':'never'}
 function renderSummary(){const a=state.sources||[];$('serverSummary').innerHTML=a.length?a.slice(0,6).map(s=>`<div class="summary-row"><div><b>${esc(s.name)}</b><small>${s.item_count||0} itens • prioridade ${s.priority}</small></div><span class="status ${statusClass(s.last_status)}">${esc(s.last_status||'never')}</span></div>`).join(''):'<p class="muted">Nenhum lista cadastrado.</p>'}
 function renderSync(){const a=state.sources||[];$('syncList').innerHTML=a.length?a.map(s=>`<div class="summary-row"><div><b>${esc(s.name)}</b><small>${s.last_sync_at?new Date(s.last_sync_at).toLocaleString('pt-BR'):'Nunca sincronizado'} • ${s.item_count||0} itens</small>${s.last_error?`<small style="color:#fb7185">${esc(s.last_error)}</small>`:''}</div><div class="server-actions"><span class="status ${statusClass(s.last_status)}">${esc(s.last_status||'never')}</span><button data-sync="${s.id}" class="ghost">Sincronizar</button></div></div>`).join(''):'<p class="muted">Nenhum lista cadastrado.</p>';document.querySelectorAll('#syncList [data-sync]').forEach(b=>b.onclick=()=>sync(b.dataset.sync,b))}
-function maskUrl(raw){try{const u=new URL(raw);if(u.searchParams.has('password'))u.searchParams.set('password','••••••');return u.toString()}catch{return raw}}
+function maskUrl(raw){
+  try{
+    const u=new URL(raw);
+    const user=u.searchParams.get('username');
+    const type=u.searchParams.get('type');
+    const output=u.searchParams.get('output');
+    let label=u.origin+u.pathname;
+    const extras=[];
+    if(user)extras.push('usuário '+user);
+    if(type)extras.push(type);
+    if(output)extras.push(output);
+    return label+(extras.length?' • '+extras.join(' • '):'')+' • credenciais protegidas';
+  }catch{return 'URL cadastrada • credenciais protegidas'}
+}
 function renderServers(){const a=state.sources||[];$('sources').innerHTML=a.length?a.map(s=>`<article class="server-card"><div class="head"><div><h4>${esc(s.name)}</h4><p>${esc(maskUrl(s.url))}</p></div><span class="status ${statusClass(s.last_status)}">${esc(s.last_status||'never')}</span></div><div class="server-meta"><span class="chip">${s.item_count||0} itens</span><span class="chip">Prioridade ${s.priority}</span><span class="chip">${s.enabled?'Ativo':'Inativo'}</span></div><div class="server-actions"><button class="ghost" data-edit="${s.id}">Editar</button><button class="primary" data-sync="${s.id}">Sincronizar</button><button class="ghost" data-del="${s.id}">Excluir</button></div></article>`).join(''):'<article class="card"><p class="muted">Nenhum lista cadastrado.</p></article>';document.querySelectorAll('#sources [data-edit]').forEach(b=>b.onclick=()=>editSource(b.dataset.edit));document.querySelectorAll('#sources [data-sync]').forEach(b=>b.onclick=()=>sync(b.dataset.sync,b));document.querySelectorAll('#sources [data-del]').forEach(b=>b.onclick=()=>delSource(b.dataset.del))}
 function openForm(edit=false){$('serverFormCard').classList.remove('hidden');$('serverFormTitle').textContent=edit?'Editar lista M3U':'Nova lista M3U';setTimeout(()=>$('serverFormCard').scrollIntoView({behavior:'smooth',block:'start'}),50)}
 function closeForm(){resetForm();$('serverFormCard').classList.add('hidden')}
@@ -79,15 +92,20 @@ $('bulkImportBtn').onclick=async()=>{
 async function delSource(id){if(!confirm('Excluir esta lista e os itens importados dela?'))return;await api('delete-source',{method:'POST',body:JSON.stringify({id})});await refresh();await preview();toast('Lista excluída')}
 async function sync(id,btn){
  const old=btn?.textContent;
- if(btn){btn.disabled=true;btn.textContent='Sincronizando...'}
+ if(btn){btn.disabled=true;btn.textContent='Lendo lista...'}
  try{
    const d=await api('sync',{method:'POST',body:JSON.stringify({source_id:id})});
    const r=(d.results||[])[0];
-   if(r && !r.ok)throw new Error(r.error||'Falha ao sincronizar esta lista.');
-   toast('Lista sincronizada');
+   if(!r)throw new Error('O backend não retornou resultado para esta lista.');
+   if(!r.ok)throw new Error(r.error||'Falha ao ler esta lista.');
+   toast('Lista reconhecida: '+(r.items||0)+' itens');
    await refresh();await preview();
- }catch(e){alert(e.message||'Falha ao sincronizar esta lista.')}
- finally{if(btn){btn.disabled=false;btn.textContent=old}}
+ }catch(e){
+   await refresh().catch(()=>{});
+   alert(e.message||'Falha ao ler esta lista.');
+ } finally {
+   if(btn){btn.disabled=false;btn.textContent=old}
+ }
 }
 async function syncAllSequential(btn){
  const old=btn?.textContent;

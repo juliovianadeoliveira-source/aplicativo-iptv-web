@@ -60,6 +60,7 @@ async function login(){
     // carrega dados sem bloquear entrada
     setTimeout(async()=>{
       try{
+        await loadSourcesFast();
         const status=await api('status');
         applyStatus(status);
         await preview();
@@ -83,6 +84,7 @@ if(session){
     applyStatus(state);
     if(previewItems.length)renderPreview();
   }
+  loadSourcesFast();
   api('status').then(async d=>{
     $('loginView').style.display='none';
     $('panel').classList.remove('hidden');
@@ -97,7 +99,17 @@ const titles={dashboard:'Dashboard',servers:'Listaes',content:'Conteúdo',sync:'
 function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+p));document.querySelectorAll('.nav[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===p));$('pageTitle').textContent=titles[p]||'Painel'}
 document.querySelectorAll('.nav[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
 function applyStatus(d){state=d;localStorage.setItem('jstech_m3u_state',JSON.stringify(d));$('total').textContent=d.total||0;$('live').textContent=d.kinds?.live||0;$('movie').textContent=d.kinds?.movie||0;$('series').textContent=d.kinds?.series||0;$('finalCountText').textContent=(d.total||0)+' itens';renderServers();renderSummary();renderSync();updateUrl()}
-async function refresh(){applyStatus(await api('status'))}
+async function loadSourcesFast(){
+  try{
+    const d=await api('sources');
+    state.sources=d.sources||[];
+    localStorage.setItem('jstech_m3u_state',JSON.stringify(state));
+    renderServers();
+    renderSummary();
+    renderSync();
+  }catch(e){}
+}
+async function refresh(){await loadSourcesFast();applyStatus(await api('status'))}
 function statusClass(s){return s==='ok'?'ok':s==='error'?'bad':'never'}
 function renderSummary(){const a=state.sources||[];$('serverSummary').innerHTML=a.length?a.slice(0,6).map(s=>`<div class="summary-row"><div><b>${esc(s.name)}</b><small>${s.item_count||0} itens • prioridade ${s.priority}</small></div><span class="status ${statusClass(s.last_status)}">${esc(s.last_status||'never')}</span></div>`).join(''):'<p class="muted">Nenhum lista cadastrado.</p>'}
 function renderSync(){const a=state.sources||[];$('syncList').innerHTML=a.length?a.map(s=>`<div class="summary-row"><div><b>${esc(s.name)}</b><small>${s.last_sync_at?new Date(s.last_sync_at).toLocaleString('pt-BR'):'Nunca sincronizado'} • ${s.item_count||0} itens</small>${s.last_error?`<small style="color:#fb7185">${esc(s.last_error)}</small>`:''}</div><div class="server-actions"><span class="status ${statusClass(s.last_status)}">${esc(s.last_status||'never')}</span><button data-sync="${s.id}" class="ghost">Sincronizar</button></div></div>`).join(''):'<p class="muted">Nenhum lista cadastrado.</p>';document.querySelectorAll('#syncList [data-sync]').forEach(b=>b.onclick=()=>sync(b.dataset.sync,b))}

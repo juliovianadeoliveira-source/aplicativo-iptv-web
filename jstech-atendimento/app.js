@@ -1799,8 +1799,13 @@ function renderPanelConnectors(){
 
   list.innerHTML=rows.map(p=>{
     const status=panelStatusLabel(p);
+    const panelLogos={
+      "infrax":"https://infrax.sigma.vin/api/settings/logo/PEK6Pxd6?v=6c155a1d"
+    };
+    const logo=p.logo_url||panelLogos[p.catalog_key]||"";
+    const logoHtml=logo?'<img src="'+escapeHtml(logo)+'" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:46px;height:46px;object-fit:contain;border-radius:10px;background:#fff;padding:4px;flex:0 0 46px">':"";
     return '<div class="knowledge-item panel-connector-item '+(state.activePanel?.id===p.id?"active":"")+'" data-panel-select="'+p.id+'">'
-      +'<div class="knowledge-item-head"><div><b>'+escapeHtml(p.name)+'</b><p>'+escapeHtml(p.base_url||"Endereço ainda não identificado")+'</p></div>'
+      +'<div class="knowledge-item-head"><div style="display:flex;align-items:center;gap:10px">'+logoHtml+'<div><b>'+escapeHtml(p.name)+'</b><p>'+escapeHtml(p.base_url||"Endereço ainda não identificado")+'</p></div></div>'
       +'<span class="pill '+(p.last_status==="driver_ready"?"success":"warning")+'">'+escapeHtml(status)+'</span></div>'
       +'<p>'+escapeHtml((Array.isArray(p.capabilities)?p.capabilities:[]).join(" • ")||"teste • criar usuário • renovar")+'</p></div>';
   }).join("");

@@ -59,8 +59,11 @@
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'portal-card';
-    button.setAttribute('aria-label', `Abrir ${entry.name}`);
-    button.onclick = () => openEntry(entry);
+    button.disabled = entry.unavailable === true;
+    if (!button.disabled) {
+      button.setAttribute('aria-label', `Abrir ${entry.name}`);
+      button.onclick = () => openEntry(entry);
+    }
     const icon = document.createElement('span');
     icon.className = 'portal-card-icon';
     icon.setAttribute('aria-hidden', 'true');

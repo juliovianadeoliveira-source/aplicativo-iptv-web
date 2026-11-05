@@ -203,9 +203,14 @@
   text-align: left;
 }
 
-.portal-card:hover {
+.portal-card:enabled:hover {
   border-color: #6ab6ce;
   background: #20354d;
+}
+
+.portal-card:disabled {
+  opacity: 1;
+  background: #182337;
 }
 
 .portal-card:focus-visible,

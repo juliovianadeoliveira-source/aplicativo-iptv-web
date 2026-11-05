@@ -187,4 +187,5 @@ globalThis.JSTechLogos = Object.freeze({
   "science.nasa.gov": 178,
   "spaceplace.nasa.gov": 178,
   "onion.torproject.org": 155,
+  "atlasofnudes.com": 182,
 });

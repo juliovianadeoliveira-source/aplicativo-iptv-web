@@ -22,6 +22,29 @@ module.exports = async function smoke({ createTab, tabs, closeTab, clean, getSes
     })()`);
     assert.ok(youthLinks.includes('NASA Kids’ Club') && youthLinks.includes('AEB Escola'));
     assert.ok(!youthLinks.includes('Tor Project · Diretório oficial'));
+    const catalogStatus = await home.executeJavaScript(`(() => {
+      const buttons = [...document.querySelectorAll('.portal-category')];
+      const select = category => buttons.find(button => button.textContent === category).click();
+      select('Jogos');
+      const closedBets = document.querySelectorAll('.portal-card:disabled').length;
+      const governmentNotice = Boolean(document.querySelector('[aria-label="Abrir Situação das bets no Brasil"]'));
+      select('Adulto');
+      const photo = document.querySelector('[aria-label="Abrir Atlas of Nudes · Fotos"]');
+      let photoConfirmation = '';
+      const confirm = window.confirm;
+      try {
+        window.confirm = message => { photoConfirmation = message; return false; };
+        photo.click();
+      } finally {
+        window.confirm = confirm;
+        select('Todos');
+      }
+      return { closedBets, governmentNotice, photoConfirmation };
+    })()`);
+    assert.equal(catalogStatus.closedBets, 5);
+    assert.equal(catalogStatus.governmentNotice, true);
+    assert.match(catalogStatus.photoConfirmation, /18\+/);
+    assert.equal(tabs.size, 1, 'Declining the adult confirmation must keep the gallery closed.');
     const results = await home.executeJavaScript(`(() => {
       const input = document.querySelector('#portal-query');
       input.value = 'WhatsApp'; input.dispatchEvent(new Event('input'));

@@ -40,8 +40,36 @@
       url: 'https://invivo.fiocruz.br/'
     },
   ];
+  const bettingMarkets = new Map([
+    ['betano.bet.br', 'Licença em Portugal'],
+    ['novibet.bet.br', 'Licença em Chipre'],
+    ['kto.bet.br', 'Licença fora do Brasil sem confirmação'],
+    ['betao.bet.br', 'Licença fora do Brasil sem confirmação'],
+    ['bet365.bet.br', 'Licença na Grã-Bretanha']
+  ]);
+  const primary = data.primary.map(entry => {
+    const host = new URL(entry.url).hostname.replace(/^www\./, '');
+    const market = bettingMarkets.get(host);
+    if (!market) return entry;
+    return {
+      ...entry,
+      desc: 'Operação encerrada no Brasil em outubro de 2026',
+      source: market,
+      unavailable: true
+    };
+  });
   const items = [
-    ...data.primary,
+    {
+      name: 'Atlas of Nudes · Fotos', ico: 'AN', cat: 'Adulto', adult: true,
+      desc: 'Galeria de fotografia de nudez artística de adultos', source: 'Somente fotos',
+      url: 'https://atlasofnudes.com/explore'
+    },
+    {
+      name: 'Situação das bets no Brasil', ico: 'BR', cat: 'Jogos',
+      desc: 'Comunicado sobre o encerramento das apostas de quota fixa', source: 'Ministério da Fazenda',
+      url: 'https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/medida-provisoria-ndeg-1-394-2026-entenda-as-novas-regras-para-as-apostas-de-quota-fixa'
+    },
+    ...primary,
     ...youthLinks.map(link => ({ ...link, cat: youthCategory })),
     {
       name: 'Tor Project · Diretório oficial', ico: 'TOR', cat: 'Tor / Dark Web',

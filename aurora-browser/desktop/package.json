@@ -20,7 +20,7 @@
     "appId": "com.aurora.browser",
     "productName": "Aurora",
     "asar": true,
-    "files": ["*.cjs", "*.html", "*.css", "*.js", "trackers.txt", "icon.png", "icon.ico"],
+    "files": ["*.cjs", "*.html", "*.css", "*.js", "trackers.txt", "icon.png", "icon.ico", "jstech-logos.png"],
     "directories": {"output": "dist"},
     "win": {"target": ["nsis", "portable"], "icon": "icon.ico"},
     "nsis": {"oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "artifactName": "Aurora-Setup-${version}.exe"},
@@ -28,4 +28,5 @@
     "publish": null
   }
 }
+
 

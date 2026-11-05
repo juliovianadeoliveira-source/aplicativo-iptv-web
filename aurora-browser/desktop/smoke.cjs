@@ -10,7 +10,8 @@ module.exports = async function smoke({ createTab, tabs, closeTab, clean, getSes
   const url = 'http://127.0.0.1:' + server.address().port + '/';
   try {
     const home = getWindow().webContents;
-    assert.equal(await home.executeJavaScript("document.querySelector('#portal-title').textContent"), 'JSTech Privado');
+    const groups = await home.executeJavaScript("[...document.querySelectorAll('.portal-section h2')].map(node => node.textContent)");
+    assert.ok(groups.includes('Comunicação') && groups.includes('Redes sociais'), 'The home page must show separate categories.');
     const results = await home.executeJavaScript(`(() => {
       const input = document.querySelector('#portal-query');
       input.value = 'WhatsApp'; input.dispatchEvent(new Event('input'));
@@ -19,6 +20,13 @@ module.exports = async function smoke({ createTab, tabs, closeTab, clean, getSes
       return labels;
     })()`);
     assert.ok(results.includes('WhatsApp'), 'The imported catalog must be searchable on the home page.');
+    const hasLogo = await home.executeJavaScript(`(async () => {
+      const atlas = new Image();
+      atlas.src = 'jstech-logos.png';
+      await atlas.decode();
+      return atlas.naturalWidth > 0 && Boolean(document.querySelector('[aria-label="Abrir WhatsApp"] .portal-brand-mark'));
+    })()`);
+    assert.ok(hasLogo, 'The packaged catalog must display the local WhatsApp logo.');
     const unsafe = await home.executeJavaScript("window.aurora.command('open-shortcut', 'http://example.onion/')");
     assert.match(unsafe.error, /precisam do Tor/);
     const initialTabs = tabs.size;
@@ -57,3 +65,4 @@ module.exports = async function smoke({ createTab, tabs, closeTab, clean, getSes
     console.log('Aurora smoke passed: JSTech catalog, shortcuts, tabs, engine, IPC isolation, tracker blocking, cookie/storage cleanup');
   } finally { server.close(); }
 };
+

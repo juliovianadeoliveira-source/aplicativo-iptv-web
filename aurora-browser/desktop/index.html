@@ -17,31 +17,27 @@
     <button id="reload" title="Atualizar" aria-label="Atualizar">↻</button>
     <button id="home" title="Início" aria-label="Início">⌂</button>
     <form id="address-form"><input id="address" aria-label="Endereço ou pesquisa" placeholder="Pesquise ou digite um endereço" autocomplete="off" spellcheck="false"></form>
-    <button id="jstech" title="JSTech Privado">JSTech</button>
+    <button id="jstech">Atalhos</button>
     <button id="clean" title="Limpar sessão" aria-label="Limpar sessão">Limpar</button>
     <button id="about" title="Sobre o Aurora" aria-label="Sobre o Aurora">⋯</button>
   </nav>
-  <div class="privacy"><span id="blocked">Proteção por domínio ativa</span><span>Dados temporários · Aurora 0.1.0</span></div>
+  <div class="privacy"><span id="blocked">Proteção por domínio ativa</span><span>Sem histórico salvo · Apaga ao fechar</span></div>
   <main id="start">
-    <div class="start-brand"><div class="orb" aria-hidden="true">A</div><div><h1>Aurora</h1><p>Navegação privada com o portal JSTech.</p></div></div>
-    <form id="search-form"><input id="query" placeholder="Pesquisar na internet" aria-label="Pesquisar na internet" autocomplete="off"><button>Pesquisar</button></form>
-    <div class="start-search-options">
-      <div class="categories" aria-label="Tipo de pesquisa"><button data-category="web" aria-pressed="true">Tudo</button><button data-category="images" aria-pressed="false">Imagens</button><button data-category="videos" aria-pressed="false">Vídeos</button><button data-category="news" aria-pressed="false">Notícias</button><button data-category="maps" aria-pressed="false">Mapas</button></div>
-      <label>Buscador <select id="engine"><option value="duckduckgo">DuckDuckGo</option><option value="google">Google</option></select></label>
-    </div>
-    <section id="jstech-portal" aria-labelledby="portal-title">
-      <div class="portal-heading">
-        <img id="portal-logo" alt="" width="54" height="54">
-        <div><h2 id="portal-title">JSTech Privado</h2><p>Atalhos, ferramentas e pesquisas no Aurora.</p></div>
-        <span id="portal-total"></span>
+    <section class="start-web" aria-label="Pesquisa na internet">
+      <form id="search-form"><input id="query" placeholder="Pesquisar na internet" aria-label="Pesquisar na internet" autocomplete="off"><button>Pesquisar</button></form>
+      <div class="start-search-options">
+        <div class="categories" aria-label="Tipo de pesquisa"><button data-category="web" aria-pressed="true">Tudo</button><button data-category="images" aria-pressed="false">Imagens</button><button data-category="videos" aria-pressed="false">Vídeos</button><button data-category="news" aria-pressed="false">Notícias</button><button data-category="maps" aria-pressed="false">Mapas</button></div>
+        <label>Buscador <select id="engine"><option value="duckduckgo">DuckDuckGo</option><option value="google">Google</option></select></label>
       </div>
+    </section>
+    <section id="jstech-portal" aria-label="Catálogo de atalhos">
       <form id="portal-search-form" class="portal-controls" role="search">
-        <label for="portal-query">Buscar no catálogo</label>
+        <label for="portal-query">Buscar nos atalhos</label>
         <input id="portal-query" type="search" placeholder="Ex.: WhatsApp, Canva ou filmes" autocomplete="off" spellcheck="false">
-        <label for="portal-category">Categoria</label>
-        <select id="portal-category"></select>
         <button id="portal-anime-search" type="submit" hidden>Buscar no AniList</button>
+        <span id="portal-total"></span>
       </form>
+      <div id="portal-categories" class="portal-categories" role="group" aria-label="Categorias do catálogo"></div>
       <p id="portal-notice" hidden></p>
       <p id="portal-results" role="status"></p>
       <div id="portal-grid"></div>
@@ -54,6 +50,7 @@
   </main>
   <div id="error" role="alert"></div>
   <script src="jstech-catalog.js"></script>
+  <script src="jstech-logos.js"></script>
   <script src="renderer.js"></script>
   <script src="jstech-portal.js"></script>
 </body>

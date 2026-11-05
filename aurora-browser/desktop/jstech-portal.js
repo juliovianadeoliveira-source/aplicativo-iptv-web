@@ -2,36 +2,46 @@
 (() => {
   const $ = id => document.getElementById(id);
   const catalog = globalThis.JSTechCatalog;
-  const filter = $('portal-category');
+  const logos = globalThis.JSTechLogos;
+  const categories = [...new Set([
+    'Todos', 'Comunicação', 'Redes sociais', 'Entretenimento', 'IA', 'Vídeos', 'Vídeo IA',
+    'Animes', 'Imagens & design', 'Compras', 'Serviços & mapas', ...catalog.categories
+  ])];
+  const categoryName = category => category === 'Pesquisa' ? 'Pesquisas prontas' : category;
+  const categoryButtons = new Map();
   const search = $('portal-query');
   const animeButton = $('portal-anime-search');
   const notice = $('portal-notice');
   const pageSize = 24;
+  const previewSize = 4;
   const number = new Intl.NumberFormat('pt-BR');
   const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const textKey = entry => normalize([entry.name, entry.cat, entry.desc, entry.source].join(' '));
   const entries = catalog.items.map(entry => ({ ...entry, text: textKey(entry) }));
   const animeLink = { name: 'AniList', ico: 'AN', cat: 'Animes', desc: 'Abrir o catálogo mundial de animes', url: 'https://anilist.co/search/anime' };
   const torMessage = 'Endereços .onion precisam do Tor. O Aurora para Windows ainda não tem Tor integrado.';
+  let category = 'Todos';
   let page = 1;
   let animeResults = null;
   let animeStatus = '';
   let animeRequest = null;
 
-  $('portal-logo').src = catalog.logo;
   $('portal-total').textContent = `${number.format(entries.length)} itens`;
-  for (const category of catalog.categories) {
-    const option = document.createElement('option');
-    option.value = category;
-    option.textContent = category;
-    filter.append(option);
+  for (const name of categories) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'portal-category';
+    button.textContent = categoryName(name);
+    button.onclick = () => selectCategory(name);
+    categoryButtons.set(name, button);
+    $('portal-categories').append(button);
   }
 
   function selectedItems() {
-    if (filter.value === 'Animes') return animeResults ?? [animeLink];
+    if (category === 'Animes') return animeResults ?? [animeLink];
     const query = normalize(search.value.trim());
     return entries.filter(entry => {
-      const inCategory = filter.value === 'Todos' || entry.cat === filter.value || (filter.value === 'Pesquisa' && entry.kind === 'search');
+      const inCategory = category === 'Todos' || entry.cat === category || (category === 'Pesquisa' && entry.kind === 'search');
       return inCategory && (!query || entry.text.includes(query));
     });
   }
@@ -55,12 +65,22 @@
     icon.className = 'portal-card-icon';
     icon.setAttribute('aria-hidden', 'true');
     icon.textContent = entry.ico;
+    const host = entry.kind === 'tor' ? 'torproject.org' : new URL(entry.url).hostname.replace(/^www\./, '');
+    const logoIndex = logos[host];
+    if (Number.isInteger(logoIndex)) {
+      const mark = document.createElement('span');
+      mark.className = 'portal-brand-mark';
+      mark.style.backgroundPosition = `${-(logoIndex % 16) * 32}px ${-Math.floor(logoIndex / 16) * 32}px`;
+      icon.classList.add('portal-card-icon--brand');
+      icon.replaceChildren(mark);
+    }
     if (entry.image) {
       const image = document.createElement('img');
       image.alt = '';
       image.loading = 'lazy';
       image.referrerPolicy = 'no-referrer';
-      image.onerror = () => { icon.textContent = entry.ico; };
+      const fallback = [...icon.childNodes];
+      image.onerror = () => { icon.replaceChildren(...fallback); };
       image.src = entry.image;
       icon.replaceChildren(image);
     }
@@ -86,21 +106,69 @@
     return button;
   }
 
+  function section(title, entries, group = null, total = entries.length) {
+    const block = document.createElement('section');
+    block.className = 'portal-section';
+    const heading = document.createElement('div');
+    heading.className = 'portal-section-heading';
+    const name = document.createElement('h2');
+    name.textContent = title;
+    const count = document.createElement('span');
+    count.className = 'portal-section-count';
+    count.textContent = number.format(total);
+    heading.append(name, count);
+    if (group && total > entries.length) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'portal-more';
+      more.textContent = 'Ver todos →';
+      more.setAttribute('aria-label', `Ver todos em ${title}`);
+      more.onclick = () => {
+        selectCategory(group);
+        $('portal-results').scrollIntoView({ block: 'nearest' });
+        categoryButtons.get(group).focus({ preventScroll: true });
+      };
+      heading.append(more);
+    }
+    const grid = document.createElement('div');
+    grid.className = 'portal-card-grid';
+    grid.replaceChildren(...entries.map(card));
+    block.append(heading, grid);
+    return block;
+  }
+
   function render() {
     const list = selectedItems();
     const pages = Math.max(1, Math.ceil(list.length / pageSize));
     page = Math.min(page, pages);
-    const start = (page - 1) * pageSize;
-    $('portal-grid').replaceChildren(...list.slice(start, start + pageSize).map(card));
+    const blocks = [];
+    if (category === 'Todos') {
+      const groups = new Map(categories.slice(1).map(name => [name, []]));
+      for (const item of list) groups.get(item.kind === 'search' ? 'Pesquisa' : item.cat).push(item);
+      for (const [name, group] of groups) {
+        if (group.length) blocks.push(section(categoryName(name), group.slice(0, previewSize), name, group.length));
+      }
+    } else if (list.length) {
+      const links = list.filter(item => item.kind !== 'search');
+      const searches = list.filter(item => item.kind === 'search');
+      const start = (page - 1) * pageSize;
+      const visible = [...links, ...searches].slice(start, start + pageSize);
+      const visibleLinks = visible.filter(item => item.kind !== 'search');
+      const visibleSearches = visible.filter(item => item.kind === 'search');
+      if (visibleLinks.length) blocks.push(section(category === 'Pesquisa' ? 'Atalhos de pesquisa' : categoryName(category), visibleLinks, null, links.length));
+      if (visibleSearches.length) blocks.push(section('Pesquisas prontas', visibleSearches, null, searches.length));
+    }
+    $('portal-grid').replaceChildren(...blocks);
     $('portal-results').textContent = list.length ? `${number.format(list.length)} resultado${list.length === 1 ? '' : 's'}` : 'Nada encontrado. Tente outra pesquisa.';
-    $('portal-pager').hidden = pages <= 1;
+    $('portal-pager').hidden = category === 'Todos' || pages <= 1;
     $('portal-page').textContent = `Página ${page} de ${pages}`;
     $('portal-prev').disabled = page <= 1;
     $('portal-next').disabled = page >= pages;
-    const isAnime = filter.value === 'Animes';
+    for (const [name, button] of categoryButtons) button.setAttribute('aria-pressed', String(name === category));
+    const isAnime = category === 'Animes';
     animeButton.hidden = !isAnime;
     notice.textContent = isAnime ? (animeStatus || 'A consulta é enviada ao AniList quando você clicar em Buscar no AniList.') :
-      filter.value === 'Tor / Dark Web' ? torMessage : '';
+      category === 'Tor / Dark Web' ? torMessage : '';
     notice.hidden = !notice.textContent;
   }
 
@@ -150,18 +218,19 @@
   }
 
   search.addEventListener('input', () => { page = 1; render(); });
-  filter.addEventListener('change', () => {
+  function selectCategory(name) {
     const request = animeRequest;
     animeRequest = null;
     request?.abort();
     animeButton.disabled = false;
     animeStatus = '';
+    category = name;
     page = 1;
     render();
-  });
+  }
   $('portal-search-form').addEventListener('submit', event => {
     event.preventDefault();
-    if (filter.value === 'Animes') loadAnime();
+    if (category === 'Animes') loadAnime();
   });
   window.addEventListener('aurora-clean-session', () => {
     const request = animeRequest;
@@ -170,7 +239,7 @@
     animeResults = null;
     animeStatus = '';
     animeButton.disabled = false;
-    filter.value = 'Todos';
+    category = 'Todos';
     search.value = '';
     page = 1;
     render();

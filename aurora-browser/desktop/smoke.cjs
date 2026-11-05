@@ -45,6 +45,35 @@ module.exports = async function smoke({ createTab, tabs, closeTab, clean, getSes
     assert.equal(catalogStatus.governmentNotice, true);
     assert.match(catalogStatus.photoConfirmation, /18\+/);
     assert.equal(tabs.size, 1, 'Declining the adult confirmation must keep the gallery closed.');
+    const priveStatus = await home.executeJavaScript(`(() => {
+      const buttons = [...document.querySelectorAll('.portal-category')];
+      const select = category => buttons.find(button => button.textContent === category).click();
+      select('Privê 18+');
+      const groups = [...document.querySelectorAll('.portal-section')];
+      const direct = groups[0].querySelector('[aria-label="Abrir Atlas of Nudes · Fotos"]');
+      const confirm = window.confirm;
+      const command = window.command;
+      let shortcut;
+      try {
+        window.confirm = () => true;
+        window.command = (...args) => { shortcut = args; };
+        direct.click();
+      } finally {
+        window.confirm = confirm;
+        window.command = command;
+        select('Todos');
+      }
+      return {
+        headings: groups.map(group => group.querySelector('h2').textContent),
+        bots: groups[1].querySelectorAll('.portal-card').length,
+        shortcut
+      };
+    })()`);
+    assert.deepEqual(priveStatus, {
+      headings: ['Abre direto no Aurora', 'Bots do Telegram'],
+      bots: 10,
+      shortcut: ['open-shortcut', 'https://atlasofnudes.com/explore']
+    });
     const results = await home.executeJavaScript(`(() => {
       const input = document.querySelector('#portal-query');
       input.value = 'WhatsApp'; input.dispatchEvent(new Event('input'));

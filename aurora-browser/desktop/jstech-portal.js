@@ -17,6 +17,8 @@
   const number = new Intl.NumberFormat('pt-BR');
   const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const textKey = entry => normalize([entry.name, entry.cat, entry.desc, entry.source].join(' '));
+  const isDirectLink = entry => entry.kind !== 'search' && entry.kind !== 'telegram-bot';
+  const directTitles = new Map([['Pesquisa', 'Atalhos de pesquisa'], ['Privê 18+', 'Abre direto no Aurora']]);
   const entries = catalog.items.map(entry => ({ ...entry, text: textKey(entry) }));
   const animeLink = { name: 'AniList', ico: 'AN', cat: 'Animes', desc: 'Abrir o catálogo mundial de animes', url: 'https://anilist.co/search/anime' };
   const torMessage = 'Endereços .onion precisam do Tor. O Aurora para Windows ainda não tem Tor integrado.';
@@ -41,7 +43,8 @@
     if (category === 'Animes') return animeResults ?? [animeLink];
     const query = normalize(search.value.trim());
     return entries.filter(entry => {
-      const inCategory = category === 'Todos' || entry.cat === category || (category === 'Pesquisa' && entry.kind === 'search');
+      const inCategory = category === 'Todos' || entry.cat === category || entry.alsoIn === category ||
+        (category === 'Pesquisa' && entry.kind === 'search');
       return inCategory && (!query || entry.text.includes(query));
     });
   }
@@ -147,18 +150,24 @@
     const blocks = [];
     if (category === 'Todos') {
       const groups = new Map(categories.slice(1).map(name => [name, []]));
-      for (const item of list) groups.get(item.kind === 'search' ? 'Pesquisa' : item.cat).push(item);
+      for (const item of list) {
+        groups.get(item.kind === 'search' ? 'Pesquisa' : item.cat).push(item);
+        if (item.alsoIn) groups.get(item.alsoIn).push(item);
+      }
       for (const [name, group] of groups) {
         if (group.length) blocks.push(section(categoryName(name), group.slice(0, previewSize), name, group.length));
       }
     } else if (list.length) {
-      const links = list.filter(item => item.kind !== 'search');
+      const links = list.filter(isDirectLink);
+      const bots = list.filter(item => item.kind === 'telegram-bot');
       const searches = list.filter(item => item.kind === 'search');
       const start = (page - 1) * pageSize;
-      const visible = [...links, ...searches].slice(start, start + pageSize);
-      const visibleLinks = visible.filter(item => item.kind !== 'search');
+      const visible = [...links, ...bots, ...searches].slice(start, start + pageSize);
+      const visibleLinks = visible.filter(isDirectLink);
+      const visibleBots = visible.filter(item => item.kind === 'telegram-bot');
       const visibleSearches = visible.filter(item => item.kind === 'search');
-      if (visibleLinks.length) blocks.push(section(category === 'Pesquisa' ? 'Atalhos de pesquisa' : categoryName(category), visibleLinks, null, links.length));
+      if (visibleLinks.length) blocks.push(section(directTitles.get(category) ?? categoryName(category), visibleLinks, null, links.length));
+      if (visibleBots.length) blocks.push(section('Bots do Telegram', visibleBots, null, bots.length));
       if (visibleSearches.length) blocks.push(section('Pesquisas prontas', visibleSearches, null, searches.length));
     }
     $('portal-grid').replaceChildren(...blocks);

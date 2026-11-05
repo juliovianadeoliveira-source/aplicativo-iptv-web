@@ -60,7 +60,7 @@
   });
   const items = [
     {
-      name: 'Atlas of Nudes · Fotos', ico: 'AN', cat: 'Adulto', adult: true,
+      name: 'Atlas of Nudes · Fotos', ico: 'AN', cat: 'Adulto', alsoIn: 'Privê 18+', adult: true,
       desc: 'Galeria de fotografia de nudez artística de adultos', source: 'Somente fotos',
       url: 'https://atlasofnudes.com/explore'
     },
@@ -93,9 +93,14 @@
     const key = urlKey(item.url);
     if (seen.has(key)) continue;
     seen.add(key);
-    items.push(item);
+    const telegramBot = item.cat === 'Privê 18+' && /^https:\/\/t\.me\/\w+bot\/?$/i.test(item.url);
+    items.push(telegramBot
+      ? { ...item, kind: 'telegram-bot', desc: 'Conversa com bot', source: 'Requer conta no Telegram' }
+      : item);
   }
-  const categories = [...new Set([...data.categories, ...items.map(item => item.cat)])];
+  const categories = [...new Set([
+    ...data.categories, ...items.map(item => item.cat), ...items.map(item => item.alsoIn).filter(Boolean)
+  ])];
   const catalog = Object.freeze({ categories, items });
   if (typeof module === 'object' && module.exports) module.exports = catalog;
   else globalThis.JSTechCatalog = catalog;

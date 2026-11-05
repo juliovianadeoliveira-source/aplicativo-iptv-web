@@ -13,7 +13,7 @@ async function profiles() {
 (async () => {
   const before = new Set(await profiles());
   const installedBinary = process.argv[2];
-  const binary = installedBinary || require('electron');
+  const binary = installedBinary ? path.resolve(installedBinary) : require('electron');
   const child = spawn(binary, installedBinary ? [] : [__dirname], {
     windowsHide: false, stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, AURORA_SMOKE_TEST: '1' }

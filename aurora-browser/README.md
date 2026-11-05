@@ -2,6 +2,8 @@
 
 Aplicativo de navegação com abas, barra de endereço, voltar, avançar, atualizar, início e busca de sites, imagens, vídeos, notícias e mapas. Marca pública: **Aurora**. Não é afiliado ao Google ou ao Chrome.
 
+A tela inicial do Windows inclui o catálogo do **JSTech Privado**, importado de `jstech-prime-site/privado` e `updates/catalog.json`. Os atalhos e as pesquisas organizadas podem ser filtrados no próprio Aurora e abrem em uma nova aba da sessão privada. A lista embarcada não carrega ícones externos na abertura. A busca de animes consulta o AniList somente quando solicitada. Os atalhos `.onion` aparecem identificados como dependentes do Tor; o componente nativo do Android não é incluído no Windows.
+
 ## Privacidade e limitações reais
 
 - Bloqueio básico de requisições de subrecursos por uma lista embarcada de domínios. Não é equivalente a um bloqueador completo com EasyList nem protege contra todo fingerprinting.
@@ -35,4 +37,3 @@ npm start
 Build Windows: `npm run dist` em Windows. Build Android: Gradle 8.10.2, JDK 17, SDK 35; `gradle assembleDebug` em `aurora-browser/android`.
 
 `shared/trackers.txt` é copiado para o aplicativo desktop e para os assets Android antes do build. A função Supabase `aurora-release-info` entrega somente informações da versão; não recebe consultas ou histórico. A consulta de versão é manual, via página de downloads, e não é uma atualização automática.
-

@@ -9,6 +9,32 @@ module.exports = async function smoke({ createTab, tabs, closeTab, clean, getSes
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const url = 'http://127.0.0.1:' + server.address().port + '/';
   try {
+    const home = getWindow().webContents;
+    assert.equal(await home.executeJavaScript("document.querySelector('#portal-title').textContent"), 'JSTech Privado');
+    const results = await home.executeJavaScript(`(() => {
+      const input = document.querySelector('#portal-query');
+      input.value = 'WhatsApp'; input.dispatchEvent(new Event('input'));
+      const labels = [...document.querySelectorAll('.portal-card-title')].map(item => item.textContent);
+      input.value = ''; input.dispatchEvent(new Event('input'));
+      return labels;
+    })()`);
+    assert.ok(results.includes('WhatsApp'), 'The imported catalog must be searchable on the home page.');
+    const unsafe = await home.executeJavaScript("window.aurora.command('open-shortcut', 'http://example.onion/')");
+    assert.match(unsafe.error, /precisam do Tor/);
+    const initialTabs = tabs.size;
+    const opened = await home.executeJavaScript(`window.aurora.command('open-shortcut', ${JSON.stringify(url)})`);
+    assert.equal(opened.ok, true);
+    assert.equal(tabs.size, initialTabs + 1);
+    const shortcutTab = [...tabs.values()].at(-1);
+    const shortcutContents = shortcutTab.view.webContents;
+    if (shortcutContents.isLoadingMainFrame() || shortcutContents.getURL() !== url) {
+      await new Promise((resolve, reject) => {
+        shortcutContents.once('did-finish-load', resolve);
+        shortcutContents.once('did-fail-load', (_event, code, error) => reject(new Error(`Shortcut load failed: ${code} ${error}`)));
+      });
+    }
+    assert.equal(shortcutContents.getURL(), url);
+    closeTab(shortcutTab.id);
     const tab = createTab();
     tab.home = false;
     await tab.view.webContents.loadURL(url);
@@ -28,6 +54,6 @@ module.exports = async function smoke({ createTab, tabs, closeTab, clean, getSes
     const fresh = [...tabs.values()][0]; await fresh.view.webContents.loadURL(url);
     assert.equal(await fresh.view.webContents.executeJavaScript("localStorage.getItem('aurora-test')"), null);
     assert.equal(await getWindow().webContents.executeJavaScript('document.title'), 'Aurora');
-    console.log('Aurora smoke passed: tabs, engine, IPC isolation, tracker blocking, cookie/storage cleanup');
+    console.log('Aurora smoke passed: JSTech catalog, shortcuts, tabs, engine, IPC isolation, tracker blocking, cookie/storage cleanup');
   } finally { server.close(); }
 };

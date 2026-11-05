@@ -17,19 +17,23 @@ function searchURL(query, engine = 'duckduckgo', category = 'web') {
   }
   return url.href;
 }
-function safeURL(value) {
-  try { const u = new URL(value); return ['https:', 'http:'].includes(u.protocol); }
-  catch { return false; }
+function checkedWebURL(value) {
+  if (typeof value !== 'string') throw new Error('Endereço inválido.');
+  let url;
+  try { url = new URL(value); } catch { throw new Error('Endereço inválido.'); }
+  if (/(^|\.)onion\.*$/i.test(url.hostname)) throw new Error('Endereços .onion precisam do Tor, que ainda não está integrado ao Aurora para Windows.');
+  if (!['https:', 'http:'].includes(url.protocol)) throw new Error('Este tipo de endereço não é permitido. Use HTTP ou HTTPS.');
+  return url.href;
 }
+function safeURL(value) { try { checkedWebURL(value); return true; } catch { return false; } }
 function destination(input, engine = 'duckduckgo', category = 'web') {
   const value = String(input).trim().slice(0, 4096);
   if (!value) return null;
   if (/^[a-z][a-z0-9+.-]*:/i.test(value) && !/^[\w.-]+:\d+(\/|$)/.test(value)) {
-    if (!safeURL(value)) throw new Error('Este tipo de endereço não é permitido. Use HTTP ou HTTPS.');
-    return new URL(value).href;
+    return checkedWebURL(value);
   }
-  if (!/\s/.test(value) && /^(localhost|(?:[a-z0-9-]+\.)+[a-z0-9-]+)(:\d+)?(\/.*)?$/i.test(value)) {
-    return new URL('https://' + value).href;
+  if (!/\s/.test(value) && /^(localhost|(?:[a-z0-9-]+\.)+[a-z0-9-]+)\.?(?::\d+)?(\/.*)?$/i.test(value)) {
+    return checkedWebURL('https://' + value);
   }
   return searchURL(value, engine, category);
 }
@@ -37,4 +41,4 @@ function isTracker(host, domains) {
   const normalized = String(host).toLowerCase().replace(/\.$/, '');
   return domains.some(domain => normalized === domain || normalized.endsWith('.' + domain));
 }
-module.exports = { searchURL, destination, safeURL, isTracker };
+module.exports = { searchURL, destination, safeURL, checkedWebURL, isTracker };

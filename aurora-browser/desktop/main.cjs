@@ -4,7 +4,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
 const { pathToFileURL } = require('node:url');
-const { destination, safeURL, isTracker } = require('./policy.cjs');
+const { destination, safeURL, checkedWebURL, isTracker } = require('./policy.cjs');
 const { startProfileCleanup } = require('./profile-cleanup.cjs');
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'aurora-private-'));
 app.setPath('userData', profile);
@@ -146,6 +146,7 @@ ipcMain.handle('aurora-command', async (event, payload) => {
         if (!value || typeof value.text !== 'string') throw new Error('Endereço inválido.');
         const url = destination(value.text, value.engine, value.category); if (url) navigate(tab, url); break;
       }
+      case 'open-shortcut': createTab(checkedWebURL(value)); break;
       case 'new': createTab(); break;
       case 'select': activate(Number(value)); break;
       case 'close': closeTab(Number(value)); break;
@@ -179,4 +180,3 @@ app.on('before-quit', event => {
     .finally(() => { clearTimeout(exitDeadline); app.exit(0); });
 });
 app.on('quit', () => { if (!profileCleanupStarted) { try { fs.rmSync(profile, { recursive: true, force: true }); } catch {} } });
-

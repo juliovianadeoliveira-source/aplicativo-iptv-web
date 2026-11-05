@@ -1,6 +1,9 @@
 'use strict';
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const http = require('node:http');
+const path = require('node:path');
+const { nativeImage } = require('electron');
 module.exports = async function smoke({ createTab, tabs, closeTab, clean, getSession, getBlocked, getWindow }) {
   const server = http.createServer((_req, res) => {
     res.setHeader('Content-Type', 'text/html');
@@ -102,11 +105,11 @@ module.exports = async function smoke({ createTab, tabs, closeTab, clean, getSes
       return labels;
     })()`);
     assert.ok(results.includes('WhatsApp'), 'The imported catalog must be searchable on the home page.');
-    const hasLogo = await home.executeJavaScript(`(async () => {
-      const atlas = new Image();
-      atlas.src = 'jstech-logos.png';
-      await atlas.decode();
-      return atlas.naturalWidth > 0 && Boolean(document.querySelector('[aria-label="Abrir WhatsApp"] .portal-brand-mark'));
+    const atlas = nativeImage.createFromBuffer(fs.readFileSync(path.join(__dirname, 'jstech-logos.png')));
+    assert.ok(!atlas.isEmpty(), 'The packaged logo atlas must be a valid image.');
+    const hasLogo = await home.executeJavaScript(`(() => {
+      const mark = document.querySelector('[aria-label="Abrir WhatsApp"] .portal-brand-mark');
+      return Boolean(mark && getComputedStyle(mark).backgroundImage.includes('jstech-logos.png'));
     })()`);
     assert.ok(hasLogo, 'The packaged catalog must display the local WhatsApp logo.');
     const unsafe = await home.executeJavaScript("window.aurora.command('open-shortcut', 'http://example.onion/')");

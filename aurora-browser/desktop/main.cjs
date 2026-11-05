@@ -6,6 +6,9 @@ const os = require('node:os');
 const { pathToFileURL } = require('node:url');
 const { destination, safeURL, checkedWebURL, isTracker } = require('./policy.cjs');
 const { startProfileCleanup } = require('./profile-cleanup.cjs');
+const { regionalShortcutURL } = require('./jogos-region.cjs');
+const { items: portalItems } = require('./jstech-catalog.js');
+const regionalShortcuts = new Map(portalItems.filter(entry => entry.regionalUrls).map(entry => [entry.url, entry]));
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'aurora-private-'));
 app.setPath('userData', profile);
 app.setPath('sessionData', path.join(profile, 'session'));
@@ -17,6 +20,7 @@ app.commandLine.appendSwitch('disable-features', 'AutofillServerCommunication,Me
 const HOME = pathToFileURL(path.join(__dirname, 'index.html')).href;
 const domains = fs.readFileSync(path.join(__dirname, 'trackers.txt'), 'utf8').split(/\r?\n/).map(s => s.trim()).filter(s => s && !s.startsWith('#'));
 let win, browserSession, selected, nextId = 1, blocked = 0, quitting = false, profileCleanupStarted = false;
+let regionalRequests = new AbortController();
 const tabs = new Map();
 const BAR_HEIGHT = 132;
 function state() {
@@ -90,6 +94,8 @@ function closeTab(id) {
   state();
 }
 async function clean() {
+  regionalRequests.abort();
+  regionalRequests = new AbortController();
   for (const t of [...tabs.values()]) { win.contentView.removeChildView(t.view); t.view.webContents.close(); }
   tabs.clear(); blocked = 0;
   await browserSession.clearStorageData(); await browserSession.clearCache();
@@ -153,7 +159,22 @@ ipcMain.handle('aurora-command', async (event, payload) => {
         if (!value || typeof value.text !== 'string') throw new Error('Endereço inválido.');
         const url = destination(value.text, value.engine, value.category); if (url) navigate(tab, url); break;
       }
-      case 'open-shortcut': createTab(checkedWebURL(value)); break;
+      case 'open-shortcut': {
+        const url = checkedWebURL(value);
+        const entry = regionalShortcuts.get(url);
+        if (!entry) { createTab(url); break; }
+        const targetTab = createTab();
+        if (!targetTab) break;
+        targetTab.title = entry.name;
+        targetTab.loading = true;
+        state();
+        const signal = regionalRequests.signal;
+        const target = await regionalShortcutURL(entry, browserSession, signal);
+        if (!signal.aborted && tabs.get(targetTab.id) === targetTab && !targetTab.url) {
+          navigate(targetTab, checkedWebURL(target));
+        }
+        break;
+      }
       case 'new': createTab(); break;
       case 'select': activate(Number(value)); break;
       case 'close': closeTab(Number(value)); break;
@@ -176,6 +197,7 @@ app.on('window-all-closed', () => app.quit());
 app.on('before-quit', event => {
   if (quitting || !browserSession) return;
   event.preventDefault(); quitting = true;
+  regionalRequests.abort();
   const closingTabs = [...tabs.values()]; tabs.clear();
   for (const tab of closingTabs) {
     if (win && !win.isDestroyed()) win.contentView.removeChildView(tab.view);

@@ -26,23 +26,32 @@ module.exports = async function smoke({ createTab, tabs, closeTab, clean, getSes
       const buttons = [...document.querySelectorAll('.portal-category')];
       const select = category => buttons.find(button => button.textContent === category).click();
       select('Jogos');
-      const closedBets = document.querySelectorAll('.portal-card:disabled').length;
-      const governmentNotice = Boolean(document.querySelector('[aria-label="Abrir Situação das bets no Brasil"]'));
-      select('Adulto');
-      const photo = document.querySelector('[aria-label="Abrir Atlas of Nudes · Fotos"]');
+      const jogosCards = [...document.querySelector('.portal-section').querySelectorAll('.portal-card')];
+      const opened = [];
       let photoConfirmation = '';
       const confirm = window.confirm;
+      const command = window.command;
       try {
+        window.confirm = () => false;
+        window.command = (action, url) => opened.push({ action, url });
+        jogosCards.forEach(card => card.click());
+        select('Adulto');
+        const photo = document.querySelector('[aria-label="Abrir Atlas of Nudes · Fotos"]');
         window.confirm = message => { photoConfirmation = message; return false; };
         photo.click();
       } finally {
         window.confirm = confirm;
+        window.command = command;
         select('Todos');
       }
-      return { closedBets, governmentNotice, photoConfirmation };
+      return { opened, photoConfirmation };
     })()`);
-    assert.equal(catalogStatus.closedBets, 5);
-    assert.equal(catalogStatus.governmentNotice, true);
+    assert.equal(catalogStatus.opened.length, 6);
+    assert.ok(catalogStatus.opened.every(item => item.action === 'open-shortcut' && new URL(item.url).hostname === 'www.gov.br'));
+    assert.deepEqual(catalogStatus.opened.slice(1).map(item => new URL(item.url).hash), [
+      '#:~:text=betano.bet.br', '#:~:text=novibet.bet.br', '#:~:text=kto.bet.br',
+      '#:~:text=betao.bet.br', '#:~:text=bet365.bet.br'
+    ]);
     assert.match(catalogStatus.photoConfirmation, /18\+/);
     assert.equal(tabs.size, 1, 'Declining the adult confirmation must keep the gallery closed.');
     const priveStatus = await home.executeJavaScript(`(() => {

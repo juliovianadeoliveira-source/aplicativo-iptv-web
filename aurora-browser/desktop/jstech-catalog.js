@@ -40,22 +40,34 @@
       url: 'https://invivo.fiocruz.br/'
     },
   ];
-  const bettingMarkets = new Map([
-    ['betano.bet.br', 'Licença em Portugal'],
-    ['novibet.bet.br', 'Licença em Chipre'],
-    ['kto.bet.br', 'Licença fora do Brasil sem confirmação'],
-    ['betao.bet.br', 'Licença fora do Brasil sem confirmação'],
-    ['bet365.bet.br', 'Licença na Grã-Bretanha']
+  const brazilianBetRegister = 'https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/transparencia-ativa-processos-de-autorizacao-de-apostas-de-quota-fixa/empresas-autorizadas';
+  const bettingRecords = new Map([
+    ['betano.bet.br', {
+      source: 'Consulta oficial · Brasil e Portugal',
+      regionalUrls: { PT: 'https://www.srij.turismodeportugal.pt/pt/jogos-e-apostas-online/entidades-licenciadas#betano' }
+    }],
+    ['novibet.bet.br', {
+      source: 'Consulta oficial · Brasil e Chipre',
+      regionalUrls: { CY: 'https://nba.gov.cy/en/regulated-entities/registers/class-b/#:~:text=GAMART%20LIMITED' }
+    }],
+    ['kto.bet.br', { source: 'Histórico de autorização · Fazenda' }],
+    ['betao.bet.br', { source: 'Histórico de autorização · Fazenda' }],
+    ['bet365.bet.br', {
+      source: 'Consulta oficial · Brasil e Grã-Bretanha',
+      regionalUrls: { GB: 'https://www.gamblingcommission.gov.uk/public-register/business/detail/55148' }
+    }]
   ]);
   const primary = data.primary.map(entry => {
     const host = new URL(entry.url).hostname.replace(/^www\./, '');
-    const market = bettingMarkets.get(host);
-    if (!market) return entry;
+    const record = bettingRecords.get(host);
+    if (!record) return entry;
     return {
       ...entry,
+      ...record,
       desc: 'Operação encerrada no Brasil em outubro de 2026',
-      source: market,
-      unavailable: true
+      url: `${brazilianBetRegister}#:~:text=${host}`,
+      logoHost: host,
+      adult: false
     };
   });
   const items = [

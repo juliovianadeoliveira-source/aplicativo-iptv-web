@@ -72,7 +72,7 @@
     icon.setAttribute('aria-hidden', 'true');
     icon.textContent = entry.ico;
     const host = entry.kind === 'tor' ? 'torproject.org' : new URL(entry.url).hostname.replace(/^www\./, '');
-    const logoIndex = logos[host];
+    const logoIndex = logos[entry.logoHost ?? host];
     if (Number.isInteger(logoIndex)) {
       const mark = document.createElement('span');
       mark.className = 'portal-brand-mark';
@@ -180,7 +180,8 @@
     const isAnime = category === 'Animes';
     animeButton.hidden = !isAnime;
     notice.textContent = isAnime ? (animeStatus || 'A consulta é enviada ao AniList quando você clicar em Buscar no AniList.') :
-      category === 'Tor / Dark Web' ? torMessage : '';
+      category === 'Tor / Dark Web' ? torMessage :
+      category === 'Jogos' ? 'Os cartões abrem páginas oficiais. Quando há um registro para o país do IP, o Aurora abre essa consulta.' : '';
     notice.hidden = !notice.textContent;
   }
 

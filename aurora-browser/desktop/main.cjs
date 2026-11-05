@@ -16,7 +16,7 @@ app.commandLine.appendSwitch('disable-sync');
 app.commandLine.appendSwitch('disable-features', 'AutofillServerCommunication,MediaRouter');
 const HOME = pathToFileURL(path.join(__dirname, 'index.html')).href;
 const domains = fs.readFileSync(path.join(__dirname, 'trackers.txt'), 'utf8').split(/\r?\n/).map(s => s.trim()).filter(s => s && !s.startsWith('#'));
-let win, browserSession, selected, nextId = 1, blocked = 0, quitting = false;
+let win, browserSession, selected, nextId = 1, blocked = 0, quitting = false, profileCleanupStarted = false;
 const tabs = new Map();
 const BAR_HEIGHT = 132;
 function state() {
@@ -97,7 +97,7 @@ async function clean() {
   createTab();
 }
 app.whenReady().then(async () => {
-  try { await startProfileCleanup(profile); }
+  try { await startProfileCleanup(profile); profileCleanupStarted = true; }
   catch {
     dialog.showErrorBox('Aurora', 'Não foi possível iniciar a limpeza automática dos dados temporários. Feche e abra o Aurora novamente.');
     app.quit(); return;
@@ -168,7 +168,15 @@ app.on('window-all-closed', () => app.quit());
 app.on('before-quit', event => {
   if (quitting || !browserSession) return;
   event.preventDefault(); quitting = true;
-  Promise.allSettled([browserSession.clearStorageData(), browserSession.clearCache(), browserSession.clearAuthCache()]).finally(() => app.quit());
+  const closingTabs = [...tabs.values()]; tabs.clear();
+  for (const tab of closingTabs) {
+    if (win && !win.isDestroyed()) win.contentView.removeChildView(tab.view);
+    if (!tab.view.webContents.isDestroyed()) tab.view.webContents.close();
+  }
+  // Stop pages before clearing storage; the detached helper removes files after exit.
+  const exitDeadline = setTimeout(() => app.exit(0), 3000);
+  Promise.allSettled([browserSession.clearStorageData(), browserSession.clearCache(), browserSession.clearAuthCache(), browserSession.closeAllConnections()])
+    .finally(() => { clearTimeout(exitDeadline); app.exit(0); });
 });
-app.on('quit', () => { try { fs.rmSync(profile, { recursive: true, force: true }); } catch {} });
+app.on('quit', () => { if (!profileCleanupStarted) { try { fs.rmSync(profile, { recursive: true, force: true }); } catch {} } });
 

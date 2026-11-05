@@ -61,34 +61,52 @@ async function startProfileCleanup(value) {
     kind: 'aurora-private-profile-v1', pid: process.pid
   }), { flag: 'wx' });
   await cleanupStaleProfiles(target);
-  return new Promise((resolve, reject) => {
-    const worker = spawn(process.execPath, [__filename, String(process.pid), target], {
-      detached: true, windowsHide: true, stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', ELECTRON_NO_ATTACH_CONSOLE: '1' }
-    });
-    let ready = false;
-    const timer = setTimeout(() => {
-      worker.kill(); reject(new Error('Temporary profile cleanup did not start.'));
-    }, 10000);
-    worker.once('error', error => { clearTimeout(timer); reject(error); });
-    worker.once('exit', () => {
-      clearTimeout(timer);
-      if (!ready) reject(new Error('Temporary profile cleanup exited before starting.'));
-    });
-    worker.once('message', message => {
-      if (message?.type !== 'aurora-cleanup-ready') return;
-      ready = true; clearTimeout(timer); worker.unref(); resolve();
-    });
+  let executable = process.execPath;
+  let args = [__filename, String(process.pid), target];
+  let launcherScript;
+  if (process.platform === 'win32') {
+    // Let a short-lived launcher own the helper so Electron can finish shutting down.
+    const literal = value => "'" + value.replaceAll("'", "''") + "'";
+    const commandLine = [process.execPath, ...args].map(value => '"' + value + '"').join(' ');
+    executable = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+    launcherScript = `$ErrorActionPreference = 'Stop'
+$environment = [string[]]([Environment]::GetEnvironmentVariables('Process').GetEnumerator() | Sort-Object Key | ForEach-Object { $_.Key + '=' + $_.Value })
+$startup = New-CimInstance -ClassName Win32_ProcessStartup -ClientOnly -Property @{ ShowWindow = [uint16]0; CreateFlags = [uint32]1024; EnvironmentVariables = $environment }
+$result = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = ${literal(commandLine)}; CurrentDirectory = ${literal(path.dirname(process.execPath))}; ProcessStartupInformation = $startup }
+if ($result.ReturnValue -ne 0) { exit 1 }
+`;
+    args = ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', '-'];
+  }
+  const worker = spawn(executable, args, {
+    detached: !launcherScript, windowsHide: true, stdio: launcherScript ? ['pipe', 'ignore', 'ignore'] : 'ignore',
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', ELECTRON_NO_ATTACH_CONSOLE: '1' }
   });
+  let failure;
+  worker.once('error', error => { failure = error; });
+  if (launcherScript) {
+    worker.stdin.once('error', error => { failure = error; });
+    worker.stdin.end(launcherScript + '\n');
+  }
+  worker.unref();
+  const readyFile = path.join(target, '.aurora-cleanup-ready');
+  for (let attempt = 0; attempt < 100; attempt++) {
+    if (failure) throw failure;
+    if ((worker.exitCode !== null && worker.exitCode !== 0) || worker.signalCode !== null) throw new Error('Temporary profile cleanup exited before starting.');
+    try {
+      if (await fs.promises.readFile(readyFile, 'utf8') === String(process.pid)) {
+        await fs.promises.unlink(readyFile); return;
+      }
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    await delay(100);
+  }
+  worker.kill();
+  throw new Error('Temporary profile cleanup did not start.');
 }
 
 async function watchParent(pid, target) {
   if (!Number.isSafeInteger(pid) || pid <= 0 || pid === process.pid) throw new Error('Invalid parent process.');
   profilePath(target);
-  if (process.send) await new Promise((resolve, reject) => {
-    process.send({ type: 'aurora-cleanup-ready' }, error => error ? reject(error) : resolve());
-  });
-  if (process.connected) process.disconnect();
+  await fs.promises.writeFile(path.join(target, '.aurora-cleanup-ready'), String(pid), { flag: 'wx' });
   while (processAlive(pid)) await delay(250);
   await removeProfile(target);
 }

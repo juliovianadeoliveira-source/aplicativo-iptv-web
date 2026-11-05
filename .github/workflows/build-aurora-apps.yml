@@ -37,6 +37,9 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: npm run dist
+      - name: Verify packaged browser cleanup
+        working-directory: aurora-browser/desktop
+        run: node verify-smoke.cjs dist/win-unpacked/Aurora.exe
       - uses: actions/upload-artifact@v4
         with:
           name: Aurora-Windows

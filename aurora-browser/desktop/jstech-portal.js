@@ -4,7 +4,7 @@
   const catalog = globalThis.JSTechCatalog;
   const logos = globalThis.JSTechLogos;
   const categories = [...new Set([
-    'Todos', 'Comunicação', 'Redes sociais', 'Entretenimento', 'IA', 'Vídeos', 'Vídeo IA',
+    'Todos', 'Para crianças e jovens', 'Comunicação', 'Redes sociais', 'Entretenimento', 'IA', 'Vídeos', 'Vídeo IA',
     'Animes', 'Imagens & design', 'Compras', 'Serviços & mapas', ...catalog.categories
   ])];
   const categoryName = category => category === 'Pesquisa' ? 'Pesquisas prontas' : category;

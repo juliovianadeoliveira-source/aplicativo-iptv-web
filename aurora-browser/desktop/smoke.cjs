@@ -12,6 +12,16 @@ module.exports = async function smoke({ createTab, tabs, closeTab, clean, getSes
     const home = getWindow().webContents;
     const groups = await home.executeJavaScript("[...document.querySelectorAll('.portal-section h2')].map(node => node.textContent)");
     assert.ok(groups.includes('Comunicação') && groups.includes('Redes sociais'), 'The home page must show separate categories.');
+    assert.ok(groups.includes('Para crianças e jovens'), 'The educational shortcuts must have their own section.');
+    const youthLinks = await home.executeJavaScript(`(() => {
+      const buttons = [...document.querySelectorAll('.portal-category')];
+      buttons.find(button => button.textContent === 'Para crianças e jovens').click();
+      const labels = [...document.querySelectorAll('.portal-card-title')].map(item => item.textContent);
+      buttons.find(button => button.textContent === 'Todos').click();
+      return labels;
+    })()`);
+    assert.ok(youthLinks.includes('NASA Kids’ Club') && youthLinks.includes('AEB Escola'));
+    assert.ok(!youthLinks.includes('Tor Project · Diretório oficial'));
     const results = await home.executeJavaScript(`(() => {
       const input = document.querySelector('#portal-query');
       input.value = 'WhatsApp'; input.dispatchEvent(new Event('input'));

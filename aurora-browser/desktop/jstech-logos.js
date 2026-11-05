@@ -180,4 +180,11 @@ globalThis.JSTechLogos = Object.freeze({
   "youjizz.com": 175,
   "youporn.com": 176,
   "youtube.com": 177,
+  "nasa.gov": 178,
+  "chc.org.br": 179,
+  "gov.br": 180,
+  "invivo.fiocruz.br": 181,
+  "science.nasa.gov": 178,
+  "spaceplace.nasa.gov": 178,
+  "onion.torproject.org": 155,
 });

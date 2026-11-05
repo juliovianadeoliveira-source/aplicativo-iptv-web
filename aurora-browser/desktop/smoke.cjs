@@ -32,7 +32,7 @@ module.exports = async function smoke({ createTab, tabs, closeTab, clean, getSes
       const confirm = window.confirm;
       const command = window.command;
       try {
-        window.confirm = () => false;
+        window.confirm = () => true;
         window.command = (action, url) => opened.push({ action, url });
         jogosCards.forEach(card => card.click());
         select('Adulto');
@@ -47,13 +47,24 @@ module.exports = async function smoke({ createTab, tabs, closeTab, clean, getSes
       return { opened, photoConfirmation };
     })()`);
     assert.equal(catalogStatus.opened.length, 6);
-    assert.ok(catalogStatus.opened.every(item => item.action === 'open-shortcut' && new URL(item.url).hostname === 'www.gov.br'));
-    assert.deepEqual(catalogStatus.opened.slice(1).map(item => new URL(item.url).hash), [
-      '#:~:text=betano.bet.br', '#:~:text=novibet.bet.br', '#:~:text=kto.bet.br',
-      '#:~:text=betao.bet.br', '#:~:text=bet365.bet.br'
+    assert.ok(catalogStatus.opened.every(item => item.action === 'open-shortcut'));
+    assert.deepEqual(catalogStatus.opened.map(item => new URL(item.url).hostname), [
+      'www.gov.br', 'betano.bet.br', 'novibet.bet.br', 'kto.bet.br', 'betao.bet.br', 'bet365.bet.br'
     ]);
     assert.match(catalogStatus.photoConfirmation, /18\+/);
     assert.equal(tabs.size, 1, 'Declining the adult confirmation must keep the gallery closed.');
+    const network = getSession();
+    const originalFetch = network.fetch;
+    try {
+      network.fetch = async () => ({ ok: true, text: async () => 'loc=BR\n' });
+      const regional = await home.executeJavaScript("window.aurora.command('open-shortcut', 'https://betano.bet.br/')");
+      assert.match(regional.error, /Brasil.*Portugal/);
+      const withoutMarket = await home.executeJavaScript("window.aurora.command('open-shortcut', 'https://kto.bet.br/')");
+      assert.match(withoutMarket.error, /KTO.*sem confirmação/);
+      assert.equal(tabs.size, 1, 'An unsupported region must leave the current tab open.');
+    } finally {
+      network.fetch = originalFetch;
+    }
     const priveStatus = await home.executeJavaScript(`(() => {
       const buttons = [...document.querySelectorAll('.portal-category')];
       const select = category => buttons.find(button => button.textContent === category).click();

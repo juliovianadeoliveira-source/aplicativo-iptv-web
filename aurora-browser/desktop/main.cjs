@@ -6,9 +6,10 @@ const os = require('node:os');
 const { pathToFileURL } = require('node:url');
 const { destination, safeURL, checkedWebURL, isTracker } = require('./policy.cjs');
 const { startProfileCleanup } = require('./profile-cleanup.cjs');
-const { regionalShortcutURL } = require('./jogos-region.cjs');
+const { regionalShortcut } = require('./jogos-region.cjs');
 const { items: portalItems } = require('./jstech-catalog.js');
 const regionalShortcuts = new Map(portalItems.filter(entry => entry.regionalUrls).map(entry => [entry.url, entry]));
+const regionNames = new Intl.DisplayNames('pt-BR', { type: 'region' });
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'aurora-private-'));
 app.setPath('userData', profile);
 app.setPath('sessionData', path.join(profile, 'session'));
@@ -163,16 +164,19 @@ ipcMain.handle('aurora-command', async (event, payload) => {
         const url = checkedWebURL(value);
         const entry = regionalShortcuts.get(url);
         if (!entry) { createTab(url); break; }
-        const targetTab = createTab();
-        if (!targetTab) break;
-        targetTab.title = entry.name;
-        targetTab.loading = true;
-        state();
-        const signal = regionalRequests.signal;
-        const target = await regionalShortcutURL(entry, browserSession, signal);
-        if (!signal.aborted && tabs.get(targetTab.id) === targetTab && !targetTab.url) {
-          navigate(targetTab, checkedWebURL(target));
+        if (!Object.keys(entry.regionalUrls).length) {
+          return { error: `Site ativo de ${entry.name} sem confirmação.` };
         }
+        const signal = regionalRequests.signal;
+        const target = await regionalShortcut(entry, browserSession, signal);
+        if (signal.aborted || !win || win.isDestroyed() || quitting) break;
+        if (!target.country) {
+          return { error: 'Consulta do país do IP indisponível. Tente abrir o atalho novamente.' };
+        }
+        if (!target.url) {
+          return { error: `O IP da conexão indica ${regionNames.of(target.country)}. O atalho de ${entry.name} atende ${entry.source}.` };
+        }
+        createTab(checkedWebURL(target.url));
         break;
       }
       case 'new': createTab(); break;

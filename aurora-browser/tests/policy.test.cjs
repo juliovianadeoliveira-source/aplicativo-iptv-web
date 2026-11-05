@@ -1,7 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { destination, safeURL, isTracker, searchURL } = require('../desktop/policy.cjs');
-const { regionalShortcutURL } = require('../desktop/jogos-region.cjs');
+const { regionalShortcut } = require('../desktop/jogos-region.cjs');
+const { items } = require('../desktop/jstech-catalog.js');
 test('blocks executable and local URLs', () => {
   for (const u of ['javascript:alert(1)', 'file:///etc/passwd', 'data:text/html,hello', 'intent://test', 'vbscript:hello']) {
     assert.equal(safeURL(u), false); assert.throws(() => destination(u));
@@ -23,17 +24,27 @@ test('search categories route to chosen provider', () => {
   const g = new URL(searchURL('tv', 'google', 'videos')); assert.equal(g.searchParams.get('tbm'), 'vid');
   assert.ok(searchURL('Nova Venécia', 'google', 'maps').startsWith('https://www.google.com/maps/search/'));
 });
-test('Jogos uses a regional official register and falls back to the Brazilian record', async () => {
-  const entry = {
-    url: 'https://www.gov.br/br',
-    regionalUrls: { PT: 'https://www.srij.turismodeportugal.pt/pt' }
-  };
+test('Jogos opens only the operator site listed for the detected country', async () => {
   const { signal } = new AbortController();
-  const session = country => ({ fetch: async () => ({ ok: true, text: async () => country }) });
-  assert.equal(await regionalShortcutURL(entry, session('colo=GRU\r\nloc=PT\r\n'), signal), entry.regionalUrls.PT);
-  assert.equal(await regionalShortcutURL(entry, session('colo=LIS\nloc=BR\n'), signal), entry.url);
-  assert.equal(await regionalShortcutURL(entry, session('colo=LIS\n'), signal), entry.url);
+  const session = trace => ({ fetch: async () => ({ ok: true, text: async () => trace }) });
+  const cases = [
+    ['Betano', 'PT', 'https://www.betano.pt/'],
+    ['Novibet', 'CY', 'https://www.novibet.com.cy/'],
+    ['Bet365', 'GB', 'https://www.bet365.com/'],
+    ['Bet365', 'CY', 'https://www.bet365.com.cy/']
+  ];
+  const shortcuts = items.filter(item => item.cat === 'Jogos' && item.regionalUrls);
+  for (const [name, country, url] of cases) {
+    const entry = shortcuts.find(item => item.name === name);
+    assert.deepEqual(await regionalShortcut(entry, session(`colo=GRU\r\nloc=${country}\r\n`), signal), { country, url });
+  }
+  for (const entry of shortcuts) {
+    assert.deepEqual(await regionalShortcut(entry, session('colo=LIS\nloc=BR\n'), signal), { country: 'BR', url: null });
+  }
+  const betano = shortcuts.find(item => item.name === 'Betano');
+  assert.deepEqual(await regionalShortcut(betano, session('colo=LIS\n'), signal), { country: null, url: null });
+  assert.deepEqual(await regionalShortcut(betano, session('loc=XX\n'), signal), { country: null, url: null });
   const offline = { fetch: async () => { throw new Error('offline'); } };
-  assert.equal(await regionalShortcutURL(entry, offline, signal), entry.url);
+  assert.deepEqual(await regionalShortcut(betano, offline, signal), { country: null, url: null });
 });
 

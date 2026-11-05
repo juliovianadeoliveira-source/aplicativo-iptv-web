@@ -40,34 +40,33 @@
       url: 'https://invivo.fiocruz.br/'
     },
   ];
-  const brazilianBetRegister = 'https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/transparencia-ativa-processos-de-autorizacao-de-apostas-de-quota-fixa/empresas-autorizadas';
-  const bettingRecords = new Map([
+  const bettingSites = new Map([
     ['betano.bet.br', {
-      source: 'Consulta oficial · Brasil e Portugal',
-      regionalUrls: { PT: 'https://www.srij.turismodeportugal.pt/pt/jogos-e-apostas-online/entidades-licenciadas#betano' }
+      source: 'Portugal',
+      regionalUrls: { PT: 'https://www.betano.pt/' }
     }],
     ['novibet.bet.br', {
-      source: 'Consulta oficial · Brasil e Chipre',
-      regionalUrls: { CY: 'https://nba.gov.cy/en/regulated-entities/registers/class-b/#:~:text=GAMART%20LIMITED' }
+      source: 'Chipre',
+      regionalUrls: { CY: 'https://www.novibet.com.cy/' }
     }],
-    ['kto.bet.br', { source: 'Histórico de autorização · Fazenda' }],
-    ['betao.bet.br', { source: 'Histórico de autorização · Fazenda' }],
+    ['kto.bet.br', { source: 'Site ativo sem confirmação', regionalUrls: {} }],
+    ['betao.bet.br', { source: 'Site ativo sem confirmação', regionalUrls: {} }],
     ['bet365.bet.br', {
-      source: 'Consulta oficial · Brasil e Grã-Bretanha',
-      regionalUrls: { GB: 'https://www.gamblingcommission.gov.uk/public-register/business/detail/55148' }
+      source: 'Grã-Bretanha e Chipre',
+      regionalUrls: { GB: 'https://www.bet365.com/', CY: 'https://www.bet365.com.cy/' }
     }]
   ]);
   const primary = data.primary.map(entry => {
     const host = new URL(entry.url).hostname.replace(/^www\./, '');
-    const record = bettingRecords.get(host);
-    if (!record) return entry;
+    const site = bettingSites.get(host);
+    if (!site) return entry;
     return {
       ...entry,
-      ...record,
-      desc: 'Operação encerrada no Brasil em outubro de 2026',
-      url: `${brazilianBetRegister}#:~:text=${host}`,
-      logoHost: host,
-      adult: false
+      ...site,
+      desc: Object.keys(site.regionalUrls).length
+        ? 'Abre o site da operadora na região atendida'
+        : 'Operação encerrada no Brasil em outubro de 2026',
+      url: `https://${host}/`
     };
   });
   const items = [

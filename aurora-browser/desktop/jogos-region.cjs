@@ -2,7 +2,7 @@
 
 const COUNTRY_TRACE = 'https://www.cloudflare.com/cdn-cgi/trace';
 
-async function regionalShortcutURL(entry, session, signal) {
+async function regionalShortcut(entry, session, signal) {
   try {
     const response = await session.fetch(COUNTRY_TRACE, {
       signal: AbortSignal.any([signal, AbortSignal.timeout(4500)]),
@@ -12,12 +12,14 @@ async function regionalShortcutURL(entry, session, signal) {
     });
     if (response.ok) {
       const country = /^loc=([A-Z]{2})\r?$/m.exec(await response.text())?.[1];
-      return entry.regionalUrls[country] ?? entry.url;
+      if (country && country !== 'XX') {
+        return { country, url: entry.regionalUrls[country] ?? null };
+      }
     }
   } catch {
-    // Use the Brazilian public record when the country lookup is unavailable.
+    // An unavailable country lookup cannot establish a regional destination.
   }
-  return entry.url;
+  return { country: null, url: null };
 }
 
-module.exports = { regionalShortcutURL };
+module.exports = { regionalShortcut };

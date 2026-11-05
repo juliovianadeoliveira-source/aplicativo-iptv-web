@@ -31,7 +31,7 @@ jobs:
         working-directory: aurora-browser/desktop
         env:
           AURORA_SMOKE_TEST: '1'
-        run: npx electron .
+        run: npm run test:runtime
       - name: Build installer and portable executable
         working-directory: aurora-browser/desktop
         env:
@@ -96,3 +96,4 @@ jobs:
             gh release create aurora-v0.1.0 --target "$GITHUB_SHA" --title 'Aurora 0.1.0 — prévia para Windows e Android' --prerelease --notes-file aurora-browser/README.md
           fi
           gh release upload aurora-v0.1.0 release-files/* --clobber
+

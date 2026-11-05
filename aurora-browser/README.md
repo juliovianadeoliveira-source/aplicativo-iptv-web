@@ -6,7 +6,7 @@ Aplicativo de navegação com abas, barra de endereço, voltar, avançar, atuali
 
 - Bloqueio básico de requisições de subrecursos por uma lista embarcada de domínios. Não é equivalente a um bloqueador completo com EasyList nem protege contra todo fingerprinting.
 - Sem SDK de analytics ou gravação de buscas no Supabase.
-- Windows: sessão em memória com cache desativado e perfil temporário. O perfil é removido no encerramento normal. Um encerramento forçado pode deixar resíduos no diretório temporário do sistema.
+- Windows: sessão em memória com cache desativado e perfil temporário. Um processo separado espera o navegador terminar e remove o perfil, inclusive depois de encerramentos forçados; tenta novamente enquanto o Windows libera arquivos em uso. Após queda de energia, perfis identificados pelo Aurora são removidos na próxima abertura, desde que o processo proprietário não esteja ativo. Isso não é apagamento forense e o sistema operacional pode manter registros próprios.
 - Android: cookies de terceiros bloqueados; cache, cookies e armazenamento de sites são limpos no início, ao limpar sessão e ao usar Fechar Aurora. Encerramentos pelo sistema podem deixar resíduos até a próxima inicialização. WebView e sistema operacional podem manter dados técnicos.
 - Não há histórico persistente, favoritos persistentes ou senhas salvas. Histórico de voltar/avançar existe durante a sessão.
 - Localização, câmera, microfone, notificações, downloads e envio de arquivos não são permitidos nesta prévia.
@@ -28,9 +28,11 @@ Windows ainda não tem certificado de assinatura de código. O APK é assinado c
 cd aurora-browser/desktop
 npm ci
 npm test
+npm run test:runtime
 npm start
 ```
 
 Build Windows: `npm run dist` em Windows. Build Android: Gradle 8.10.2, JDK 17, SDK 35; `gradle assembleDebug` em `aurora-browser/android`.
 
 `shared/trackers.txt` é copiado para o aplicativo desktop e para os assets Android antes do build. A função Supabase `aurora-release-info` entrega somente informações da versão; não recebe consultas ou histórico. A consulta de versão é manual, via página de downloads, e não é uma atualização automática.
+

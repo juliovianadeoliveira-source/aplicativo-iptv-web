@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const { pathToFileURL } = require('node:url');
 const { destination, safeURL, isTracker } = require('./policy.cjs');
+const { startProfileCleanup } = require('./profile-cleanup.cjs');
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'aurora-private-'));
 app.setPath('userData', profile);
 app.setPath('sessionData', path.join(profile, 'session'));
@@ -95,7 +96,12 @@ async function clean() {
   await browserSession.clearAuthCache(); await browserSession.closeAllConnections();
   createTab();
 }
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  try { await startProfileCleanup(profile); }
+  catch {
+    dialog.showErrorBox('Aurora', 'Não foi possível iniciar a limpeza automática dos dados temporários. Feche e abra o Aurora novamente.');
+    app.quit(); return;
+  }
   Menu.setApplicationMenu(null);
   browserSession = session.fromPartition('aurora-private', { cache: false });
   browserSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
@@ -165,3 +171,4 @@ app.on('before-quit', event => {
   Promise.allSettled([browserSession.clearStorageData(), browserSession.clearCache(), browserSession.clearAuthCache()]).finally(() => app.quit());
 });
 app.on('quit', () => { try { fs.rmSync(profile, { recursive: true, force: true }); } catch {} });
+
